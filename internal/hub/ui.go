@@ -106,6 +106,56 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#d8dde3}
  main{padding-left:10px;padding-right:10px}
  .provider-actions{grid-template-columns:1fr}
 }
+
+/* AhB workbench: restrained dark, comfortable touch targets and clear hierarchy. */
+:root{--bg:#101318;--panel:#181d24;--panel2:#1d232b;--line:#303741;--line2:#292f38;--text:#f3f5f7;--muted:#b0b9c5;--subtle:#86919f}
+main{max-width:1160px;padding-top:28px}
+.brand .mark{background:#e8eef6;color:#121821;border-color:#e8eef6;border-radius:10px;width:38px;height:38px}
+h1{font-size:20px}
+.kicker{font-size:12px}
+button,.btn{font-size:13px;min-height:38px}
+section{margin-top:27px}
+h2{font-size:15px}
+.section-head{margin-bottom:12px}
+.overview{padding:24px 0}
+.overview-title{font-size:20px;letter-spacing:-.03em}
+.desc{font-size:12px}
+.summary-item{padding:14px 17px}
+.summary-item b{font-size:19px}
+.providers,.table-wrap{box-shadow:0 1px 0 rgba(255,255,255,.015)}
+.card{padding:17px 18px}
+.provider-name{font-size:14px}
+.metrics .metric b{font-size:13px}
+.metrics .metric span{font-size:10px}
+th,td{font-size:12px}
+.section-note{font-size:12px;color:var(--muted);line-height:1.65}
+.quick-connect{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.5fr);gap:20px;padding:22px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.quick-connect p{margin:9px 0 0;font-size:12px;color:var(--muted);line-height:1.7}
+.eyebrow{font-size:10px;font-weight:720;text-transform:uppercase;letter-spacing:.12em;color:var(--subtle)}
+.quick-title{font-size:19px;font-weight:690;margin:9px 0 0;letter-spacing:-.02em}
+.quick-form{display:grid;gap:11px}
+.fieldrow{display:grid;grid-template-columns:minmax(0,.75fr) minmax(0,1.25fr);gap:11px}
+.field{display:grid;gap:6px;min-width:0}
+.field label{font-size:11px;font-weight:650;color:var(--muted)}
+.field select,.field input{width:100%;height:41px;background:#10151b;color:var(--text);border:1px solid #3d4651;border-radius:8px;padding:8px 11px;font:13px ui-sans-serif,system-ui}
+.field select:focus,.field input:focus{outline:2px solid #96b0cd;outline-offset:1px}
+.command-panel{display:grid;gap:8px}
+.command-box{border:1px solid var(--line);border-radius:8px;background:#0d1116;padding:11px;overflow-wrap:anywhere;font:12px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;color:#d8e6f5}
+.command-actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.command-help{font-size:11px;color:var(--subtle);line-height:1.6}
+.tip-error{color:#eb9aa1}
+.anchor-nav{display:flex;gap:8px;flex-wrap:wrap}
+.anchor-nav a{color:var(--muted);font-size:12px;text-decoration:none;border:1px solid var(--line);padding:7px 11px;border-radius:7px}
+.anchor-nav a:hover{color:var(--text);border-color:#687788}
+@media(max-width:820px),(hover:none) and (pointer:coarse){
+ main{padding-top:17px}
+ .quick-connect{grid-template-columns:1fr;padding:16px;gap:17px}
+ .overview-title{font-size:18px}
+ .field select,.field input{min-height:45px;font-size:16px}
+ .command-actions button{min-height:44px}
+ .quick-title{font-size:18px}
+}
+@media(max-width:390px){.fieldrow{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -117,6 +167,9 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#d8dde3}
  </div>
  <button id="refresh">重新整理</button>
 </header>
+<nav class="anchor-nav" aria-label="頁面捷徑" style="margin-top:15px">
+ <a href="#connect">連接來源</a><a href="#providersSection">服務狀態</a><a href="#modelsSection">模型目錄</a>
+</nav>
 
 <div class="overview">
  <div>
@@ -133,12 +186,44 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#d8dde3}
 <div id="error" class="notice"></div>
 <div id="warnings" class="notice"></div>
 
-<section>
+<section id="connect">
+ <div class="section-head"><div class="section-title"><h2>連接外部 API</h2><span class="count">Local bridges</span></div></div>
+ <div class="quick-connect">
+  <div>
+   <div class="eyebrow">Connect</div>
+   <div class="quick-title">新的來源，三個步驟就好。</div>
+   <p>選擇已在本機啟動的相容 API，填入連接埠，複製指令至 Termux 執行後重新啟動 AhB。既有帳號與原始管理介面不受影響。</p>
+   <p>AhB 不代替上游登入，也不負責自動繞過網站驗證。你可以連接自己的 LMArena、Windsurf、Kimi 或其他相容橋接服務。</p>
+  </div>
+  <div class="quick-form">
+   <div class="fieldrow">
+    <div class="field"><label for="bridgePreset">來源</label><select id="bridgePreset">
+      <option value="lmarena">LMArena</option><option value="windsurf">WindsurfAPI</option>
+      <option value="qwen">Qwen2API</option><option value="kimi">Kimi2API</option>
+      <option value="gemini">Gemini2API</option><option value="claude">Claude2API</option>
+      <option value="custom">其他相容服務</option>
+     </select></div>
+    <div class="field"><label for="bridgeURL">本機 API 地址</label><input id="bridgeURL" type="url" inputmode="url" spellcheck="false" value="http://127.0.0.1:5102" placeholder="http://127.0.0.1:5102"></div>
+   </div>
+   <div class="field" id="customIdField" style="display:none"><label for="customBridgeId">來源代號（小寫英文）</label><input id="customBridgeId" value="mybridge" maxlength="30" spellcheck="false"></div>
+   <div class="command-panel">
+    <div id="bridgeCommand" class="command-box" aria-live="polite"></div>
+    <div class="command-actions">
+     <button class="btn primary" id="copyBridge" type="button">複製連接指令</button>
+     <a class="btn" href="https://github.com/Tsenjii/AhB/blob/main/docs/BRIDGES.md" target="_blank" rel="noopener noreferrer">完整使用說明 ↗</a>
+    </div>
+    <div id="bridgeHint" class="command-help">前提：外部橋接服務已由你在相同手機上啟動並開放此連接埠。</div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section id="providersSection">
  <div class="section-head"><div class="section-title"><h2>Providers</h2><span id="providerReady" class="count">—</span></div></div>
  <div id="providers" class="providers"></div>
 </section>
 
-<section>
+<section id="modelsSection">
  <div class="section-head">
   <div><div class="section-title"><h2>Models</h2><span id="modelCount" class="count">—</span></div><div class="desc">目前可路由 Provider 回報的模型目錄。</div></div>
   <input id="search" class="search" placeholder="搜尋模型或 Provider">
@@ -216,6 +301,42 @@ document.getElementById('copyBase').addEventListener('click',async()=>{
  const btn=document.getElementById('copyBase'),text=document.getElementById('baseUrl').textContent;
  btn.textContent=(await copyText(text))?'已複製':'複製失敗';setTimeout(()=>btn.textContent='複製 Base URL',1200);
 });
+// No secrets are requested in the browser: bridge keys are configured locally
+// through the script's private environment, never embedded into a URL or page.
+const bridgeDefaults={lmarena:5102,windsurf:3003,qwen:8411,kimi:8000,gemini:5918,claude:8080,custom:8418};
+let previousPreset='lmarena';
+function updateBridgeCommand(){
+ const preset=document.getElementById('bridgePreset').value;
+ const id=preset==='custom'?document.getElementById('customBridgeId').value.trim():preset;
+ const address=document.getElementById('bridgeURL').value.trim();
+ const cmd=document.getElementById('bridgeCommand');
+ const hint=document.getElementById('bridgeHint');
+ const copy=document.getElementById('copyBridge');
+ const validID=/^[a-z][a-z0-9_-]{1,30}$/.test(id)&&id!=='route';
+ const urlMatch=address.match(/^http:\/\/(127\.0\.0\.1|localhost|\[::1\]):([0-9]{1,5})\/?$/);
+ const validURL=!!urlMatch&&Number(urlMatch[2])>0&&Number(urlMatch[2])<=65535;
+ const valid=validID&&validURL;
+ cmd.textContent=valid?'cd ~/AhB && ./scripts/connect-bridge.sh '+id+' '+address:'請輸入有效的來源代號和 127.0.0.1 本機連接埠。';
+ hint.textContent=valid?'儲存後重新啟動 AhB。此操作只連接已存在的橋接服務，不會幫你啟動外部服務。':'代號只能含小寫英文、數字、- 或 _；網址須為本機 HTTP 地址。';
+ hint.classList.toggle('tip-error',!valid);
+ copy.disabled=!valid;
+}
+document.getElementById('bridgePreset').addEventListener('change',function(){
+ const preset=this.value;
+ document.getElementById('bridgeURL').value='http://127.0.0.1:'+bridgeDefaults[preset];
+ document.getElementById('customIdField').style.display=preset==='custom'?'grid':'none';
+ previousPreset=preset;
+ updateBridgeCommand();
+});
+document.getElementById('bridgeURL').addEventListener('input',updateBridgeCommand);
+document.getElementById('customBridgeId').addEventListener('input',updateBridgeCommand);
+document.getElementById('copyBridge').addEventListener('click',async function(){
+ if(this.disabled)return;
+ const ok=await copyText(document.getElementById('bridgeCommand').textContent);
+ this.textContent=ok?'已複製':'複製失敗';
+ setTimeout(()=>this.textContent='複製連接指令',1400);
+});
+updateBridgeCommand();
 document.getElementById('baseUrl').textContent=location.origin+'/v1';
 refresh();setInterval(refresh,10000);
 </script>
