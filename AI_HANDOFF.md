@@ -1,5 +1,8 @@
 # AI HANDOFF — Android AI Hub (AhB)
 
+> **NEXT AI — READ FIRST (verified 2026-10-08):** [Current feature/platform audit](docs/CURRENT_FEATURES_AND_PLATFORMS_2026-10-08.md) is the authoritative, newly checked inventory. The **public Android ARM64 bundle has succeeded and is published at source `91c8da481d455d3df6ef888b18a8e3001b2eb83c`**, with [build](https://github.com/Tsenjii/AhB/actions/runs/37792105281) and [CI](https://github.com/Tsenjii/AhB/actions/runs/37792105269) both green. The user **has not upgraded their phone yet**; no new account/source authenticated inference tests have happened on-device. Some historical chronology farther below says "build pending"; those statements were correct at the time and are **now superseded** by this notice. Study the source at HEAD and this inventory, not stale past statuses.
+
+
 This file is the continuity anchor for future AI sessions. Read it before changing code.
 
 ## Source of truth
