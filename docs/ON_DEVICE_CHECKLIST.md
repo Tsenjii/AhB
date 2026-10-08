@@ -1,173 +1,101 @@
-# First Android / Termux validation
+# Android/Termux real-device verification checklist
 
-This checklist is for the first real Android run.
+This checklist supersedes the original source-build-first instructions. Use the pinned ARM64 prebuilt by default; compiling the optional Rust gateways on a phone is not a release-validation requirement.
 
-## 1. Clone
+## 1. First install or upgrade (choose the correct one)
 
-When the repository is public:
+**Fresh ARM64 Android / Termux install** (no existing `~/AhB`):
 
 ```sh
 pkg update
-pkg install -y git
-git clone https://github.com/Tsenjii/AhB.git
-cd AhB
-chmod +x scripts/*.sh
+pkg install -y curl
+curl -fsSL https://raw.githubusercontent.com/Tsenjii/AhB/main/scripts/install-prebuilt-termux.sh | bash
 ```
 
-## 2. Bootstrap default V1
+**Existing prebuilt AhB installation** (retain login data, local secrets and account databases):
 
 ```sh
-./scripts/bootstrap-termux.sh
+curl -fsSL https://raw.githubusercontent.com/Tsenjii/AhB/main/scripts/upgrade-prebuilt-termux.sh | bash
 ```
 
-This installs/builds:
+The upgrader verifies the archive checksum *before* touching the existing install. The previous tree is kept in a sibling timestamped `AhB.backup-YYYYMMDD-HHMMSS` directory. Keep it until smoke tests and real account inference pass. Do not delete `~/AhB/data` to troubleshoot a failed upgrade.
 
-- hubd
-- opencode2api
-- Freebuff2API
+## 2. Start and inspect
 
-It also creates local runtime configuration and random local secrets under `data/`.
-
-If FreeBuff compilation is too heavy:
+Start AhB in the foreground in one Termux session:
 
 ```sh
-AIHUB_CARGO_JOBS=1 ./scripts/bootstrap-termux.sh
-```
-
-To build the optional provider pack in the same pass:
-
-```sh
-AIHUB_WITH_AGENT2API=1 ./scripts/bootstrap-termux.sh
-```
-
-Or install it later:
-
-```sh
-./scripts/install-agent2api-termux.sh
-```
-
-## 3. Start
-
-First run in the foreground:
-
-```sh
+cd ~/AhB
 ./scripts/run-termux.sh
 ```
 
-In a second Termux session:
+From a **second** Termux session:
 
 ```sh
-cd AhB
+cd ~/AhB
 ./scripts/doctor-termux.sh
 ./scripts/smoke.sh
 ```
 
-Expected default providers:
-
-- OpenCode: HEALTHY
-- FreeBuff: HEALTHY
-- Agent2API: DISABLED unless installed
-
-## 4. Open the Hub UI
-
-Phone browser:
+Open the Hub overview on the same phone at:
 
 ```text
 http://127.0.0.1:8317/ui
 ```
 
-The page should show:
+Inspect provider state, readiness, account usability, model count and RSS. A provider with **no imported accounts** may correctly appear **DEGRADED**, rather than HEALTHY. Startup/HTTP health alone is not enough to establish inference readiness.
 
-- live total RSS and Hub RSS
-- one card per provider
-- status / model count / RSS / restart count
-- unified model table
-- button to open each provider's original UI
+## 3. Provider original UIs
 
-## 5. OpenCode UI
+| Provider | Local UI | Optional setup |
+|---|---|---|
+| OpenCode Free | `http://127.0.0.1:8404/` | account / key setup; username `admin`, local password below |
+| FreeBuff | `http://127.0.0.1:8402/ui` | import accounts via its own UI |
+| Agent2API | `http://127.0.0.1:8403/` | normally enabled when included in the prebuilt |
+| DeepSeek2API | `http://127.0.0.1:8405/admin` | `./scripts/enable-deepseek2api.sh` |
+| Grok2API | `http://127.0.0.1:8407/` | `./scripts/enable-grok2api.sh` |
+| Kiro-Go | `http://127.0.0.1:8408/admin` | `./scripts/enable-kiro-go.sh` |
 
-```text
-http://127.0.0.1:8404/
-```
-
-Username:
-
-```text
-admin
-```
-
-Generated password:
+OpenCode's generated local password:
 
 ```sh
-cat data/opencode/webui-password.txt
+cat ~/AhB/data/opencode/webui-password.txt
 ```
 
-Use the upstream UI for OpenCode proxies, keys, model availability, quotas, diagnostics and Playground.
+Do not paste passwords or account tokens into public issue reports. Recheck the Hub after adding accounts.
 
-## 6. FreeBuff UI
+## 4. Actual inference (not only a successful build)
 
-```text
-http://127.0.0.1:8402/ui
-```
-
-Use FreeBuff's own account import and management flow.
-
-## 7. Optional Agent2API UI
-
-After installing the optional pack:
-
-```text
-http://127.0.0.1:8403/
-```
-
-Use its existing UI to add supported personal accounts such as CodeArts, Qoder, Cline, Trae or Loomy.
-
-The local integration is loopback-only. Do not expose port 8403 while `AGENT2API_ALLOW_NO_KEY=1`.
-
-## 8. Test inference
-
-List current models:
+Get current usable model IDs:
 
 ```sh
-curl -s http://127.0.0.1:8317/v1/models
+curl -fsS http://127.0.0.1:8317/v1/models
 ```
 
-Test one model:
+Use an actual returned model ID, for example:
 
 ```sh
 AIHUB_TEST_MODEL='opencode/<actual-model-id>' ./scripts/test-chat.sh
 ```
 
-Repeat with `freebuff/...` and `agent2api/...` when those providers are configured.
+Repeat for configured `freebuff/`, `agent2api/`, and optional sources. Confirm:
 
-## 9. Verify restart supervision
+1. Model appears in `/v1/models` with the correct provider prefix.
+2. Actual chat output succeeds through the unified endpoint.
+3. SSE streaming delivers multiple chunks and ends normally.
+4. A full tool-call loop works: ask to read a file, provide tool output, then ask to edit/search/test and respond to the test result.
+5. API failure paths (bad model, upstream unavailable, exhausted account) produce useful error responses.
+6. One crashed sidecar is restarted without taking down healthy providers. Check restart count and RSS.
 
-```sh
-curl -s http://127.0.0.1:8317/api/providers
-```
+Cross-provider same-model balancing is disabled by default. Test only after confirming strict `provider/model` routing works.
 
-Kill one sidecar PID. Within several seconds it should return to HEALTHY with a new PID and a higher restart count.
-
-## 10. Background mode
-
-```sh
-./scripts/start-termux.sh
-```
-
-Stop:
+## 5. Report diagnostics without secrets
 
 ```sh
-./scripts/stop-termux.sh
-```
-
-## Failure report
-
-Capture only diagnostics, never credentials:
-
-```sh
+cd ~/AhB
 ./scripts/doctor-termux.sh
-tail -n 120 logs/hubd.log
-tail -n 120 logs/opencode.log
-tail -n 120 logs/freebuff.log
-tail -n 120 logs/agent2api.log 2>/dev/null || true
+curl -fsS http://127.0.0.1:8317/api/providers
+tail -n 100 logs/hubd.log
 ```
+
+Remove account identifiers, tokens and other secrets from logs before sharing. The following distinctions must be tracked separately: **Go tests**, **Android ARM64 binary built**, **Termux launch**, **real inference**, and **real tool calling**.
