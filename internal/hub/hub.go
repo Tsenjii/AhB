@@ -14,9 +14,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Tsenjii/android-ai-hub/internal/config"
-	"github.com/Tsenjii/android-ai-hub/internal/provider"
-	"github.com/Tsenjii/android-ai-hub/internal/sidecar"
+	"github.com/Tsenjii/AhB/internal/config"
+	"github.com/Tsenjii/AhB/internal/provider"
+	"github.com/Tsenjii/AhB/internal/sidecar"
 )
 
 const maxRequestBody = 32 << 20
