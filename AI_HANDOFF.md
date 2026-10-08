@@ -504,7 +504,7 @@ Integration target:
 
 Design:
 - preserve the original Grok2API management UI
-- build the Go backend for Android ARM64 with `CGO_ENABLED=0`
+- build the Go backend for Android ARM64 with Android NDK + `CGO_ENABLED=1` and `GODEBUG=netdns=cgo` (the previous no-CGO Android DNS assumption was superseded)
 - build the React frontend in CI; no Node runtime is needed on the phone
 - local secrets live only under ignored `data/grok2api/`
 - `scripts/enable-grok2api.sh` performs one-time localhost bootstrap and
@@ -580,3 +580,21 @@ curl -fsSL https://raw.githubusercontent.com/Tsenjii/AhB/main/scripts/upgrade-pr
 After upgrading, run `cd ~/AhB && ./scripts/run-termux.sh`; from a second Termux session run `./scripts/doctor-termux.sh && ./scripts/smoke.sh`. Keep the backup until account login, model discovery, inference and logs are checked.
 
 Avoid reintroducing speculative features, rewriting provider UIs, or quietly altering fallback defaults during this finalization phase.
+
+
+## Stability hardening follow-up (2026-10-08, post-release-review)
+
+The final source-level reliability pass after the earlier `ea52255` prebuilt baseline has been committed. Treat `main` and the Actions page as the authoritative HEAD; the prebuilt binary only reflects commits that actually completed the Android workflow.
+
+Corrections covered by Go tests and CI:
+- Android upgrader copies local account/SQLite databases **after stopping all AhB provider processes**, rather than while the database may be receiving writes. The upgrade fixture simulates a final shutdown-time write and proves it is copied, preserves backups and also checks checksum-failure behavior.
+- Opt-in same-model fallback examines each **alternate's advertised model list** before routing, and never substitutes an unrelated model ID merely because the alternate is healthy. The requested primary provider is not subject to that extra discovery call.
+- Account-backed Agent2API, FreeBuff, DeepSeek and Kiro services are not marked routable when independent account health is unknown, including a blank or malformed provider HTTP health body.
+- HTTP forwarding strips both fixed hop-by-hop headers and headers nominated by the `Connection` field. Streaming stops reading upstream when the downstream client disconnects.
+- Hub now reserves its listener **before** starting any sidecar, avoiding orphaned providers if the Hub port was already occupied. Shutdown cancels workers and waits for all supervised processes and health probes to exit. A new test covers worker teardown.
+- CI now runs Go unit/integration tests, race detector, vet/build, shell/JSON validation and the prebuilt upgrade simulation. These are necessary but **not sufficient** for real-device verification.
+- `docs/PROVIDERS.md` was updated to match Agent2API v2.9.6 and the included DeepSeek/Grok/Kiro/External provider slots.
+
+**Final validation gate:** Confirm the latest relevant Android Actions bundle run succeeded, and check `prebuilt/source-commit.txt` is the intended build's source commit. Only then offer it for optional real-phone trials. Green CI, arm64 cross-build, and fixture simulations do not establish Android login, streaming inference, original WebUI usability, token refresh, or real tool calling. Those must be exercised with the user's accounts and device. Avoid marking untested providers VERIFIED.
+
+No additional provider expansion or aggregator redesign is required at this stage.
