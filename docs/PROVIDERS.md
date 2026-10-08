@@ -1,65 +1,35 @@
-# Provider layout
+# AhB providers — current integration matrix
 
-## OpenCode Free
+This page describes provider **integration**, not proof of live account or inference success. Read [AI_HANDOFF.md](../AI_HANDOFF.md) for the latest source/CI/prebuilt revision and [ON_DEVICE_CHECKLIST.md](ON_DEVICE_CHECKLIST.md) for real Android test instructions.
 
-Runtime: `opencode2api v1.3.7`
+| AhB prefix | Upstream / version | Packaged in ARM64 prebuilt | Initial state | Original management UI |
+|---|---|---|---|---|
+| `opencode/` | [opencode2api v1.3.7](https://github.com/jasonxu114514/opencode2api) | yes | enabled | `127.0.0.1:8404/` |
+| `freebuff/` | [Freebuff2API v0.10.3](https://github.com/lza6/Freebuff-2API) | yes | enabled | `127.0.0.1:8402/ui` |
+| `agent2api/` | [Agent2API v2.9.6](https://github.com/aimod-cc/agent2api) | yes | enabled by prebuilt installer when complete | `127.0.0.1:8403/` |
+| `deepseek/` | [Deepseek2API](https://github.com/zengtao227/Deepseek2API) pinned source | yes | disabled | `127.0.0.1:8405/admin` |
+| `grok/` | [Grok2API](https://github.com/chenyme/grok2api) pinned source | yes | disabled | `127.0.0.1:8407/` |
+| `kiro/` | [Kiro-Go](https://github.com/Quorinex/Kiro-Go) pinned source | yes | disabled | `127.0.0.1:8408/admin` |
+| `lmarena/` | separate user-supplied localhost bridge | **no bridge bundled** | disabled external slot | depends on bridge |
 
-Hub prefix: `opencode/`
+Run optional enable scripts from `~/AhB`: `scripts/enable-deepseek2api.sh`, `scripts/enable-grok2api.sh`, `scripts/enable-kiro-go.sh`, or `scripts/enable-lmarena-external.sh`; restart AhB after an enable operation. Never expose the upstream management UIs or an unauthenticated Agent2API port to a LAN or the public internet.
 
-Management UI: `http://127.0.0.1:8404/`
+## What the upstream management UIs own
 
-The Hub enables the upstream WebUI and generates a random local admin password during first setup. The password is stored in `data/opencode/webui-password.txt`.
+- Account import/login, provider-internal account pool and rotation
+- Account balances, quota usage, authentication and refresh
+- Provider-local proxy configuration, rate limits and retries
+- Provider-specific model visibility, testing, Playground, diagnostics
 
-Use the upstream UI for:
+AhB intentionally **does not** replicate that internal management logic. It supervises provider processes, exposes a unified `/v1` API with namespaced model IDs, and shows process/readiness/account states, model lists and memory usage in a phone-friendly foyer.
 
-- Zen / Go keys
-- anonymous/free model state
-- proxy configuration
-- quota
-- Playground
-- diagnostics
-- logs
-- model availability
-- local gateway keys
+Agent2API v2.9.6 manages `workbuddy` (domestic) and `workbuddy-intl` (international) as separate account/provider identities inside Agent2API. AhB presents them through its `agent2api/` service prefix, not as separately launched processes.
 
-## FreeBuff
+## Verified vs unverified
 
-Runtime: `Freebuff2API v0.10.3`
+- AhB Go unit/integration tests cover routing, model rewriting, credential header stripping, forwarding, simulated failures, account health, restarts and related control logic.
+- CI builds the Android ARM64 bundle and checks installation/upgrade fixture behavior; it cannot prove the external account API works on a real phone.
+- DeepSeek2API, Grok2API and Kiro-Go still require **real Android launch, account import, live model discovery, inference, streaming and tool-calling tests** before they are called real-device verified.
+- No automatic signup, CAPTCHA avoidance, or restriction circumvention is part of AhB.
 
-Hub prefix: `freebuff/`
-
-Management UI: `http://127.0.0.1:8402/ui`
-
-Use the upstream UI for:
-
-- account import
-- account pool health
-- quotas / usage
-- proxy
-- model routing
-- Playground
-- logs and diagnostics
-
-The Hub does not duplicate FreeBuff's SQLite/account logic.
-
-## Agent2API optional pack
-
-Runtime: `agent2api-server v2.9.5`
-
-Hub prefix: `agent2api/`
-
-Management UI: `http://127.0.0.1:8403/`
-
-Install on Termux:
-
-```sh
-./scripts/install-agent2api-termux.sh
-```
-
-This is intentionally optional because its Rust build is much larger than the default two-provider V1.
-
-The upstream currently contains adapters for personal accounts including CodeArts, Qoder, Cline, Trae, Loomy, AutoClaw, Accio, ZCode and others. The exact supported list is controlled by the upstream project and may change.
-
-For this local V1 integration Agent2API is bound to `127.0.0.1` and `AGENT2API_ALLOW_NO_KEY=1` is used so the Hub can call it without storing another API secret. Do not expose port 8403 to LAN or the Internet in this mode.
-
-This project does not add bulk-account creation or anti-abuse bypass behavior.
+For actual versions, use the pinned commits in [the Android workflow](../.github/workflows/build-android-arm64.yml), not floating upstream branches.
