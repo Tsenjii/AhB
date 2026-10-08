@@ -15,6 +15,8 @@ Optional provider pack:
 - **DeepSeek2API** — optional DeepSeek Web multi-account sidecar with its original admin UI, OpenAI/Anthropic/Responses compatibility, tool calling and provider-internal account pooling.
 - **Grok2API** — optional Grok Build / Web / Console multi-account sidecar with its original management UI, quota/model sync, OpenAI/Anthropic/Responses support and media features.
 - **Kiro-Go** — optional Kiro multi-account sidecar with its original Web admin, automatic token refresh, OpenAI/Anthropic/Responses endpoints and account-level proxy support.
+- **GitHub Copilot (new opt-in Go sidecar)** — native ARM64 build wired to the bundle; use your own authorized GitHub Copilot Device Flow login, then enable. The binary has no built-in API-key authentication, so it remains localhost only. Real Android inference verification still required.
+- **Kimi Web (new optional Termux installer)** — `chopper1026/kimi2api` account-pool backend and WebUI with local-only credentials and explicit opt-in; Python/Node dependencies are installed *only on request*, not in the base archive. Android installation/login/inference unverified.
 - **External localhost bridges** — a universal attach tool and phone-first connection wizard for **LMArena, WindsurfAPI, Qwen2API, Kimi2API, Gemini2API, Claude2API**, and any custom local OpenAI-compatible service. These run separately; AhB connects to their local HTTP APIs but does not claim to install or operate the external bridge.
 
 The Hub itself stays small. Provider-specific login, account pools, quota logic, proxy settings and diagnostics remain inside the upstream adapters.
@@ -34,6 +36,8 @@ agent2api/<model>
 deepseek/<model>
 grok/<model>
 kiro/<model>
+copilot/<model>  # once enabled
+kimiweb/<model>  # after optional Termux install and enable
 lmarena/<model>
 windsurf/<model>
 qwen/<model>
@@ -224,3 +228,26 @@ admin. It stays disabled until requested:
 AhB binds it to `127.0.0.1:8408`, supplies a local API key, and reads its
 authenticated `/v1/stats` account totals so an empty account pool is not
 treated as routable.
+
+## New optional account-backed adapters (build/package status must be checked)
+
+```sh
+cd ~/AhB
+
+# Copilot: lightweight native Go sidecar; requires a valid Copilot entitlement.
+./scripts/login-copilot2api.sh
+# Authorize with GitHub Device Flow, then Ctrl+C.
+./scripts/enable-copilot2api.sh
+./scripts/stop-termux.sh && ./scripts/start-termux.sh
+
+# Kimi Web: separate optional Python/React install; not part of base archive.
+./scripts/install-kimiweb-termux.sh
+./scripts/enable-kimiweb-termux.sh
+./scripts/stop-termux.sh && ./scripts/start-termux.sh
+```
+
+The Kimi Web native admin is `http://127.0.0.1:8412/admin`. Its password is stored privately in `data/kimiweb/admin-password.txt`. The `kimiweb/` managed adapter is separate from the original `kimi/` connection preset. Avoid adding duplicate account sources or auto-starting every service; optional providers are disabled by default. See [curated installation and optimization plan](docs/TO_API_INSTALL_AND_OPTIMIZATION_PLAN.md).
+
+**Source status is distinct from usage entitlement:** a HEALTHY process, two configured credentials or a listed model do not prove quota availability. In the user's Android smoke test Agent2API returned HTTP 503 from two exhausted accounts. Treat provider quota and real inference as separate checks.
+
+All previously found and future To-API candidates belong in the [living registry](docs/TO_API_REGISTRY.json), with explicit statuses, direct project URLs, validation steps and a history-preserving update policy.
