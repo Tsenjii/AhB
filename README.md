@@ -33,8 +33,12 @@ Supported proxy endpoints:
 
 - `GET /v1/models`
 - `POST /v1/chat/completions`
+- `POST /v1/completions`
+- `POST /v1/embeddings`
 - `POST /v1/responses`
 - `POST /v1/messages`
+- `POST /v1/messages/count_tokens`
+- `POST /v1/systemone`
 
 ## UI
 
@@ -54,7 +58,29 @@ Each healthy provider has a **管理原本 UI** button:
 
 The Hub intentionally does not duplicate the upstream management consoles.
 
-## Termux install
+## Fastest Android install
+
+For an ARM64 Android phone, no GitHub login and no on-device Rust/Go compilation are required:
+
+```sh
+pkg update
+pkg install -y curl
+curl -fsSL https://raw.githubusercontent.com/Tsenjii/AhB/main/scripts/install-prebuilt-termux.sh | bash
+cd ~/AhB
+./scripts/run-termux.sh
+```
+
+The installer downloads the public `prebuilt` branch bundle, verifies its SHA-256 checksum, prepares local secrets, and enables Agent2API when its prebuilt binary is present.
+
+The public ARM64 bundle is rebuilt by GitHub Actions from pinned upstream versions and currently contains:
+
+- `hubd`
+- `opencode2api`
+- `Freebuff2API`
+- `agent2api-server`
+- Agent2API's original management UI
+
+## Termux install from source
 
 ```sh
 chmod +x scripts/*.sh
