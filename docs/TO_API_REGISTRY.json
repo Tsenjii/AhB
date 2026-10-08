@@ -1,0 +1,371 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-10-08",
+  "purpose": "Living source-of-truth for AhB account-backed To-API providers; source lists are not proof of working phone inference.",
+  "status_definitions": {
+    "bundled_verified": "Actually packaged and successfully live-tested on Android",
+    "bundled_needs_account": "Packaged, account requirement not satisfied on device",
+    "bundled_quota_blocked": "Packaged, account credentials present but known quota-exhaustion failure",
+    "bundled_unverified": "Actually packaged, device inference not yet verified",
+    "new_bundled_pending_build": "Source wired for Android prebuilt, build publication and device verification pending",
+    "new_optional_installer_unverified": "Opt-in runtime installer script exists; no phone package/runtime success confirmed",
+    "connector_only": "UI/CLI may configure an already-running third-party service but does NOT install it",
+    "research_unverified": "Candidate researched but not integrated",
+    "research_alternative": "Overlaps existing candidate/source, keep for fallback",
+    "hold_desktop": "Desktop-specific runtime or browser requirement",
+    "hold_aggregator": "Not aligned with AhB account-oriented architecture",
+    "rejected_deprecated": "Explicitly broken/unmaintained"
+  },
+  "criteria": [
+    "Authorized individual account access",
+    "Real Android ARM64 start",
+    "OpenAI/Anthropic compatible models & chat",
+    "Non-stream and SSE integration",
+    "Credential secrecy and loopback-only listeners",
+    "Account availability vs quota-available truth",
+    "Easy installation and non-destructive upgrade",
+    "Maintainable upstream with redistribution permission"
+  ],
+  "candidates": [
+    {
+      "id": "opencode",
+      "name": "OpenCode Zen / Go",
+      "url": "https://github.com/jasonxu114514/opencode2api",
+      "status": "bundled_verified",
+      "priority": "P0",
+      "notes": "Bundled; real Android OpenCode inference and streaming validated.",
+      "verified_live_android": true,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "freebuff",
+      "name": "FreeBuff / CodeBuff",
+      "url": "https://github.com/lza6/Freebuff-2API",
+      "status": "bundled_needs_account",
+      "priority": "P0",
+      "notes": "Bundled; zero active accounts in device report.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "agent2api",
+      "name": "Agent2API WorkBuddy and friends",
+      "url": "https://github.com/aimod-cc/agent2api",
+      "status": "bundled_quota_blocked",
+      "priority": "P0",
+      "notes": "Bundled; two credentialed accounts but actual HTTP 503 due low quota.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "deepseek",
+      "name": "DeepSeek Web (Go)",
+      "url": "https://github.com/zengtao227/Deepseek2API",
+      "status": "bundled_unverified",
+      "priority": "P0",
+      "notes": "Bundled but disabled; complete real-account inference tests first.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "grok",
+      "name": "Grok2API",
+      "url": "https://github.com/chenyme/grok2api",
+      "status": "bundled_unverified",
+      "priority": "P1",
+      "notes": "Bundled optional, needs real Android test.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "kiro",
+      "name": "Kiro-Go",
+      "url": "https://github.com/Quorinex/Kiro-Go",
+      "status": "bundled_unverified",
+      "priority": "P1",
+      "notes": "Bundled optional, needs real Android test.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "copilot",
+      "name": "GitHub Copilot minimal Go",
+      "url": "https://github.com/whtsky/copilot2api",
+      "status": "new_bundled_pending_build",
+      "priority": "P1",
+      "notes": "New source code sidecar with optional OAuth, subject to CI ARM64 build and real device test; one account.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "kimiweb",
+      "name": "Kimi Web multi-account",
+      "url": "https://github.com/chopper1026/kimi2api",
+      "status": "new_optional_installer_unverified",
+      "priority": "P1",
+      "notes": "New isolated Termux Python/React installer and disabled managed sidecar; Python dependency availability on Android unverified.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "lmarena",
+      "name": "LMArena Bridge",
+      "url": "https://github.com/Lianues/LMArenaBridge",
+      "status": "connector_only",
+      "priority": "P2",
+      "notes": "Needs browser-assisted Python bridge; Android support unconfirmed.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "windsurf",
+      "name": "WindsurfAPI",
+      "url": "https://github.com/dwgx/WindsurfAPI",
+      "status": "connector_only",
+      "priority": "P2",
+      "notes": "Needs separate supported Node desktop-language server runtime.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "qwen",
+      "name": "Qwen2API Go",
+      "url": "https://github.com/XxxXTeam/Qwen2API_Go",
+      "status": "connector_only",
+      "priority": "P2",
+      "notes": "Go account-pool candidate but license not located; no redistributed binary.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "kimi",
+      "name": "Kimi Web generic local preset",
+      "url": "https://github.com/chopper1026/kimi2api",
+      "status": "connector_only",
+      "priority": "P2",
+      "notes": "External preset for independently running Python bridge, separate from kimiweb managed sidecar.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "gemini",
+      "name": "Gemini2API Python",
+      "url": "https://github.com/xwteam/gemini2api",
+      "status": "connector_only",
+      "priority": "P2",
+      "notes": "External /openai/v1 models path handled, not packaged.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "claude",
+      "name": "Claude2API Go",
+      "url": "https://github.com/yushangxiao/claude2api",
+      "status": "connector_only",
+      "priority": "P2",
+      "notes": "External bridge preset, own credentials required.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "copilot_pool",
+      "name": "Copilot API Go (multi-account)",
+      "url": "https://github.com/StarryKira/copilot2api-go",
+      "status": "research_alternative",
+      "priority": "P2",
+      "notes": "Official SDK, web UI and pool but more dependencies and standalone license unresolved.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "copilot_cli",
+      "name": "Copilot Proxy Go",
+      "url": "https://github.com/tonghaoch/copilot-proxy-go",
+      "status": "research_alternative",
+      "priority": "P2",
+      "notes": "Alternative adapter; do not bundle alongside another Copilot service without meaningful benefit.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "kimiweb_simple",
+      "name": "Kimi2API simple FastAPI",
+      "url": "https://github.com/XxxXTeam/kimi2api",
+      "status": "research_alternative",
+      "priority": "P2",
+      "notes": "Smaller Python alternative to multi-account Kimiweb.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "kimicode_go",
+      "name": "Kimi Code OAuth Go",
+      "url": "https://github.com/xaionaro-go/kimi-oauth-proxy",
+      "status": "research_unverified",
+      "priority": "P2",
+      "notes": "Different entitlement from Kimi Web; little project history, no redistribution license found.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "kimicode_bun",
+      "name": "Kimi Code Bun",
+      "url": "https://github.com/PixelMelt/kimi-proxy",
+      "status": "research_unverified",
+      "priority": "P3",
+      "notes": "Bun dependency and different login entitlement from Web.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "qwen_node_dead",
+      "name": "Qwen Code OAuth Node proxy",
+      "url": "https://github.com/aptdnfapt/qwen-code-oai-proxy",
+      "status": "rejected_deprecated",
+      "priority": "REJECT",
+      "notes": "README explicitly says DEPRECATED/DEAD, upstream account 401 errors.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "deepseek_node",
+      "name": "DeepSeek Node alternative",
+      "url": "https://github.com/Sakura520222/deepseek2api",
+      "status": "research_alternative",
+      "priority": "P3",
+      "notes": "Pure Node alternative; use only if existing Go backend fails.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "deepseek_web_multisite",
+      "name": "DeepSeek Kimi Qwen browser proxy",
+      "url": "https://github.com/PruhaNLP/web-to-api",
+      "status": "hold_desktop",
+      "priority": "HOLD",
+      "notes": "Playwright/Chromium browser dependency, heuristic tools and desktop session management.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "webtoapi_gateway",
+      "name": "WebtoAPI Gateway",
+      "url": "https://github.com/delmacy/webtoapi-gateway",
+      "status": "hold_desktop",
+      "priority": "HOLD",
+      "notes": "Bun/Playwright-heavy and mostly duplicate aggregator.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "glm_web",
+      "name": "GLM2API",
+      "url": "https://github.com/XxxXTeam/glm2api",
+      "status": "research_unverified",
+      "priority": "P2",
+      "notes": "Python GLM Web account adapter; account/protocol/Termux tests needed.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "autoclaw_glm",
+      "name": "AutoClaw GLM Proxy",
+      "url": "https://github.com/eequaled/GLM_proxy",
+      "status": "hold_desktop",
+      "priority": "HOLD",
+      "notes": "Requires AutoClaw desktop Windows/macOS.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "mimo_web",
+      "name": "MiMo2API web",
+      "url": "https://github.com/Fly143/MiMo2API",
+      "status": "research_unverified",
+      "priority": "P2",
+      "notes": "Python multi-account and UI; validate legitimate account eligibility and Android dependencies.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "mimo_code",
+      "name": "MiMo2API desktop OAuth",
+      "url": "https://github.com/IMROVOID/MiMo2API",
+      "status": "hold_desktop",
+      "priority": "HOLD",
+      "notes": "Requires authenticated MiMo Desktop session.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "mimo_small",
+      "name": "MiMo2API minimal",
+      "url": "https://github.com/Water008/MiMo2API",
+      "status": "research_alternative",
+      "priority": "P3",
+      "notes": "Minimal alternative, needs account/endpoint audit.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "codex_oauth",
+      "name": "Codex OAuth Go Proxy",
+      "url": "https://github.com/dvcrn/codex-oauth-proxy",
+      "status": "research_unverified",
+      "priority": "P2",
+      "notes": "Requires authorized Codex CLI login, no proven Android compatibility.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "codex_pool",
+      "name": "ChatGPT Codex multi-account Go",
+      "url": "https://github.com/10/chatgpt-codex-proxy",
+      "status": "research_unverified",
+      "priority": "P3",
+      "notes": "Private backend API; risk of breakage, license and Android packaging audit.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "codex_rust",
+      "name": "Codex Proxy Rust",
+      "url": "https://github.com/thezillo/codex-proxy",
+      "status": "research_unverified",
+      "priority": "P3",
+      "notes": "Linux 3 MiB RAM claim is not an Android measurement.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "cli_proxy",
+      "name": "CLIProxyAPI",
+      "url": "https://github.com/router-for-me/CLIProxyAPI",
+      "status": "hold_aggregator",
+      "priority": "HOLD",
+      "notes": "Broad multi-account proxy but duplicates AhB/ModelAtlas control planes.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "cursor_node",
+      "name": "Cursor API Proxy",
+      "url": "https://github.com/anyrobert/cursor-api-proxy",
+      "status": "hold_desktop",
+      "priority": "HOLD",
+      "notes": "Requires Cursor Agent CLI not confirmed Android.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "cursor_bun",
+      "name": "Cursor Agent runner",
+      "url": "https://github.com/code-yeongyu/cursor-proxy",
+      "status": "hold_desktop",
+      "priority": "HOLD",
+      "notes": "Requires Cursor CLI and Bun runtime.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    }
+  ]
+}
