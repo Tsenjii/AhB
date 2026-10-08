@@ -6,7 +6,7 @@ trap 'rm -rf "$TMP"' EXIT
 
 cat > "$TMP/curl" <<'MOCK'
 #!/usr/bin/env bash
-printf '%s' '${FAKE_FREEBUFF_STATUS:-200}'
+printf '%s' "${FAKE_FREEBUFF_STATUS:-200}"
 if [ -n "${FAKE_FREEBUFF_BODY:-}" ]; then
   for ((i=1;i<=$#;i++)); do
     if [ "${!i}" = "-o" ]; then
