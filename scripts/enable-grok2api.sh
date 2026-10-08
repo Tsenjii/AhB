@@ -1,5 +1,6 @@
 #!/data/data/com.termux/files/usr/bin/bash
 set -euo pipefail
+umask 077
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
@@ -62,9 +63,18 @@ client_key=""
 if [ -s "$CLIENT_KEY_FILE" ]; then
   candidate="$(tr -d '\r\n' < "$CLIENT_KEY_FILE")"
   auth_code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 5     -H "Authorization: Bearer $candidate" "$BASE/v1/models" 2>/dev/null || true)"
-  if [ "$auth_code" = "200" ]; then
-    client_key="$candidate"
-  fi
+  case "$auth_code" in
+    200)
+      client_key="$candidate"
+      ;;
+    401|403)
+      echo "Previously saved Grok client key was rejected (HTTP $auth_code); reissuing through the local authenticated admin API." >&2
+      ;;
+    *)
+      echo "Existing Grok key validation inconclusive (HTTP $auth_code). Preserving the key and current configuration; no replacement will be created." >&2
+      exit 1
+      ;;
+  esac
 fi
 
 if [ -z "$client_key" ]; then
@@ -87,11 +97,14 @@ if [ -z "$client_key" ]; then
   chmod 600 "$CLIENT_KEY_FILE"
 fi
 
-tmp="$(mktemp)"
+tmp="$(mktemp "$ROOT/.grok-enable.XXXXXX")"
+trap 'rm -f "$tmp"' EXIT
 jq --arg key "$client_key" '
   (.providers[] | select(.id == "grok") | .enabled) = true
   | (.providers[] | select(.id == "grok") | .headers.Authorization) = ("Bearer " + $key)
 ' config.json > "$tmp"
+jq -e '.providers[] | select(.id == "grok" and .enabled == true and .kind == "sidecar")' "$tmp" >/dev/null
+cp -p config.json data/grok2api/config-before-enable.json
 mv "$tmp" config.json
 chmod 600 config.json
 
