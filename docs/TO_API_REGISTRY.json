@@ -426,6 +426,116 @@
       "notes": "Official login and documented server API; its experimental REST server is not a ready-made OpenAI Chat Completions bridge, can inform quota and OAuth behavior.",
       "verified_live_android": false,
       "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "gpt_codex_go_pool",
+      "name": "ChatGPT Codex OAuth multi-account Go",
+      "url": "https://github.com/10/chatgpt-codex-proxy",
+      "status": "research_unverified",
+      "priority": "P1",
+      "notes": "Go 1.26.8. Device OAuth, native OpenAI/Anthropic/Responses/stream/tools and model/account quota-aware routing claimed; PRIVATE upstream API can break. Priority candidate only after authorized device login, tool-cycle verification, stable health and MIT license audit.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "gpt_codex_go_mcp",
+      "name": "Codex OAuth API + MCP Go",
+      "url": "https://github.com/dvcrn/codex-oauth-proxy",
+      "status": "research_unverified",
+      "priority": "P1",
+      "notes": "Go 1.25.7, MIT; Chat/Responses plus stateless MCP ask_codex. Requires existing authorized Codex CLI login on normal local runtime. MCP tools are one-shot model invocations, NOT full external function-call continuations. Android CLI credential handling unverified.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "gpt_codex_go_minimal",
+      "name": "CodexProxy lean Go",
+      "url": "https://github.com/MortalImmortality/CodexProxy",
+      "status": "research_unverified",
+      "priority": "P2",
+      "notes": "Go 1.25, lean dependencies, explicit native tool calls and multi-account routing documented; Android OAuth, project license, streaming/full tool cycle not checked.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "gpt_codex_py_minimal",
+      "name": "Codex OpenAI proxy Python",
+      "url": "https://github.com/anxkhn/codex-openai-proxy",
+      "status": "research_alternative",
+      "priority": "P3",
+      "notes": "FastAPI minimal OAuth/PKCE, Chat/Responses/usage, separate Python overhead on Termux; not the preferred lightweight Go candidate.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "gpt_codex_rust_small",
+      "name": "Codex standalone minimal Rust",
+      "url": "https://github.com/thezillo/codex-proxy",
+      "status": "research_unverified",
+      "priority": "P3",
+      "notes": "Already known; single binary, Linux RSS claimed tiny; actual Android build and tool-cycle not tested.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "gpt_web_mcp_cdp",
+      "name": "ChatGPT Web MCP/CDP",
+      "url": "https://github.com/FirstWari/chatgpt-web",
+      "status": "hold_desktop",
+      "priority": "HOLD",
+      "notes": "Operates logged-in Chromium browser over CDP, conversation and attachments as MCP actions; NOT OpenAI-native inference tool-calling and not lightweight Android sidecar.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "gpt_web2api_mcp",
+      "name": "ChatGPT-Web2API browser REST + MCP",
+      "url": "https://github.com/Octo-Lex/ChatGPT-Web2API",
+      "status": "hold_desktop",
+      "priority": "HOLD",
+      "notes": "Python/Chrome/CDP browser-driven REST and MCP; UI selector fragility, login and browser footprint; not a stable Android first-class adapter.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "gpt_web_playwright",
+      "name": "ChatGPT API Web local browser",
+      "url": "https://github.com/MrBalourd/chatgpt-api-web",
+      "status": "hold_desktop",
+      "priority": "HOLD",
+      "notes": "Chrome/Playwright persistent browser with OpenAI-style endpoints, explicit selector breakage disclaimer.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "gpt_web_chrome_extension",
+      "name": "ChatGPT Bridge MCP Chrome extension",
+      "url": "https://github.com/ysbiyiklioglu/ChatGPT-Bridge",
+      "status": "hold_desktop",
+      "priority": "HOLD",
+      "notes": "MCP->Chromium extension for web session; desktop/browser dependency, not true LLM SDK native tools.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "gpt_web_browser_provider",
+      "name": "ChatGPT Web Provider browser",
+      "url": "https://github.com/guberm/chatgpt-web-provider",
+      "status": "hold_desktop",
+      "priority": "HOLD",
+      "notes": "Python browser worker; upstream warns not real token streaming and no full MCP tool loop; do not use for OpenCode-equivalent production.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "gpt_web_multisite",
+      "name": "ChatGPT Web Grok Gemini API",
+      "url": "https://github.com/zqbxdev/webchat2api",
+      "status": "hold_aggregator",
+      "priority": "HOLD",
+      "notes": "FastAPI+Next frontend GPT/Grok/Gemini web pools, significant code size and duplicates AhB broad aggregator role; unsafe default admin key if unconfigured.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
     }
   ]
 }
