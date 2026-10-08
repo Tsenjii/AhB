@@ -168,7 +168,7 @@ th,td{font-size:12px}
  <button id="refresh">重新整理</button>
 </header>
 <nav class="anchor-nav" aria-label="頁面捷徑" style="margin-top:15px">
- <a href="#connect">連接來源</a><a href="#providersSection">服務狀態</a><a href="#modelsSection">模型目錄</a>
+ <a href="#optional">選裝來源</a><a href="#connect">連接來源</a><a href="#providersSection">服務狀態</a><a href="#modelsSection">模型目錄</a>
 </nav>
 
 <div class="overview">
@@ -186,6 +186,29 @@ th,td{font-size:12px}
 <div id="error" class="notice"></div>
 <div id="warnings" class="notice"></div>
 
+<section id="optional">
+ <div class="section-head"><div class="section-title"><h2>選裝來源</h2><span class="count">Install locally, opt in</span></div></div>
+ <div class="quick-connect">
+  <div>
+   <div class="eyebrow">Optional packages</div>
+   <div class="quick-title">有帳號才啟用，減少手機負擔。</div>
+   <p>Copilot 是隨新版預編譯包附帶的輕量 Go 程式；登入需在 Termux 完成 GitHub Device Flow。Kimi Web 是另外安裝的 Python 帳號池；兩者都不會預設啟用。</p>
+   <p>這裡只會複製安裝指令，並不會在瀏覽器執行任何命令或取得帳號金鑰。</p>
+  </div>
+  <div class="quick-form">
+   <div class="command-panel"><div class="field"><label>GitHub Copilot · 授權登入後按 Ctrl+C</label></div>
+    <div class="command-box" id="copilotInstallCommand">cd ~/AhB && ./scripts/login-copilot2api.sh</div>
+    <div class="command-actions"><button type="button" id="copyCopilotInstall">複製登入指令</button></div>
+    <div class="command-help">登入後執行 ./scripts/enable-copilot2api.sh 再重新啟動 AhB。</div>
+   </div>
+   <div class="command-panel"><div class="field"><label>Kimi Web · 額外安裝 Python/React 環境</label></div>
+    <div class="command-box" id="kimiInstallCommand">cd ~/AhB && ./scripts/install-kimiweb-termux.sh &amp;&amp; ./scripts/enable-kimiweb-termux.sh &amp;&amp; ./scripts/stop-termux.sh &amp;&amp; ./scripts/start-termux.sh</div>
+    <div class="command-actions"><button type="button" id="copyKimiInstall">複製安裝指令</button></div>
+    <div class="command-help">需要 Python 依賴和合法可用的 Kimi 帳號；手機端安裝與推理尚未驗證。</div>
+   </div>
+  </div>
+ </div>
+</section>
 <section id="connect">
  <div class="section-head"><div class="section-title"><h2>連接外部 API</h2><span class="count">Local bridges</span></div></div>
  <div class="quick-connect">
@@ -225,7 +248,7 @@ th,td{font-size:12px}
 
 <section id="modelsSection">
  <div class="section-head">
-  <div><div class="section-title"><h2>Models</h2><span id="modelCount" class="count">—</span></div><div class="desc">目前可路由 Provider 回報的模型目錄。</div></div>
+  <div><div class="section-title"><h2>Models</h2><span id="modelCount" class="count">—</span></div><div class="desc">Provider 回報的模型清單；出現在此不代表帳號有足夠額度完成推理。</div></div>
   <input id="search" class="search" placeholder="搜尋模型或 Provider">
  </div>
  <div class="table-wrap">
@@ -233,7 +256,7 @@ th,td{font-size:12px}
  </div>
 </section>
 
-<div class="footer">Provider 的帳號、Proxy、Quota 與進階設定保留在各自原生管理介面；AhB 只負責本機狀態、統一模型目錄與路由。</div>
+<div class="footer">Account 顯示的是帳號憑證或上游回報狀態，並非可用餘額；如 Agent2API 可能顯示 2/2 但實際回 503。Quota 請以來源管理介面或真實請求為準。</div>
 </main>
 <script>
 const fmtBytes=n=>!n?'—':n<1048576?(n/1024).toFixed(1)+' KiB':(n/1048576).toFixed(1)+' MiB';
@@ -249,7 +272,7 @@ function accountLabel(x){
 function renderModels(){
  const q=(document.getElementById('search').value||'').trim().toLowerCase();
  const rows=lastModels.filter(m=>!q||String(m.id||'').toLowerCase().includes(q)||String(m.x_provider_name||m.x_provider||'').toLowerCase().includes(q));
- document.getElementById('modelCount').textContent=rows.length===lastModels.length?lastModels.length+' available':rows.length+' of '+lastModels.length;
+ document.getElementById('modelCount').textContent=rows.length===lastModels.length?lastModels.length+' listed':rows.length+' of '+lastModels.length;
  document.getElementById('models').innerHTML=rows.length?rows.map(m=>
   '<tr><td><code>'+esc(m.id)+'</code></td><td>'+esc(m.x_provider_name||m.x_provider||'—')+'</td><td><code>'+esc(m.x_upstream_id||'—')+'</code></td></tr>'
  ).join(''):'<tr><td colspan="3" class="muted">沒有符合的模型</td></tr>';
@@ -277,13 +300,13 @@ async function refresh(){
   document.getElementById('runtime').textContent='RSS '+fmtBytes((r.process_rss_bytes||0)+sidecarRSS)+' · '+(r.goos||'?')+'/'+(r.goarch||'?');
   document.getElementById('providerTotal').textContent=providers.filter(x=>x.enabled).length;
   document.getElementById('modelTotal').textContent=lastModels.length;
-  document.getElementById('providerReady').textContent=ready+' active / '+providers.length+' configured';
+  document.getElementById('providerReady').textContent=ready+' endpoint healthy / '+providers.length+' configured';
   document.getElementById('providers').innerHTML=providers.map(x=>{
    const manageable=x.state==='HEALTHY'||x.state==='DEGRADED';
    const enabled=!!x.enabled;
    return '<article class="card"><div class="card-top">'+
     '<div class="provider-main"><div class="provider-name"><span class="state-dot '+esc(x.state)+'"></span>'+esc(x.display_name||x.id)+' <span class="badge">'+esc(x.state)+'</span></div><div class="desc">'+esc(x.description||x.id)+'</div>'+
-     '<div class="layers"><span class="layer">Process <b>'+esc(x.kind==='external'?'N/A':(x.process_alive?'YES':'NO'))+'</b></span><span class="layer">Ready <b>'+esc(x.provider_ready?'YES':'NO')+'</b></span><span class="layer">Account <b>'+esc(accountLabel(x))+'</b></span></div>'+
+     '<div class="layers"><span class="layer">Process <b>'+esc(x.kind==='external'?'N/A':(x.process_alive?'YES':'NO'))+'</b></span><span class="layer">Ready <b>'+esc(x.provider_ready?'YES':'NO')+'</b></span><span class="layer">Credentials <b>'+esc(accountLabel(x))+'</b></span></div>'+
      (x.last_error?'<div class="provider-error">'+esc(x.last_error)+'</div>':'')+'</div>'+
     '<div class="metrics"><div class="metric"><b>'+esc(counts[x.id]||0)+'</b><span>Models</span></div><div class="metric"><b>'+esc(fmtBytes(x.rss_bytes))+'</b><span>RSS</span></div><div class="metric"><b>'+esc(x.restarts||0)+'</b><span>Restarts</span></div></div>'+
     '<div class="provider-actions">'+actionLink(x.ui_url,'管理原本 UI',true,enabled&&manageable)+actionLink(x.docs_url,'上游文件',false,true)+'</div>'+
@@ -297,6 +320,13 @@ async function refresh(){
 }
 document.getElementById('refresh').addEventListener('click',refresh);
 document.getElementById('search').addEventListener('input',renderModels);
+for(const [buttonId,cmdId] of [['copyCopilotInstall','copilotInstallCommand'],['copyKimiInstall','kimiInstallCommand']]){
+ document.getElementById(buttonId).addEventListener('click',async function(){
+  const original=this.textContent;
+  this.textContent=(await copyText(document.getElementById(cmdId).textContent))?'已複製':'複製失敗';
+  setTimeout(()=>this.textContent=original,1300);
+ });
+}
 document.getElementById('copyBase').addEventListener('click',async()=>{
  const btn=document.getElementById('copyBase'),text=document.getElementById('baseUrl').textContent;
  btn.textContent=(await copyText(text))?'已複製':'複製失敗';setTimeout(()=>btn.textContent='複製 Base URL',1200);
