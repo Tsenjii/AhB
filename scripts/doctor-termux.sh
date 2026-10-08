@@ -94,7 +94,7 @@ check_url "hub-ui" "http://127.0.0.1:8317/ui"
 check_url "opencode-api" "http://127.0.0.1:8401/healthz"
 check_url "opencode-ui" "http://127.0.0.1:8404/"
 check_url "freebuff-api" "http://127.0.0.1:8402/healthz"
-check_url "freebuff-ui" "http://127.0.0.1:8402/ui"
+# The Node FreeBuff adapter has no legacy Rust /ui management page.
 if [ -x bin/agent2api-server ]; then
   check_url "agent2api" "http://127.0.0.1:8403/health"
   check_url "agent2api-ui" "http://127.0.0.1:8403/"
