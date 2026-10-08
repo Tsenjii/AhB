@@ -24,7 +24,150 @@ collect_ahb_pids() {
     # Restrict optional Python cleanup to the Kimi Web venv and exact script.
     cmdline="$(tr '\0' '\n' < "$proc/cmdline" 2>/dev/null || true)"
     case "$cmdline" in
-      "$ROOT/data/kimiweb/venv/bin/python"$'\n'"run.py"*) printf '%s\n' "$pid" ;;
+      "$ROOT/data/kimiweb/venv/bin/python"
+  done
+}
+
+pids="$(collect_ahb_pids | sort -u | tr '\n' ' ')"
+if [ -n "${pids// /}" ]; then
+  echo "stopping AhB processes: $pids"
+  kill $pids 2>/dev/null || true
+  for _ in 1 2 3 4 5; do
+    sleep 1
+    remaining=""
+    for pid in $pids; do
+      if kill -0 "$pid" 2>/dev/null; then
+        remaining="$remaining $pid"
+      fi
+    done
+    [ -z "${remaining// /}" ] && break
+  done
+  for pid in $pids; do
+    if kill -0 "$pid" 2>/dev/null; then
+      kill -9 "$pid" 2>/dev/null || true
+    fi
+  done
+else
+  echo "no AhB processes running"
+fi
+
+rm -f data/hubd.pid
+
+if command -v termux-wake-unlock >/dev/null 2>&1; then
+  termux-wake-unlock || true
+fi
+
+echo "AhB stopped"
+\n'"run.py"*) printf '%s\n' "$pid" ;;
+    esac
+    # Node is shared by Termux apps. Stop ONLY this AhB gateway instance.
+    case "$exe" in
+      */node|*/nodejs)
+        case "$cmdline" in
+          *
+  done
+}
+
+pids="$(collect_ahb_pids | sort -u | tr '\n' ' ')"
+if [ -n "${pids// /}" ]; then
+  echo "stopping AhB processes: $pids"
+  kill $pids 2>/dev/null || true
+  for _ in 1 2 3 4 5; do
+    sleep 1
+    remaining=""
+    for pid in $pids; do
+      if kill -0 "$pid" 2>/dev/null; then
+        remaining="$remaining $pid"
+      fi
+    done
+    [ -z "${remaining// /}" ] && break
+  done
+  for pid in $pids; do
+    if kill -0 "$pid" 2>/dev/null; then
+      kill -9 "$pid" 2>/dev/null || true
+    fi
+  done
+else
+  echo "no AhB processes running"
+fi
+
+rm -f data/hubd.pid
+
+if command -v termux-wake-unlock >/dev/null 2>&1; then
+  termux-wake-unlock || true
+fi
+
+echo "AhB stopped"
+\n'"$ROOT/data/freebuff/gateway/server.js"|*
+  done
+}
+
+pids="$(collect_ahb_pids | sort -u | tr '\n' ' ')"
+if [ -n "${pids// /}" ]; then
+  echo "stopping AhB processes: $pids"
+  kill $pids 2>/dev/null || true
+  for _ in 1 2 3 4 5; do
+    sleep 1
+    remaining=""
+    for pid in $pids; do
+      if kill -0 "$pid" 2>/dev/null; then
+        remaining="$remaining $pid"
+      fi
+    done
+    [ -z "${remaining// /}" ] && break
+  done
+  for pid in $pids; do
+    if kill -0 "$pid" 2>/dev/null; then
+      kill -9 "$pid" 2>/dev/null || true
+    fi
+  done
+else
+  echo "no AhB processes running"
+fi
+
+rm -f data/hubd.pid
+
+if command -v termux-wake-unlock >/dev/null 2>&1; then
+  termux-wake-unlock || true
+fi
+
+echo "AhB stopped"
+\n'"$ROOT/data/freebuff/gateway/server.js"
+  done
+}
+
+pids="$(collect_ahb_pids | sort -u | tr '\n' ' ')"
+if [ -n "${pids// /}" ]; then
+  echo "stopping AhB processes: $pids"
+  kill $pids 2>/dev/null || true
+  for _ in 1 2 3 4 5; do
+    sleep 1
+    remaining=""
+    for pid in $pids; do
+      if kill -0 "$pid" 2>/dev/null; then
+        remaining="$remaining $pid"
+      fi
+    done
+    [ -z "${remaining// /}" ] && break
+  done
+  for pid in $pids; do
+    if kill -0 "$pid" 2>/dev/null; then
+      kill -9 "$pid" 2>/dev/null || true
+    fi
+  done
+else
+  echo "no AhB processes running"
+fi
+
+rm -f data/hubd.pid
+
+if command -v termux-wake-unlock >/dev/null 2>&1; then
+  termux-wake-unlock || true
+fi
+
+echo "AhB stopped"
+\n'*) printf '%s\n' "$pid" ;;
+        esac ;;
     esac
   done
 }
