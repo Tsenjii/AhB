@@ -51,6 +51,7 @@ type ProviderConfig struct {
 	Headers               map[string]string `json:"headers,omitempty"`
 	HealthPath            string            `json:"health_path,omitempty"`
 	ModelsPath            string            `json:"models_path,omitempty"`
+	APIPathPrefix         string            `json:"api_path_prefix,omitempty"`
 	MaxRestarts           int               `json:"max_restarts,omitempty"`
 	StartupTimeoutSeconds int               `json:"startup_timeout_seconds,omitempty"`
 	HealthIntervalSeconds int               `json:"health_interval_seconds,omitempty"`
@@ -167,6 +168,18 @@ func (c Config) Validate() error {
 		}
 		if u.User != nil {
 			return fmt.Errorf("provider %q: base_url must not contain credentials", id)
+		}
+		if prefix := p.APIPathPrefix; prefix != "" {
+			if !strings.HasPrefix(prefix, "/") || strings.HasSuffix(prefix, "/") ||
+				strings.Contains(prefix, "//") || strings.Contains(prefix, "..") ||
+				strings.ContainsAny(prefix, "?#\\") {
+				return fmt.Errorf("provider %q: invalid api_path_prefix", id)
+			}
+			for _, part := range strings.Split(strings.TrimPrefix(prefix, "/"), "/") {
+				if part == "" {
+					return fmt.Errorf("provider %q: invalid api_path_prefix segment", id)
+				}
+			}
 		}
 		host := u.Hostname()
 		ip := net.ParseIP(host)
