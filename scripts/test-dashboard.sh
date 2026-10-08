@@ -13,8 +13,9 @@ assert src.count("<script>")==1 and src.count("</script>")==1
 html=src[src.index("<!doctype html>"):src.index("</html>")+len("</html>")]
 for needle in ('id="bridgePreset"', 'id="bridgeURL"', 'id="bridgeCommand"',
                'id="copyBridge"', 'id="customBridgeId"', 'id="providers"',
-               'id="models"', 'id="refresh"', 'id="optional"', 'id="copyCopilotInstall"', 'id="copyKimiInstall"'):
+               'id="models"', 'id="refresh"', 'id="optional"', 'id="freebuffLogin"', 'id="copyCopilotInstall"', 'id="copyKimiInstall"'):
     assert needle in html, f"missing UI element: {needle}"
+assert "Windows" in html and "FreeBuff" in html and "check-freebuff-login.sh" in html
 js=html.split("<script>",1)[1].split("</script>",1)[0]
 Path(sys.argv[1]).write_text(js,encoding="utf-8")
 PY

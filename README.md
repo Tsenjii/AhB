@@ -11,7 +11,7 @@ Default providers:
 
 Optional provider pack:
 
-- **Agent2API v2.9.6** — adds a mature UI and adapters for personal WorkBuddy domestic/international, CodeArts, Qoder, Cline, Trae, Loomy, KukuAI and other supported accounts without reimplementing those protocols in this repo.
+- **Agent2API v2.9.7 (next build; previously published 91c8da4 remains v2.9.6)** — adds a mature UI and adapters for personal WorkBuddy domestic/international, CodeArts, Qoder, Cline, Trae, Loomy, KukuAI and other supported accounts without reimplementing those protocols in this repo.
 - **DeepSeek2API** — optional DeepSeek Web multi-account sidecar with its original admin UI, OpenAI/Anthropic/Responses compatibility, tool calling and provider-internal account pooling.
 - **Grok2API** — optional Grok Build / Web / Console multi-account sidecar with its original management UI, quota/model sync, OpenAI/Anthropic/Responses support and media features.
 - **Kiro-Go** — optional Kiro multi-account sidecar with its original Web admin, automatic token refresh, OpenAI/Anthropic/Responses endpoints and account-level proxy support.
@@ -80,6 +80,8 @@ Each healthy provider has a **管理原本 UI** button:
 - Kiro-Go when enabled: `http://127.0.0.1:8408/admin`
 
 The Hub intentionally does not duplicate the upstream management consoles.
+
+**FreeBuff on Android:** the bundled Rust gateway needs no extra runtime to launch, but the desktop one-click login does not work natively inside Termux: upstream Windows embed uses WebView2, and desktop Chrome/Edge web login requires an extension on the same computer as the gateway. Use the upstream http://127.0.0.1:8402/ui Accounts import workflow on your phone instead of expecting a desktop extension to control Android localhost. After importing, run ./scripts/check-freebuff-login.sh (metadata only, prints no credentials). See [FreeBuff Android login guide](docs/FREEBUFF_ANDROID_LOGIN.md).
 
 ## Fastest Android install
 

@@ -168,7 +168,7 @@ th,td{font-size:12px}
  <button id="refresh">重新整理</button>
 </header>
 <nav class="anchor-nav" aria-label="頁面捷徑" style="margin-top:15px">
- <a href="#optional">選裝來源</a><a href="#connect">連接來源</a><a href="#providersSection">服務狀態</a><a href="#modelsSection">模型目錄</a>
+ <a href="#freebuffLogin">FreeBuff 登入</a><a href="#optional">選裝來源</a><a href="#connect">連接來源</a><a href="#providersSection">服務狀態</a><a href="#modelsSection">模型目錄</a>
 </nav>
 
 <div class="overview">
@@ -185,6 +185,28 @@ th,td{font-size:12px}
 
 <div id="error" class="notice"></div>
 <div id="warnings" class="notice"></div>
+
+<section id="freebuffLogin">
+  <div class="section-head"><div class="section-title"><h2>FreeBuff 登入</h2><span class="count">Android account setup</span></div></div>
+  <div class="quick-connect">
+    <div>
+      <div class="eyebrow">FreeBuff accounts</div>
+      <div class="quick-title">先完成原生帳號匯入，再測試模型。</div>
+      <p>Android／Termux 的 FreeBuff 是獨立 Rust 程式，但不包含 Windows 專用內嵌登入視窗。請開啟原生管理頁的「帳號」頁，依照上游提供的匯入流程操作。</p>
+      <div class="command-actions" style="margin-top:15px">
+        <a class="btn primary" href="http://127.0.0.1:8402/ui" target="_blank" rel="noopener noreferrer">開啟 FreeBuff 管理頁</a>
+        <a class="btn" href="https://github.com/lza6/Freebuff-2API/blob/v0.10.3/README_zh.md" target="_blank" rel="noopener noreferrer">原作者登入說明</a>
+      </div>
+    </div>
+    <div class="command-panel">
+      <div class="eyebrow">Check account records</div>
+      <div class="command-box">cd ~/AhB &amp;&amp; ./scripts/check-freebuff-login.sh</div>
+      <div class="command-help">檢查只顯示帳號筆數，不顯示 Cookie、Token 或個人資料；有帳號仍不代表剩餘額度足夠。</div>
+      <div class="command-help">桌面 Chrome／Edge 的「一鍵登入」需安裝 FreeBuff 官方瀏覽器擴充套件，且擴充套件與本機閘道必須位於同一台電腦。Android Chrome 不會因為 AhB 已安裝就自動支援桌面擴充套件。電腦上的 127.0.0.1 也不是手機的 127.0.0.1。</div>
+      <div class="command-help">請只在原始服務管理頁處理自己的帳號資料，勿把登入憑證貼進聊天或公開紀錄。</div>
+    </div>
+  </div>
+</section>
 
 <section id="optional">
  <div class="section-head"><div class="section-title"><h2>選裝來源</h2><span class="count">Install locally, opt in</span></div></div>

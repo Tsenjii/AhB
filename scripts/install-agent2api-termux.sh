@@ -4,7 +4,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SRC="$ROOT/.build/agent2api"
 BIN_DIR="$ROOT/bin"
-VERSION="v2.9.5"
+VERSION="v2.9.7"
+EXPECTED_SHA="3618f6413610ca04b72991987c0b6589dc2fe54b"
 
 if ! command -v pkg >/dev/null 2>&1; then
   echo "This script must run inside Termux."
@@ -20,6 +21,11 @@ else
   git -C "$SRC" fetch --depth 1 origin "refs/tags/$VERSION:refs/tags/$VERSION"
   git -C "$SRC" checkout --detach "$VERSION"
   git -C "$SRC" reset --hard "$VERSION"
+fi
+
+if [ "$(git -C "$SRC" rev-parse HEAD)" != "$EXPECTED_SHA" ]; then
+  echo "Agent2API pinned revision mismatch; refusing to build." >&2
+  exit 1
 fi
 
 echo "== Building Agent2API headless server =="
