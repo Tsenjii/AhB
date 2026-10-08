@@ -24,12 +24,15 @@ type Hub struct {
 	cfg       config.Config
 	providers map[string]*runtimeProvider
 	client    *http.Client
+	pool      poolBalancer
 }
 
 type runtimeProvider struct {
 	cfg      config.ProviderConfig
 	sup      *sidecar.Supervisor
 	accounts accountProbeState
+	models   modelCatalog
+	load     providerLoad
 }
 
 type providerView struct {
@@ -313,6 +316,7 @@ func (h *Hub) handleModels(w http.ResponseWriter, r *http.Request) {
 			result.Warnings[id] = err.Error()
 			continue
 		}
+		p.models.set(models)
 		result.Data = append(result.Data, models...)
 	}
 	sort.Slice(result.Data, func(i, j int) bool {
@@ -327,24 +331,29 @@ func (h *Hub) handleModels(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if h.cfg.Routing.RouteAliasesEnabled {
-	for _, route := range h.cfg.Routes {
-		usableTargets := make([]string, 0, len(route.Targets))
-		for _, target := range route.Targets {
-			if _, ok := available[target]; ok {
-				usableTargets = append(usableTargets, target)
+	if h.cfg.Routing.ExplicitRoutesEnabled {
+		for _, route := range h.cfg.Routes {
+			usableTargets := make([]string, 0, len(route.Targets))
+			for _, target := range route.Targets {
+				if _, ok := available[target]; ok {
+					usableTargets = append(usableTargets, target)
+				}
 			}
+			if len(usableTargets) == 0 {
+				continue
+			}
+			result.Data = append(result.Data, map[string]any{
+				"id":               "route/" + route.ID,
+				"object":           "model",
+				"x_provider":       "route",
+				"x_provider_name":  "AhB Route",
+				"x_route_targets":  route.Targets,
+				"x_usable_targets": usableTargets,
+			})
 		}
-		if len(usableTargets) == 0 {
-			continue
-		}
-		result.Data = append(result.Data, map[string]any{
-			"id":               "route/" + route.ID,
-			"object":           "model",
-			"x_provider":       "route",
-			"x_provider_name":  "AhB Route",
-			"x_route_targets":  route.Targets,
-			"x_usable_targets": usableTargets,
-		})
+	}
+	if h.cfg.Routing.SameModelPoolEnabled {
+		result.Data = append(result.Data, sameModelPoolEntries(result.Data)...)
 	}
 	}
 	sort.Slice(result.Data, func(i, j int) bool {
@@ -433,6 +442,10 @@ func (h *Hub) handleProxy(w http.ResponseWriter, r *http.Request) {
 	}
 	if requestedProvider == "route" {
 		h.handleRouteProxy(w, r, raw, requestedUpstream)
+		return
+	}
+	if requestedProvider == "pool" {
+		h.handlePoolProxy(w, r, raw, requestedUpstream)
 		return
 	}
 	if h.cfg.Routing.SameModelFallback.Enabled {

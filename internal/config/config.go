@@ -125,8 +125,8 @@ func (c Config) Validate() error {
 		if strings.Contains(id, "/") {
 			return fmt.Errorf("provider %q: id must not contain '/'", id)
 		}
-		if id == "route" {
-			return fmt.Errorf("provider id %q is reserved for AhB virtual routes", id)
+		if id == "route" || id == "pool" {
+			return fmt.Errorf("provider id %q is reserved for AhB virtual routing", id)
 		}
 		if _, ok := seen[id]; ok {
 			return fmt.Errorf("duplicate provider id %q", id)

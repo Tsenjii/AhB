@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -267,5 +268,47 @@ func TestRouteConfigDisabledByDefault(t *testing.T) {
 	})
 	if _, ok := h.routeConfig("coding"); ok {
 		t.Fatal("route aliases must be disabled unless explicitly enabled")
+	}
+}
+
+
+func TestSameModelPoolEntriesOnlyForDuplicates(t *testing.T) {
+	models := []map[string]any{
+		{"id":"opencode/same","x_provider":"opencode","x_upstream_id":"same"},
+		{"id":"agent2api/same","x_provider":"agent2api","x_upstream_id":"same"},
+		{"id":"opencode/only","x_provider":"opencode","x_upstream_id":"only"},
+	}
+	got := sameModelPoolEntries(models)
+	if len(got) != 1 {
+		t.Fatalf("pool entries = %#v", got)
+	}
+	if got[0]["id"] != "pool/same" {
+		t.Fatalf("pool id = %v", got[0]["id"])
+	}
+	providers, ok := got[0]["x_pool_providers"].([]string)
+	if !ok || len(providers) != 2 || providers[0] != "agent2api" || providers[1] != "opencode" {
+		t.Fatalf("providers = %#v", got[0]["x_pool_providers"])
+	}
+}
+
+func TestPoolBalancerPrefersLowerInflight(t *testing.T) {
+	h := &Hub{providers: map[string]*runtimeProvider{}}
+	a := &runtimeProvider{cfg: config.ProviderConfig{ID:"a"}}
+	b := &runtimeProvider{cfg: config.ProviderConfig{ID:"b"}}
+	a.load.acquire()
+	defer a.load.release()
+
+	candidates := []poolCandidate{
+		{id:"a", provider:a, inflight:a.load.current()},
+		{id:"b", provider:b, inflight:b.load.current()},
+	}
+	sort.Slice(candidates, func(i, j int) bool {
+		if candidates[i].inflight != candidates[j].inflight {
+			return candidates[i].inflight < candidates[j].inflight
+		}
+		return candidates[i].id < candidates[j].id
+	})
+	if candidates[0].id != "b" {
+		t.Fatalf("expected lower-inflight provider first, got %s", candidates[0].id)
 	}
 }

@@ -284,3 +284,17 @@ Retryable statuses remain conservative: 402, 404, 408, 425, 429, 502, 503, 504. 
 The older explicit `route/<id>` alias feature is retained only as an optional advanced feature and requires `routing.route_aliases_enabled=true`. It is hidden from `/v1/models` and unavailable for requests while disabled.
 
 Provider-internal account routing/failover remains inside mature sidecars such as Agent2API and FreeBuff. AhB only coordinates provider-level behavior when explicitly enabled.
+
+
+## Same-model pool and optional cross-model routes
+
+Routing semantics were refined after real-device testing:
+
+- `provider/model`: pinned provider. No cross-provider fallback.
+- `pool/model`: optional same-model pool. It is available only when `routing.same_model_pool_enabled=true`.
+- Concurrent independent `pool/model` requests are distributed toward the currently least-busy providers using per-provider in-flight counters. AhB never races one request against multiple providers, so it does not intentionally duplicate billing or tool side effects.
+- A pooled request falls through to another provider only when that provider exposes the exact same upstream model ID and the attempt fails with a transport error or retryable HTTP status (402, 404, 408, 425, 429, 502, 503, 504).
+- `GET /v1/models` exposes `pool/<model>` entries when the same exact upstream model ID is currently available from at least two usable providers.
+- Pool responses include `X-AhB-Pool`, `X-AhB-Provider`, and `X-AhB-Attempts`.
+- Explicit cross-model `route/*` aliases remain supported only as an opt-in compatibility feature. They are disabled unless `routing.explicit_routes_enabled=true`.
+- Both routing features default to off when the fields are absent, preserving the original provider-prefixed behavior.

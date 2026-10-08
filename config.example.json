@@ -72,15 +72,7 @@
   ],
   "routes": [],
   "routing": {
-    "route_aliases_enabled": false,
-    "same_model_fallback": {
-      "enabled": false,
-      "mode": "sequential",
-      "providers": [
-        "opencode",
-        "agent2api",
-        "freebuff"
-      ]
-    }
+    "same_model_pool_enabled": false,
+    "explicit_routes_enabled": false
   }
 }

@@ -80,13 +80,15 @@ func TestValidateRejectsUnknownRouteProvider(t *testing.T) {
 	}
 }
 
-func TestValidateRejectsReservedRouteProviderID(t *testing.T) {
-	cfg := Config{
-		Listen: "127.0.0.1:8317",
-		Providers: []ProviderConfig{{ID: "route", Enabled: false}},
-	}
-	if err := cfg.Validate(); err == nil {
-		t.Fatal("expected reserved provider id to be rejected")
+func TestValidateRejectsReservedVirtualProviderIDs(t *testing.T) {
+	for _, id := range []string{"route", "pool"} {
+		cfg := Config{
+			Listen: "127.0.0.1:8317",
+			Providers: []ProviderConfig{{ID: id, Enabled: false}},
+		}
+		if err := cfg.Validate(); err == nil {
+			t.Fatalf("expected reserved provider id %q to be rejected", id)
+		}
 	}
 }
 

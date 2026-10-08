@@ -275,6 +275,10 @@ func (h *Hub) writeFallbackResponse(w http.ResponseWriter, resp *http.Response, 
 }
 
 func (h *Hub) handleRouteProxy(w http.ResponseWriter, r *http.Request, raw []byte, routeID string) {
+	if !h.cfg.Routing.ExplicitRoutesEnabled {
+		writeError(w, http.StatusBadRequest, "route_disabled", "explicit cross-model routes are disabled")
+		return
+	}
 	route, ok := h.routeConfig(routeID)
 	if !ok {
 		writeError(w, http.StatusBadRequest, "route_alias_disabled_or_unknown", fmt.Sprintf("route %q is not enabled or configured", routeID))
