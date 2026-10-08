@@ -15,7 +15,19 @@ type Config struct {
 	Listen    string           `json:"listen"`
 	AllowLAN  bool             `json:"allow_lan"`
 	Providers []ProviderConfig `json:"providers"`
+	Routing   RoutingConfig    `json:"routing,omitempty"`
 	Routes    []RouteConfig    `json:"routes,omitempty"`
+}
+
+type RoutingConfig struct {
+	RouteAliasesEnabled bool                    `json:"route_aliases_enabled,omitempty"`
+	SameModelFallback   SameModelFallbackConfig `json:"same_model_fallback,omitempty"`
+}
+
+type SameModelFallbackConfig struct {
+	Enabled   bool     `json:"enabled,omitempty"`
+	Mode      string   `json:"mode,omitempty"`
+	Providers []string `json:"providers,omitempty"`
 }
 
 type RouteConfig struct {
@@ -58,6 +70,9 @@ func Load(path string) (Config, error) {
 	}
 	if cfg.Listen == "" {
 		cfg.Listen = "127.0.0.1:8317"
+	}
+	if strings.TrimSpace(cfg.Routing.SameModelFallback.Mode) == "" {
+		cfg.Routing.SameModelFallback.Mode = "sequential"
 	}
 	root, err := filepath.Abs(filepath.Dir(path))
 	if err != nil {
@@ -153,6 +168,28 @@ func (c Config) Validate() error {
 		if host != "localhost" && (ip == nil || !ip.IsLoopback()) {
 			return fmt.Errorf("provider %q: sidecar base_url must be loopback in V1", id)
 		}
+	}
+
+	mode := strings.ToLower(strings.TrimSpace(c.Routing.SameModelFallback.Mode))
+	if mode == "" {
+		mode = "sequential"
+	}
+	if mode != "sequential" && mode != "parallel" {
+		return fmt.Errorf("same_model_fallback mode must be sequential or parallel")
+	}
+	fallbackSeen := map[string]struct{}{}
+	for _, rawID := range c.Routing.SameModelFallback.Providers {
+		id := strings.TrimSpace(rawID)
+		if id == "" {
+			return fmt.Errorf("same_model_fallback provider id must not be empty")
+		}
+		if _, ok := seen[id]; !ok {
+			return fmt.Errorf("same_model_fallback provider %q does not exist", id)
+		}
+		if _, ok := fallbackSeen[id]; ok {
+			return fmt.Errorf("duplicate same_model_fallback provider %q", id)
+		}
+		fallbackSeen[id] = struct{}{}
 	}
 
 	routeSeen := map[string]struct{}{}

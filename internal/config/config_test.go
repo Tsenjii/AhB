@@ -89,3 +89,36 @@ func TestValidateRejectsReservedRouteProviderID(t *testing.T) {
 		t.Fatal("expected reserved provider id to be rejected")
 	}
 }
+
+
+func TestValidateSameModelFallbackModes(t *testing.T) {
+	base := Config{
+		Listen: "127.0.0.1:8317",
+		Providers: []ProviderConfig{
+			{ID: "opencode", Enabled: false},
+			{ID: "agent2api", Enabled: false},
+		},
+	}
+	for _, mode := range []string{"sequential", "parallel"} {
+		cfg := base
+		cfg.Routing.SameModelFallback = SameModelFallbackConfig{
+			Enabled: true, Mode: mode, Providers: []string{"opencode", "agent2api"},
+		}
+		if err := cfg.Validate(); err != nil {
+			t.Fatalf("mode %s rejected: %v", mode, err)
+		}
+	}
+}
+
+func TestValidateRejectsUnknownFallbackProvider(t *testing.T) {
+	cfg := Config{
+		Listen: "127.0.0.1:8317",
+		Providers: []ProviderConfig{{ID: "opencode", Enabled: false}},
+		Routing: RoutingConfig{SameModelFallback: SameModelFallbackConfig{
+			Enabled: true, Mode: "sequential", Providers: []string{"missing"},
+		}},
+	}
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("expected unknown fallback provider to be rejected")
+	}
+}

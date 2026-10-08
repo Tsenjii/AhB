@@ -326,6 +326,7 @@ func (h *Hub) handleModels(w http.ResponseWriter, r *http.Request) {
 			available[id] = struct{}{}
 		}
 	}
+	if h.cfg.Routing.RouteAliasesEnabled {
 	for _, route := range h.cfg.Routes {
 		usableTargets := make([]string, 0, len(route.Targets))
 		for _, target := range route.Targets {
@@ -344,6 +345,7 @@ func (h *Hub) handleModels(w http.ResponseWriter, r *http.Request) {
 			"x_route_targets":  route.Targets,
 			"x_usable_targets": usableTargets,
 		})
+	}
 	}
 	sort.Slice(result.Data, func(i, j int) bool {
 		a, _ := result.Data[i]["id"].(string)
@@ -431,6 +433,10 @@ func (h *Hub) handleProxy(w http.ResponseWriter, r *http.Request) {
 	}
 	if requestedProvider == "route" {
 		h.handleRouteProxy(w, r, raw, requestedUpstream)
+		return
+	}
+	if h.cfg.Routing.SameModelFallback.Enabled {
+		h.handleSameModelFallback(w, r, raw, requestedProvider, requestedUpstream)
 		return
 	}
 

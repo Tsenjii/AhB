@@ -70,5 +70,17 @@
       "startup_timeout_seconds": 60
     }
   ],
-  "routes": []
+  "routes": [],
+  "routing": {
+    "route_aliases_enabled": false,
+    "same_model_fallback": {
+      "enabled": false,
+      "mode": "sequential",
+      "providers": [
+        "opencode",
+        "agent2api",
+        "freebuff"
+      ]
+    }
+  }
 }

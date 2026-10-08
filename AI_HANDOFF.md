@@ -247,33 +247,40 @@ It must distinguish:
 Do not claim Android deployment success before the real phone test passes.
 
 
-## Cross-provider route aliases
 
-AhB now supports explicit virtual routes under the reserved `route/` prefix.
+## Optional cross-provider routing
 
-Configuration shape:
+Cross-provider behavior is **off by default**. Normal requests keep strict `provider/model` routing.
+
+Configuration:
 
 ```json
 {
-  "routes": [
-    {
-      "id": "coding",
-      "targets": [
-        "opencode/muse-spark-1.3-contributor-free",
-        "agent2api/Qwen3.8-Flash"
-      ]
+  "routing": {
+    "route_aliases_enabled": false,
+    "same_model_fallback": {
+      "enabled": false,
+      "mode": "sequential",
+      "providers": ["opencode", "agent2api", "freebuff"]
     }
-  ]
+  }
 }
 ```
 
-Clients use `route/coding`. AhB tries targets in configured order and only falls through on provider unavailability, transport failure, or retryable upstream statuses: 402, 404, 408, 425, 429, 502, 503, 504.
+### Same-model fallback
 
-Important design constraints:
-- route targets are explicit; AhB does not guess model equivalence
-- no nested `route/` targets
-- 400/401/403/422/500 are not automatically retried across providers
-- successful/terminal responses remain transparent pass-through
-- `GET /v1/models` exposes a route only while at least one configured target is currently present in the merged usable model catalog
-- response headers `X-AhB-Route` and `X-AhB-Provider` identify which route/provider served the request
-- provider-internal multi-account failover remains inside mature sidecars such as Agent2API/FreeBuff; hubd only handles cross-provider failover
+When enabled, a request such as `opencode/foo` may fall back only to the exact same upstream model id `foo` on another configured provider. AhB does not substitute a different model.
+
+Modes:
+- `sequential`: requested provider first, then configured providers in order after retryable failure/unavailability.
+- `parallel`: all usable configured providers receive the same model request concurrently; first non-retryable response wins and remaining requests are cancelled.
+
+Parallel mode is explicit opt-in because upstreams may begin work or charge usage before cancellation, and tool-call requests may be duplicated across providers.
+
+Retryable statuses remain conservative: 402, 404, 408, 425, 429, 502, 503, 504. Transport errors and provider unavailability also allow fallback.
+
+### Route aliases
+
+The older explicit `route/<id>` alias feature is retained only as an optional advanced feature and requires `routing.route_aliases_enabled=true`. It is hidden from `/v1/models` and unavailable for requests while disabled.
+
+Provider-internal account routing/failover remains inside mature sidecars such as Agent2API and FreeBuff. AhB only coordinates provider-level behavior when explicitly enabled.

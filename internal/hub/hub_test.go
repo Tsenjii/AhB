@@ -243,3 +243,29 @@ func TestRouteRetryableStatus(t *testing.T) {
 		}
 	}
 }
+
+
+func TestFallbackProviderIDsKeepsPrimaryFirst(t *testing.T) {
+	h := New(config.Config{
+		Providers: []config.ProviderConfig{
+			{ID:"opencode"}, {ID:"agent2api"}, {ID:"freebuff"},
+		},
+		Routing: config.RoutingConfig{SameModelFallback: config.SameModelFallbackConfig{
+			Enabled:true, Mode:"parallel", Providers:[]string{"agent2api","opencode","freebuff"},
+		}},
+	})
+	got := h.fallbackProviderIDs("opencode")
+	want := []string{"opencode","agent2api","freebuff"}
+	if strings.Join(got,",") != strings.Join(want,",") {
+		t.Fatalf("got %v want %v", got, want)
+	}
+}
+
+func TestRouteConfigDisabledByDefault(t *testing.T) {
+	h := New(config.Config{
+		Routes: []config.RouteConfig{{ID:"coding", Targets:[]string{"opencode/model"}}},
+	})
+	if _, ok := h.routeConfig("coding"); ok {
+		t.Fatal("route aliases must be disabled unless explicitly enabled")
+	}
+}
