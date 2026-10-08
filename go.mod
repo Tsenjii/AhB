@@ -1,3 +1,3 @@
-module github.com/Tsenjii/android-ai-hub
+module github.com/Tsenjii/AhB
 
 go 1.23
