@@ -81,6 +81,17 @@ Each healthy provider has a **管理原本 UI** button:
 
 The Hub intentionally does not duplicate the upstream management consoles.
 
+### All bundled sources: read-only readiness inventory
+
+After the new package has been published and safely installed on your own Termux device, run:
+
+```sh
+cd ~/AhB
+./scripts/provider-status-termux.sh
+```
+
+This reports OpenCode, FreeBuff, Agent2API, DeepSeek Web, Grok, Kiro, GitHub Copilot and separately the optional Kimi Web, including enabled status, process health, ready/account-count layers, model count and recent upstream HTTP code. It **never** reads or prints individual account details/tokens and does **not** spend inference quota. Unknown states remain UNKNOWN; HTTP 200 is not evidence of completed streaming/tools or actual available balance. See [provider stability rollout](docs/PROVIDER_STABILITY_2026-10-09.md).
+
 **FreeBuff on Android:** the bundled Rust gateway needs no extra runtime to launch, but the desktop one-click login does not work natively inside Termux: upstream Windows embed uses WebView2, and desktop Chrome/Edge web login requires an extension on the same computer as the gateway. Use the upstream http://127.0.0.1:8402/ui Accounts import workflow on your phone instead of expecting a desktop extension to control Android localhost. After importing, run ./scripts/check-freebuff-login.sh (metadata only, prints no credentials). See [FreeBuff Android login guide](docs/FREEBUFF_ANDROID_LOGIN.md).
 
 ## Fastest Android install
