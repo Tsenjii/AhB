@@ -644,3 +644,26 @@ Priority for further integration:
 6. **REJECT**: `aptdnfapt/qwen-code-oai-proxy` self-identifies as deprecated/dead due to auth errors; do not put in main usable shortlist.
 
 All these are candidate repo claims only; no new runtime has passed device smoke/Chat/SSE/tools. Preserve user's original Android backup, privacy of auth tokens and current build stability. Focus on account availability and quota truth, highlighted by the user's real Agent2API HTTP 503 on 2/2 apparently credentialed accounts.
+
+
+## Optional lightweight source expansion and registry — 2026-10-08
+
+**Canonical shortlist and future intake:** [docs/TO_API_INSTALL_AND_OPTIMIZATION_PLAN.md](docs/TO_API_INSTALL_AND_OPTIMIZATION_PLAN.md) and [docs/TO_API_REGISTRY.json](docs/TO_API_REGISTRY.json). Registry has **34 unique candidate IDs** with statuses, source links, priorities, reasons and explicit Android live-test evidence. Add all future promising or discarded candidates to this registry instead of losing history. The CI `scripts/test-provider-registry.sh` verifies schema, unique IDs, the configured providers and packaging hooks.
+
+**New native optional Copilot sidecar** from https://github.com/whtsky/copilot2api, pinned source `a4aac95d4a8f430f02121f79ea36aeaaa06daea1`, MIT:
+- New `copilot/` disabled provider in `config.example.json`, port 8410, own state dir `data/copilot2api`. Android ARM64 workflow now compiles the Go 1.26 component and includes its LICENSE. No auto-start until explicitly enabled.
+- `scripts/login-copilot2api.sh` performs interactive, voluntary user GitHub Device Flow in a temporary foreground server on port 8411, stores state in `data/copilot2api/credentials.json` with restrictive permissions. User presses Ctrl+C after successful auth.
+- `scripts/enable-copilot2api.sh` requires the actual local credentials file, makes a config backup and sets enabled. Copilot upstream has no API-key enforcement of its own, so loopback-only is mandatory. No claim of multi-account rotation or remaining Copilot quota.
+- Added binary to explicit `stop-termux.sh` owner list, diagnostic checks and UI install copy flow.
+
+**New optional managed Kimi Web** from https://github.com/chopper1026/kimi2api, pinned source `7f046d8627f275432f82788a6547bc905038738c`, MIT:
+- New `kimiweb/` disabled provider on port 8412 and native `/admin` UI; separate from legacy external `kimi/` connector. There is **no Python runtime or Kimi implementation in the base archive**. Only optional helpers ship.
+- `scripts/install-kimiweb-termux.sh` opt-in downloads pinned source to ignored `data/kimiweb/source`, creates isolated venv, installs FastAPI deps, builds its React admin UI with Termux Node, then removes npm build deps; produces private admin/API keys under `data/kimiweb`, with state underneath. No account token automatically imported.
+- `scripts/enable-kimiweb-termux.sh` checks completed installation, sets private AhB-to-Kimi bearer token and marks sidecar enabled. Hub supervises the dedicated venv Python process; exact-source process cleanup added to stop helper.
+- **Android pip/package/frontend success, real account login, quota, SSE and full tool calling are NOT YET DEVICE VERIFIED**. Expect possible Python native wheel build failures; do not promise flawless one-click install.
+
+**UI change:** added optional Copilot and Kimi Web command-copy panels. Adjusted Account layer label to **Credentials**, advertised models label to `listed`, and healthy count label to `endpoint healthy`. These are *not proof of inference-available quota*, following the real Agent2API 503 finding.
+
+**Important release gate:** before asking the user to run the upgrader, verify **successful Android ARM64 bundle workflow** for the source change and the published `prebuilt/source-commit.txt` pointer. A green Go/shell/JS CI is not an Android build, and cross-build success is still not authenticated phone inference. Do not imply these new optional providers are already on the user's existing device or live-tested. Earlier user device backup `~/AhB.backup-20261008-194847` should remain intact.
+
+**Follow-up optimization priorities:** quota-availability state (process vs credentials vs actionable inference), safe request logging, one-shot model tests, watchdog/resource limits, capability-aware routes, full tool-call continuation, ARM64 error-path acceptance, and low-memory source selection rather than launching every adapter.
