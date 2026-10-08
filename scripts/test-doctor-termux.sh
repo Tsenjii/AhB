@@ -5,12 +5,12 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
 mkdir -p "$TMP/AhB/scripts" "$TMP/AhB/bin" \
-  "$TMP/AhB/data/opencode" "$TMP/AhB/data/freebuff" \
+  "$TMP/AhB/data/opencode" "$TMP/AhB/data/freebuff/gateway" \
   "$TMP/AhB/data/copilot2api" "$TMP/AhB/data/grok2api/frontend/dist" \
   "$TMP/shims"
 cp "$ROOT/scripts/doctor-termux.sh" "$TMP/AhB/scripts/"
 for file in config.json data/opencode/config.json data/opencode/webui-password.txt \
-  data/freebuff/config.json data/copilot2api/credentials.json \
+  data/freebuff/config.json data/freebuff/gateway/server.js data/freebuff/gateway/worker.js data/copilot2api/credentials.json \
   data/grok2api/config.yaml data/grok2api/frontend/dist/index.html \
   data/grok2api/client-key.txt bin/hubd bin/opencode2api bin/freebuff2api \
   bin/copilot2api bin/grok2api; do
