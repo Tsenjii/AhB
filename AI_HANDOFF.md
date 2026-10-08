@@ -1,3 +1,13 @@
+## Seven bundled providers stability pass — 2026-10-09
+
+- Reviewed seven binary-bundled sources: OpenCode, FreeBuff, Agent2API, DeepSeek Web, Grok Build/Web/Console (one sidecar), Kiro-Go, GitHub Copilot; experimental Kimi Web is a separate installer-only case. Agent2API subplatforms are NOT independent binaries, and external presets are connectors, not installed gateways.
+- Fixed FreeBuff /api/accounts/health handling: only upstream-defined closed and half_open circuit states, plus expired open cooldown, count as account-ready. Missing/unknown breaker state is now fail-closed, preventing false positives. Go regression fixtures cover it.
+- The Hub /v1/models now queries ready providers independently with at most 4 simultaneous local model requests, each retaining its 10-second deadline. This avoids serial latency without unbounded goroutine/model parsing. Go integration test requires two independent provider model probes to start concurrently. Health gating and sorting remain unchanged; no cache / stale model results.
+- Added read-only `provider-status-termux.sh` showing enabled, process health, ready, account count, advertised model count, last upstream HTTP for 7 bundled providers and optional Kimi. Only accesses public localhost status and counts; never prints original account arrays, secrets or logs. Added mock fixture in CI and command instructions in Hub UI/README. Packaging in Android ARM64 workflow required.
+- Strengthened Chat Completions full-tool-roundtrip diagnostic: accept 1–8 valid function calls, reject invalid/duplicate tool IDs, give *every* tool call a deterministic result before verifying final answer; fixture now covers multiple calls and malformed tool JSON.
+- All previously disabled sidecars remain OFF; all account databases, passwords and settings under ignored data/ are untouched. No fake claim that seven different providers can perform real account-backed chat/SSE/tools just because CI passes.
+- User's last confirmed Android phone installation remains unupgraded. Any source change must meet CI success + ARM64 workflow success + prebuilt/source-commit.txt exact SHA before proposing the user upgrades. Preserve ~/AhB.backup-20261008-194847 and verify OpenCode first.
+
 ## Pending release: Agent2API v2.9.7 + FreeBuff Android onboarding — 2026-10-08
 
 - Working branch fix/agent2api-297-freebuff-onboarding pins the **official released v2.9.7** Agent2API commit 3618f6413610ca04b72991987c0b6589dc2fe54b in Android ARM64 workflow and manual Termux installer. Upstream main has newer 2.9.8-labelled changes without a confirmed release at review; do not build a moving main tip.
