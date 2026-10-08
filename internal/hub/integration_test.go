@@ -162,3 +162,69 @@ func waitFor(t *testing.T, timeout time.Duration, fn func() bool) {
 	}
 	t.Fatal("timeout waiting for condition")
 }
+
+func TestHubRoutesExternalLoopbackProvider(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v1/models":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"object":"list",
+				"data":[]map[string]any{{"id":"arena-model","object":"model"}},
+			})
+		case "/v1/chat/completions":
+			var body map[string]any
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"provider":"external-arena",
+				"model":body["model"],
+			})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer upstream.Close()
+
+	cfg := config.Config{
+		Listen:"127.0.0.1:8317",
+		Providers:[]config.ProviderConfig{{
+			ID:"lmarena", Enabled:true, Kind:"external",
+			BaseURL:upstream.URL, HealthPath:"/v1/models", ModelsPath:"/v1/models",
+			HealthIntervalSeconds:1,
+		}},
+	}
+	if err := cfg.Validate(); err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	h := New(cfg)
+	h.Start(ctx)
+	srv := httptest.NewServer(h.Handler())
+	defer srv.Close()
+
+	waitFor(t, 5*time.Second, func() bool {
+		return h.providers["lmarena"].snapshot().State == provider.StateHealthy
+	})
+
+	resp, err := http.Get(srv.URL + "/v1/models")
+	if err != nil { t.Fatal(err) }
+	var models struct{ Data []map[string]any `json:"data"` }
+	if err := json.NewDecoder(resp.Body).Decode(&models); err != nil { t.Fatal(err) }
+	_ = resp.Body.Close()
+	if len(models.Data) != 1 || models.Data[0]["id"] != "lmarena/arena-model" {
+		t.Fatalf("models = %#v", models.Data)
+	}
+
+	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/v1/chat/completions",
+		bytes.NewBufferString(`{"model":"lmarena/arena-model","messages":[]}`))
+	req.Header.Set("Content-Type", "application/json")
+	chat, err := http.DefaultClient.Do(req)
+	if err != nil { t.Fatal(err) }
+	defer chat.Body.Close()
+	var got map[string]any
+	if err := json.NewDecoder(chat.Body).Decode(&got); err != nil { t.Fatal(err) }
+	if got["provider"] != "external-arena" || got["model"] != "arena-model" {
+		t.Fatalf("route result = %#v", got)
+	}
+}

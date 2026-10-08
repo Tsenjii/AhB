@@ -30,8 +30,23 @@ type Hub struct {
 type runtimeProvider struct {
 	cfg      config.ProviderConfig
 	sup      *sidecar.Supervisor
+	external *externalProbeState
 	accounts accountProbeState
 	load     providerLoad
+}
+
+func (p *runtimeProvider) hasRuntime() bool {
+	return p.sup != nil || p.external != nil
+}
+
+func (p *runtimeProvider) snapshot() sidecar.Snapshot {
+	if p.sup != nil {
+		return p.sup.Snapshot()
+	}
+	if p.external != nil {
+		return p.external.snapshot()
+	}
+	return sidecar.Snapshot{ID: p.cfg.ID, State: provider.StateDisabled}
 }
 
 type providerView struct {
@@ -75,8 +90,13 @@ func New(cfg config.Config) *Hub {
 	}
 	for _, p := range cfg.Providers {
 		rp := &runtimeProvider{cfg: p}
-		if p.Enabled && p.Kind == "sidecar" {
-			rp.sup = sidecar.New(p)
+		if p.Enabled {
+			switch p.Kind {
+			case "sidecar":
+				rp.sup = sidecar.New(p)
+			case "external":
+				rp.external = newExternalProbe(p)
+			}
 		}
 		h.providers[p.ID] = rp
 	}
@@ -87,9 +107,12 @@ func (h *Hub) Start(ctx context.Context) {
 	for _, p := range h.providers {
 		if p.sup != nil {
 			go p.sup.Run(ctx)
-			if p.cfg.ID == "agent2api" || p.cfg.ID == "freebuff" || p.cfg.ID == "deepseek" {
-				go h.pollProviderAccounts(ctx, p)
-			}
+		}
+		if p.external != nil {
+			go h.runExternalProbe(ctx, p)
+		}
+		if p.hasRuntime() && (p.cfg.ID == "agent2api" || p.cfg.ID == "freebuff" || p.cfg.ID == "deepseek") {
+			go h.pollProviderAccounts(ctx, p)
 		}
 	}
 }
@@ -152,13 +175,13 @@ func (h *Hub) providerViews() []providerView {
 			State:       provider.StateDisabled,
 		}
 		if p.cfg.Enabled {
-			if p.sup == nil {
+			if !p.hasRuntime() {
 				view.State = provider.StateDegraded
-				view.LastError = "provider enabled without a supervisor"
+				view.LastError = "provider enabled without a runtime"
 			} else {
-				snap := p.sup.Snapshot()
+				snap := p.snapshot()
 				account := p.accounts.snapshot()
-				assessment := assessProviderHealth(id, snap, account)
+				assessment := assessProviderHealth(id, p.cfg.Kind, snap, account)
 				view.State = assessment.State
 				view.ProcessAlive = assessment.ProcessAlive
 				view.ProviderReady = assessment.ProviderReady
@@ -195,12 +218,17 @@ type providerAssessment struct {
 
 func boolPtr(v bool) *bool { return &v }
 
-func assessProviderHealth(id string, snap sidecar.Snapshot, account accountProbe) providerAssessment {
+func assessProviderHealth(id, kind string, snap sidecar.Snapshot, account accountProbe) providerAssessment {
+	external := kind == "external"
 	a := providerAssessment{
-		State: snap.State, ProcessAlive: snap.PID > 0,
+		State: snap.State, ProcessAlive: !external && snap.PID > 0,
 		ProviderReady: snap.State == provider.StateHealthy,
 	}
-	if !a.ProcessAlive {
+	if !external && !a.ProcessAlive {
+		a.ProviderReady = false
+		return a
+	}
+	if external && snap.HealthHTTPStatus == 0 {
 		a.ProviderReady = false
 		return a
 	}
@@ -285,11 +313,11 @@ func assessProviderHealth(id string, snap sidecar.Snapshot, account accountProbe
 	return a
 }
 
-func providerUsableForRouting(id string, snap sidecar.Snapshot, account accountProbe) bool {
+func providerUsableForRouting(id, kind string, snap sidecar.Snapshot, account accountProbe) bool {
 	if snap.State != provider.StateHealthy {
 		return false
 	}
-	a := assessProviderHealth(id, snap, account)
+	a := assessProviderHealth(id, kind, snap, account)
 	if !a.ProviderReady {
 		return false
 	}
@@ -309,10 +337,10 @@ func (h *Hub) handleModels(w http.ResponseWriter, r *http.Request) {
 		Warnings: map[string]string{},
 	}
 	for id, p := range h.providers {
-		if !p.cfg.Enabled || p.sup == nil {
+		if !p.cfg.Enabled || !p.hasRuntime() {
 			continue
 		}
-		if !providerUsableForRouting(id, p.sup.Snapshot(), p.accounts.snapshot()) {
+		if !providerUsableForRouting(id, p.cfg.Kind, p.snapshot(), p.accounts.snapshot()) {
 			result.Warnings[id] = "provider not currently usable"
 			continue
 		}
@@ -460,13 +488,13 @@ func (h *Hub) handleProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p, ok := h.providers[providerID]
-	if !ok || !p.cfg.Enabled || p.sup == nil {
+	if !ok || !p.cfg.Enabled || !p.hasRuntime() {
 		writeError(w, http.StatusBadRequest, "unknown_provider", "provider is not enabled")
 		return
 	}
-	snap := p.sup.Snapshot()
-	if !providerUsableForRouting(providerID, snap, p.accounts.snapshot()) {
-		assessment := assessProviderHealth(providerID, snap, p.accounts.snapshot())
+	snap := p.snapshot()
+	if !providerUsableForRouting(providerID, p.cfg.Kind, snap, p.accounts.snapshot()) {
+		assessment := assessProviderHealth(providerID, p.cfg.Kind, snap, p.accounts.snapshot())
 		writeError(w, http.StatusServiceUnavailable, "provider_unavailable", fmt.Sprintf("%s is %s", providerID, assessment.State))
 		return
 	}

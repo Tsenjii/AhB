@@ -25,13 +25,20 @@ fi
 if command -v jq >/dev/null 2>&1 && [ -f config.json ]; then
   tmp="$(mktemp)"
   deepseek_provider="$(jq -c '.providers[] | select(.id == "deepseek")' config.example.json)"
-  if jq --argjson deepseek "$deepseek_provider" '
+  lmarena_provider="$(jq -c '.providers[] | select(.id == "lmarena")' config.example.json)"
+  if jq --argjson deepseek "$deepseek_provider" --argjson lmarena "$lmarena_provider" '
       if any(.providers[]; .id == "deepseek") then . else .providers += [$deepseek] end
+      | if any(.providers[]; .id == "lmarena") then . else .providers += [$lmarena] end
       | (.providers[] | select(.id == "opencode") | .env) =
           (((.providers[] | select(.id == "opencode") | .env) // {}) + {"GODEBUG":"netdns=cgo"})
       | (.routing.same_model_fallback.providers // []) as $p
       | if (.routing.same_model_fallback? != null and ($p | index("deepseek")) == null)
         then .routing.same_model_fallback.providers += ["deepseek"]
+        else .
+        end
+      | (.routing.same_model_fallback.providers // []) as $p2
+      | if (.routing.same_model_fallback? != null and ($p2 | index("lmarena")) == null)
+        then .routing.same_model_fallback.providers += ["lmarena"]
         else .
         end
     ' config.json > "$tmp"; then

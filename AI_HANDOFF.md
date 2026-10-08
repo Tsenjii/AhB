@@ -324,3 +324,22 @@ tokens through `/api/providers`.
 LMArena browser/session/Cloudflare-bypass projects are not bundled into AhB.
 If LMArena is supported later, prefer an external localhost bridge integration
 without copying anti-bot or verification-bypass logic into AhB.
+
+
+## External localhost provider kind
+
+AhB supports `kind: "external"` for an OpenAI-compatible service that is
+already running on loopback. External providers:
+- must use a localhost / loopback `base_url`; LAN/public addresses are rejected
+- are health-polled by hubd but are not spawned, killed, or restarted by hubd
+- participate in model aggregation, normal `provider/model` routing, and the
+  optional same-model fallback/balancing feature
+- show Process=N/A in the Hub UI because AhB does not own their process
+
+A disabled `lmarena` slot is included at `127.0.0.1:8406`, using
+`/v1/models` for both health and model discovery. Enable it with
+`scripts/enable-lmarena-external.sh` after starting a compatible local bridge.
+
+AhB deliberately does not bundle LMArena bridges whose implementation depends
+on Cloudflare clearance capture, CAPTCHA bypass, browser fingerprint evasion,
+or similar anti-bot circumvention.

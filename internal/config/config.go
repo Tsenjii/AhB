@@ -152,10 +152,10 @@ func (c Config) Validate() error {
 		if !p.Enabled {
 			continue
 		}
-		if p.Kind != "sidecar" {
-			return fmt.Errorf("provider %q: V1 only supports kind=sidecar", id)
+		if p.Kind != "sidecar" && p.Kind != "external" {
+			return fmt.Errorf("provider %q: kind must be sidecar or external", id)
 		}
-		if strings.TrimSpace(p.Binary) == "" {
+		if p.Kind == "sidecar" && strings.TrimSpace(p.Binary) == "" {
 			return fmt.Errorf("provider %q: binary is required", id)
 		}
 		if strings.TrimSpace(p.BaseURL) == "" {
@@ -171,7 +171,7 @@ func (c Config) Validate() error {
 		host := u.Hostname()
 		ip := net.ParseIP(host)
 		if host != "localhost" && (ip == nil || !ip.IsLoopback()) {
-			return fmt.Errorf("provider %q: sidecar base_url must be loopback in V1", id)
+			return fmt.Errorf("provider %q: base_url must be loopback in V1", id)
 		}
 	}
 

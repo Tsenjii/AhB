@@ -164,7 +164,7 @@ async function refresh(){
         '<div class="metric"><b>'+esc(x.restarts||0)+'</b><span>Restarts</span></div>'+
       '</div>'+
       '<div class="health-layers">'+
-        '<span>Process <b>'+esc(x.process_alive?'YES':'NO')+'</b></span>'+
+        '<span>Process <b>'+esc(x.kind==='external'?'N/A':(x.process_alive?'YES':'NO'))+'</b></span>'+
         '<span>Ready <b>'+esc(x.provider_ready?'YES':'NO')+'</b></span>'+
         '<span>Account <b>'+esc(accountLabel(x))+'</b></span>'+
       '</div>'+

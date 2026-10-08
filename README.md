@@ -13,6 +13,7 @@ Optional provider pack:
 
 - **Agent2API v2.9.5** — adds a mature UI and adapters for personal CodeArts, Qoder, Cline, Trae, Loomy and other supported accounts without reimplementing those protocols in this repo.
 - **DeepSeek2API** — optional DeepSeek Web multi-account sidecar with its original admin UI, OpenAI/Anthropic/Responses compatibility, tool calling and provider-internal account pooling.
+- **External localhost bridges** — optional `kind: external` providers that AhB health-checks and routes without supervising a process. A disabled `lmarena/` slot is included for a user-supplied local OpenAI-compatible bridge.
 
 The Hub itself stays small. Provider-specific login, account pools, quota logic, proxy settings and diagnostics remain inside the upstream adapters.
 
@@ -29,6 +30,7 @@ opencode/<model>
 freebuff/<model>
 agent2api/<model>
 deepseek/<model>
+lmarena/<model>   # only when the external localhost slot is enabled
 ```
 
 Supported proxy endpoints:
@@ -141,3 +143,17 @@ See:
 - `docs/NETWORK_EGRESS.md`
 - `docs/PROVIDERS.md`
 - `docs/DEPLOY_VPS_512MB.md`
+
+## External To-API bridges
+
+AhB can attach an already-running localhost OpenAI-compatible bridge without
+bundling or supervising it. The included LMArena slot defaults to
+`http://127.0.0.1:8406` and is disabled by default:
+
+```sh
+./scripts/enable-lmarena-external.sh
+```
+
+The bridge must provide `GET /v1/models` and the OpenAI-compatible POST
+endpoints you intend to use. AhB intentionally does not bundle browser-session,
+Cloudflare-clearance, CAPTCHA, fingerprint-evasion, or anti-bot bypass logic.

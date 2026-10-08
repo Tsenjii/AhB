@@ -122,10 +122,10 @@ func (h *Hub) usableFallbackProviders(primary string) []*runtimeProvider {
 	out := make([]*runtimeProvider, 0, len(ids))
 	for _, id := range ids {
 		p, ok := h.providers[id]
-		if !ok || !p.cfg.Enabled || p.sup == nil {
+		if !ok || !p.cfg.Enabled || !p.hasRuntime() {
 			continue
 		}
-		if !providerUsableForRouting(id, p.sup.Snapshot(), p.accounts.snapshot()) {
+		if !providerUsableForRouting(id, p.cfg.Kind, p.snapshot(), p.accounts.snapshot()) {
 			continue
 		}
 		out = append(out, p)
@@ -313,11 +313,11 @@ func (h *Hub) handleRouteProxy(w http.ResponseWriter, r *http.Request, raw []byt
 			continue
 		}
 		p, ok := h.providers[providerID]
-		if !ok || !p.cfg.Enabled || p.sup == nil {
+		if !ok || !p.cfg.Enabled || !p.hasRuntime() {
 			failures = append(failures, target+": provider disabled")
 			continue
 		}
-		if !providerUsableForRouting(providerID, p.sup.Snapshot(), p.accounts.snapshot()) {
+		if !providerUsableForRouting(providerID, p.cfg.Kind, p.snapshot(), p.accounts.snapshot()) {
 			failures = append(failures, target+": provider unavailable")
 			continue
 		}

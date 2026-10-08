@@ -75,6 +75,9 @@ if provider_enabled deepseek; then
   check_url "deepseek-ready" "http://127.0.0.1:8405/readyz"
   check_url "deepseek-ui" "http://127.0.0.1:8405/admin"
 fi
+if provider_enabled lmarena; then
+  check_url "lmarena-external" "http://127.0.0.1:8406/v1/models"
+fi
 echo
 
 echo "== hub runtime =="

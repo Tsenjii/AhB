@@ -122,3 +122,31 @@ func TestValidateRejectsUnknownFallbackProvider(t *testing.T) {
 		t.Fatal("expected unknown fallback provider to be rejected")
 	}
 }
+
+
+func TestValidateAcceptsLoopbackExternalProvider(t *testing.T) {
+	cfg := Config{
+		Listen: "127.0.0.1:8317",
+		Providers: []ProviderConfig{{
+			ID: "lmarena", Enabled: true, Kind: "external",
+			BaseURL: "http://127.0.0.1:8406",
+			HealthPath: "/v1/models", ModelsPath: "/v1/models",
+		}},
+	}
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestValidateRejectsPublicExternalProvider(t *testing.T) {
+	cfg := Config{
+		Listen: "127.0.0.1:8317",
+		Providers: []ProviderConfig{{
+			ID: "lmarena", Enabled: true, Kind: "external",
+			BaseURL: "http://192.168.1.20:8406",
+		}},
+	}
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("expected non-loopback external provider to be rejected")
+	}
+}
