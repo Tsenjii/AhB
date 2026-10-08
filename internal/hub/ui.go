@@ -168,7 +168,7 @@ th,td{font-size:12px}
  <button id="refresh">重新整理</button>
 </header>
 <nav class="anchor-nav" aria-label="頁面捷徑" style="margin-top:15px">
- <a href="#freebuffLogin">FreeBuff 登入</a><a href="#optional">選裝來源</a><a href="#connect">連接來源</a><a href="#providersSection">服務狀態</a><a href="#modelsSection">模型目錄</a>
+ <a href="#diagnostics">狀態檢查</a><a href="#freebuffLogin">FreeBuff 登入</a><a href="#optional">選裝來源</a><a href="#connect">連接來源</a><a href="#providersSection">服務狀態</a><a href="#modelsSection">模型目錄</a>
 </nav>
 
 <div class="overview">
@@ -185,6 +185,22 @@ th,td{font-size:12px}
 
 <div id="error" class="notice"></div>
 <div id="warnings" class="notice"></div>
+
+<section id="diagnostics">
+  <div class="section-head"><div class="section-title"><h2>全來源狀態檢查</h2><span class="count">No inference / no secrets</span></div></div>
+  <div class="quick-connect">
+    <div>
+      <div class="eyebrow">Built-in providers</div>
+      <div class="quick-title">先看程序、帳號，再挑模型做實測。</div>
+      <p>支援 OpenCode、FreeBuff、Agent2API、DeepSeek、Grok、Kiro、Copilot；實驗性 Kimi Web 另外列出。預設關閉的來源不會被自動啟動。</p>
+    </div>
+    <div class="command-panel">
+      <div class="eyebrow">Termux diagnostic</div>
+      <div class="command-box">cd ~/AhB &amp;&amp; ./scripts/provider-status-termux.sh</div>
+      <div class="command-help">此指令只讀取本機服務狀態與模型數量，顯示帳號筆數、最後 HTTP 狀態，不發送推理請求，也不輸出憑證；HEALTHY 與 200 不能證明有額度或能完成工具呼叫。</div>
+    </div>
+  </div>
+</section>
 
 <section id="freebuffLogin">
   <div class="section-head"><div class="section-title"><h2>FreeBuff 登入</h2><span class="count">Android account setup</span></div></div>
