@@ -12,6 +12,21 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: "1.23.x"
+      - name: Validate Termux scripts
+        run: bash -n scripts/*.sh
+
+      - name: Validate JSON configs
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          paths = [Path("config.example.json"), *sorted(Path("configs").glob("*.json"))]
+          for path in paths:
+              with path.open("r", encoding="utf-8") as f:
+                  json.load(f)
+              print("ok", path)
+          PY
+
       - run: go test ./...
       - run: go vet ./...
       - run: go build ./cmd/hubd
