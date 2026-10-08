@@ -48,6 +48,14 @@ check_file "data/freebuff/config.json"
 check_file "bin/hubd"
 check_file "bin/opencode2api"
 check_file "bin/freebuff2api"
+check_file "data/freebuff/gateway/server.js"
+check_file "data/freebuff/gateway/worker.js"
+if command -v node >/dev/null 2>&1; then
+  echo "OK   node $(node --version)"
+else
+  echo "MISS node runtime (pkg install nodejs)"
+  fail=1
+fi
 if [ -x bin/agent2api-server ]; then
   check_file "data/agent2api/ui"
 fi
