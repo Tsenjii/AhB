@@ -15,6 +15,9 @@ jobs:
       - name: Validate Termux scripts
         run: bash -n scripts/*.sh
 
+      - name: Test Termux doctor execution and private bridges
+        run: bash scripts/test-doctor-termux.sh
+
       - name: Test non-destructive prebuilt upgrades
         run: bash scripts/test-upgrade-prebuilt.sh
       - name: Test universal localhost bridge connector
