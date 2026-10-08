@@ -627,3 +627,20 @@ UI-generated command will restart Hub after successful connection; this **interr
 **Unverified in that report:** actual LMArena/custom bridge connection and inference (UI/preset only); complete tool-call execution + second model request (initial function-call emission only); real inference on Agent2API and FreeBuff while they lack usable quota/accounts; DeepSeek, Grok and Kiro live inference. Do not mark all provider/end-to-end tests 100% complete based on this report.
 
 Next product UX improvement: distinguish provider process health, credential readiness, and account/model quota sufficiency. Obtain genuine quota status from supported upstream APIs or clear 503 error state; never simulate balances or bypass usage limits.
+
+
+## DeepSeek / Kimi and additional lightweight To-API research — 2026-10-08
+
+**Read [docs/DEEPSEEK_KIMI_AND_LIGHTWEIGHT_TO_API_RESEARCH_2026-10-08.md](docs/DEEPSEEK_KIMI_AND_LIGHTWEIGHT_TO_API_RESEARCH_2026-10-08.md).** This is research, not a new integrated Android binary.
+
+Correction to potential future misunderstanding: **DeepSeek Web is already a real bundled Go sidecar**, pinned from `zengtao227/Deepseek2API`, including static admin UI and `scripts/enable-deepseek2api.sh`, but disabled by default and **not yet verified by real-phone account inference**. Kimi Web, Kimi Code, LMArena, Qwen, Gemini and Windsurf remain *only preconfigured connector names* unless a separate local bridge actually runs. The phone build ships **no Kimi binary/Python service**.
+
+Priority for further integration:
+1. **P0**: validate built-in DeepSeek Web on Android with actual authorized account; do not duplicate it merely to add features already present.
+2. **P1**: `chopper1026/kimi2api` has Kimi Web multi-account pool, refresh, admin panel, JSON/streaming API, but needs Python FastAPI/httpx; optional managed sidecar feasibility test first, preserve user state, don't falsely claim full native tool calling.
+3. **P2**: `xaionaro-go/kimi-oauth-proxy` and `PixelMelt/kimi-proxy` offer **Kimi Code** compatibility, separate from Kimi Web. Need entitled user-initiated OAuth/CLI login and real device tests; Go version is tiny/low-history, Bun version has a runtime cost.
+4. **P2**: `XxxXTeam/glm2api` (Python GLM Web), selective MiMo adapter, and the previously shortlisted single Copilot Go sidecar. Reuse existing Qwen2API_Go connector until installed/runnable.
+5. **LOW/HOLD**: Node DeepSeek alternate `Sakura520222/deepseek2api` is pure Node with no third-party npm runtime deps, useful fallback if existing Go backend fails. `PruhaNLP/web-to-api` requires Chrome/Playwright and does not belong in lightweight phone base. `eequaled/GLM_proxy` requires AutoClaw on Windows/macOS, not a self-contained Termux GLM source.
+6. **REJECT**: `aptdnfapt/qwen-code-oai-proxy` self-identifies as deprecated/dead due to auth errors; do not put in main usable shortlist.
+
+All these are candidate repo claims only; no new runtime has passed device smoke/Chat/SSE/tools. Preserve user's original Android backup, privacy of auth tokens and current build stability. Focus on account availability and quota truth, highlighted by the user's real Agent2API HTTP 503 on 2/2 apparently credentialed accounts.
