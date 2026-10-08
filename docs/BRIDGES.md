@@ -36,6 +36,7 @@ These are connection presets, **not bundled binaries or independently tested ups
 | `kimi` | [chopper1026/kimi2api](https://github.com/chopper1026/kimi2api), Python + own account manager; its upstream requires a separate API key. | `./scripts/connect-bridge.sh kimi http://127.0.0.1:8000` |
 | `gemini` | [xwteam/gemini2api](https://github.com/xwteam/gemini2api), Python service with a primary OpenAI-compatible prefix of `/openai/v1`; the script maps `/v1/...` automatically. | `./scripts/connect-bridge.sh gemini http://127.0.0.1:5918` |
 | `claude` | [yushangxiao/claude2api](https://github.com/yushangxiao/claude2api), external Go service, maintains its own credentials. | `./scripts/connect-bridge.sh claude http://127.0.0.1:8080` |
+| `codex` | [dvcrn/codex-oauth-proxy](https://github.com/dvcrn/codex-oauth-proxy), locally authenticated Codex service that exposes Chat/Responses and separate MCP `/mcp`. A user-authorized Codex CLI login and separately launched API bridge are prerequisites. This is **not ChatGPT browser-Web API**, nor an auto-installer. | `./scripts/connect-bridge.sh codex http://127.0.0.1:9879` |
 | any local API | Bring your own legitimate OpenAI-compatible gateway. ID must be lowercase ASCII (e.g. `mybridge`), length 2–31. | `./scripts/connect-bridge.sh mybridge http://127.0.0.1:8560` |
 
 The matching connector can also be configured from the **Connect** wizard on the Hub homepage. The wizard produces a safe local terminal command rather than asking for your private API key in browser JavaScript.
@@ -73,3 +74,8 @@ The script prompts you for the **bridge's own** downstream API key when a termin
 - **Need to undo a change**: the previous configuration is preserved at `data/bridge-config-before-last-change.json`, with local-only permissions. Stop AhB before restoring configuration and restarting.
 
 Refer to the [Android device checklist](ON_DEVICE_CHECKLIST.md) for live model/tool-call verification, not just a successful CI build.
+
+
+## Native tool-call release gate
+
+A model list and a single `get_time` tool call do not prove a functional tool loop. Before declaring a connected provider tool-compatible, run `AIHUB_TEST_MODEL='provider/model' ./scripts/test-tool-roundtrip.sh`. The script first requires structured OpenAI `tool_calls`, then returns a synthetic tool result and requires a final model answer on the second request. This consumes real model quota. OpenCode's earlier device test confirmed only **initial tool-call emission**, not the completed two-turn sequence. See [GPT Web/Codex/MCP research and stability gates](GPT_WEB_CODEX_MCP_STABILITY_2026-10-08.md).
