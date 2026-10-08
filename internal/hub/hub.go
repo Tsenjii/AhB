@@ -34,6 +34,7 @@ type runtimeProvider struct {
 	sup      *sidecar.Supervisor
 	external *externalProbeState
 	accounts accountProbeState
+	lastRequest requestResultState
 	load     providerLoad
 }
 
@@ -70,6 +71,9 @@ type providerView struct {
 	RSSBytes       int64          `json:"rss_bytes,omitempty"`
 	Restarts       int            `json:"restarts"`
 	LastError      string         `json:"last_error,omitempty"`
+	LastRequestStatus int         `json:"last_request_http_status,omitempty"`
+	LastRequestAt string          `json:"last_request_at,omitempty"`
+	LastRequestTransportError bool `json:"last_request_transport_error,omitempty"`
 }
 
 func New(cfg config.Config) *Hub {
@@ -195,6 +199,12 @@ func (h *Hub) providerViews() []providerView {
 			UIURL:       p.cfg.UIURL,
 			DocsURL:     p.cfg.DocsURL,
 			State:       provider.StateDisabled,
+		}
+		last := p.lastRequest.snapshot()
+		if !last.At.IsZero() {
+			view.LastRequestStatus = last.Status
+			view.LastRequestAt = last.At.Format(time.RFC3339)
+			view.LastRequestTransportError = last.TransportError
 		}
 		if p.cfg.Enabled {
 			if !p.hasRuntime() {
