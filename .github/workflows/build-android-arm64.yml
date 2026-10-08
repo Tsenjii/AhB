@@ -224,7 +224,7 @@ jobs:
           cp configs/opencode2api.json configs/freebuff2api.json configs/deepseek2api.json configs/grok2api.yaml configs/kiro-go.json dist/AhB/configs/
           cp scripts/prepare-configs.sh scripts/run-termux.sh scripts/start-termux.sh \
              scripts/stop-termux.sh scripts/doctor-termux.sh scripts/smoke.sh \
-             scripts/test-chat.sh scripts/upgrade-prebuilt-termux.sh scripts/connect-bridge.sh scripts/login-copilot2api.sh scripts/enable-copilot2api.sh scripts/enable-agent2api.sh scripts/enable-deepseek2api.sh \
+             scripts/test-chat.sh scripts/upgrade-prebuilt-termux.sh scripts/connect-bridge.sh scripts/login-copilot2api.sh scripts/enable-copilot2api.sh scripts/install-kimiweb-termux.sh scripts/enable-kimiweb-termux.sh scripts/enable-agent2api.sh scripts/enable-deepseek2api.sh \
              scripts/enable-grok2api.sh scripts/enable-kiro-go.sh scripts/enable-lmarena-external.sh dist/AhB/scripts/
           cp configs/opencode2api.json dist/AhB/data/opencode/config.json
           cp configs/freebuff2api.json dist/AhB/data/freebuff/config.json
