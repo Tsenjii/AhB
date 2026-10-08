@@ -36,6 +36,8 @@ if command -v jq >/dev/null 2>&1 && [ -f config.json ]; then
       )
       | (.providers[] | select(.id == "opencode") | .env) =
           (((.providers[] | select(.id == "opencode") | .env) // {}) + {"GODEBUG":"netdns=cgo"})
+      | (.providers[] | select(.id == "grok") | .env) =
+          (((.providers[] | select(.id == "grok") | .env) // {}) + {"GODEBUG":"netdns=cgo"})
       | .routing.same_model_fallback.providers =
           (.routing.same_model_fallback.providers // [])
       | reduce ($example[0].routing.same_model_fallback.providers // [])[] as $id (.;
