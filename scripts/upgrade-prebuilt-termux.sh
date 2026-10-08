@@ -22,7 +22,7 @@ case "$(uname -m)" in
   *) echo "Android ARM64 prebuilt required; detected $(uname -m)"; exit 1 ;;
 esac
 
-pkg install -y curl coreutils tar jq
+pkg install -y curl coreutils tar jq nodejs
 
 PARENT="$(cd "$(dirname "$DEST")" && pwd)"
 NAME="$(basename "$DEST")"
@@ -42,7 +42,7 @@ mkdir -p "$TMP/stage"
 tar -xzf "$TMP/$ASSET" -C "$TMP/stage"
 NEW="$TMP/stage/AhB"
 
-for path in bin/hubd bin/opencode2api bin/freebuff2api scripts/prepare-configs.sh config.example.json; do
+for path in bin/hubd bin/opencode2api bin/freebuff2api data/freebuff/gateway/server.js data/freebuff/gateway/worker.js scripts/prepare-configs.sh config.example.json; do
   if [ ! -e "$NEW/$path" ]; then
     echo "Incomplete prebuilt archive: missing $path"
     exit 1
@@ -57,6 +57,7 @@ jq -e '.providers | type == "array"' "$NEW/config.example.json" > /dev/null
 bash -n "$NEW/scripts/prepare-configs.sh"
 
 assets=(
+  AhB/data/freebuff/gateway
   AhB/data/agent2api/ui
   AhB/data/deepseek2api/static/admin
   AhB/data/grok2api/frontend/dist
