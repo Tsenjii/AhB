@@ -92,6 +92,8 @@ func (h *Hub) Handler() http.Handler {
 	mux.HandleFunc("/api/runtime", h.handleRuntime)
 	mux.HandleFunc("/v1/models", h.handleModels)
 	mux.HandleFunc("/v1/chat/completions", h.handleProxy)
+	mux.HandleFunc("/v1/completions", h.handleProxy)
+	mux.HandleFunc("/v1/embeddings", h.handleProxy)
 	mux.HandleFunc("/v1/responses", h.handleProxy)
 	mux.HandleFunc("/v1/messages", h.handleProxy)
 	mux.HandleFunc("/v1/messages/count_tokens", h.handleProxy)
