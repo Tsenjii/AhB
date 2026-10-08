@@ -24,16 +24,24 @@ class Handler(BaseHTTPRequestHandler):
             return
         n = int(self.headers.get("Content-Length", "0"))
         req = json.loads(self.rfile.read(n))
+        mode = os.getenv("MODE")
         final = req["messages"][-1]["role"] == "tool"
         if final:
-            assert req["messages"][-2]["role"] == "assistant"
-            assert req["messages"][-1]["tool_call_id"] == "call-123"
-            assert "timestamp" in req["messages"][-1]["content"]
+            assert req["messages"][1]["role"] == "assistant"
+            ids = [x["id"] for x in req["messages"][1]["tool_calls"]]
+            tool_outputs = req["messages"][2:]
+            assert [x["tool_call_id"] for x in tool_outputs] == ids
+            assert all("timestamp" in x["content"] for x in tool_outputs)
             result = {"choices":[{"message":{"role":"assistant","content":"TOOL_LOOP_OK"},"finish_reason":"stop"}]}
-        elif os.getenv("MODE") == "notool":
+        elif mode == "notool":
             result = {"choices":[{"message":{"role":"assistant","content":"I did not call a tool."},"finish_reason":"stop"}]}
         else:
-            result = {"choices":[{"message":{"role":"assistant","content":None,"tool_calls":[{"id":"call-123","type":"function","function":{"name":"get_time","arguments":"{\"timezone\":\"Asia/Taipei\"}"}}]},"finish_reason":"tool_calls"}]}
+            calls = [{"id":"call-123","type":"function","function":{"name":"get_time","arguments":"{\"timezone\":\"Asia/Taipei\"}"}}]
+            if mode == "multitool":
+                calls.append({"id":"call-456","type":"function","function":{"name":"get_time","arguments":"{\"timezone\":\"UTC\"}"}})
+            if mode == "invalid":
+                calls.append({"id":"call-invalid","type":"function","function":{"name":"get_time","arguments":"not-json"}})
+            result = {"choices":[{"message":{"role":"assistant","content":None,"tool_calls":calls},"finish_reason":"tool_calls"}]}
         payload=json.dumps(result).encode()
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
@@ -70,4 +78,22 @@ if AIHUB_BASE="http://127.0.0.1:$(cat "$tmp/port")" \
   echo "expected no-tool response to FAIL" >&2
   exit 1
 fi
-echo "tool-call roundtrip fixture passed (success plus no-tool rejection)"
+kill "$server_pid"
+wait "$server_pid" 2>/dev/null || true
+server_pid=""
+rm "$tmp/port"
+launch multitool
+AIHUB_BASE="http://127.0.0.1:$(cat "$tmp/port")" \
+  AIHUB_TEST_MODEL="mock/test" \
+  bash scripts/test-tool-roundtrip.sh | grep "PASS: native function call"
+kill "$server_pid"
+wait "$server_pid" 2>/dev/null || true
+server_pid=""
+rm "$tmp/port"
+launch invalid
+if AIHUB_BASE="http://127.0.0.1:$(cat "$tmp/port")" \
+   AIHUB_TEST_MODEL="mock/test" bash scripts/test-tool-roundtrip.sh >/dev/null 2>&1; then
+  echo "expected malformed tool arguments to FAIL" >&2
+  exit 1
+fi
+echo "tool-call roundtrip fixture passed (one tool, multiple tools, malformed tool, no-tool rejection)"

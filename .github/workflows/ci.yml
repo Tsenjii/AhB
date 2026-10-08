@@ -21,6 +21,9 @@ jobs:
       - name: Validate full Chat Completions SSE framing
         run: bash scripts/test-stream-fixture.sh
 
+      - name: Verify metadata-only provider inventory
+        run: bash scripts/test-provider-status-fixture.sh
+
       - name: Verify FreeBuff onboarding never exposes credentials
         run: bash scripts/test-freebuff-login-fixture.sh
 

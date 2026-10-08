@@ -1,8 +1,8 @@
 #!/data/data/com.termux/files/usr/bin/bash
 set -euo pipefail
 
-# Require a structured function call, then give that call a tool response
-# and require a second model answer. This test consumes upstream quota.
+# Require 1-8 valid structured function calls, return a result for every call,
+# then require a final model answer. Never execute model-generated commands. This test consumes upstream quota.
 BASE="${AIHUB_BASE:-http://127.0.0.1:8317}"
 MODEL="${AIHUB_TEST_MODEL:-}"
 if [ -z "$MODEL" ]; then
@@ -42,11 +42,15 @@ if [ "$status" != "200" ]; then
   exit 1
 fi
 if ! jq -e '
-  (.choices[0].message.tool_calls | type == "array" and length > 0)
-  and (.choices[0].message.tool_calls[0].type == "function")
-  and (.choices[0].message.tool_calls[0].function.name == "get_time")
-  and ((.choices[0].message.tool_calls[0].id // "") | length > 0)
-  and ((.choices[0].message.tool_calls[0].function.arguments | fromjson) | type == "object")
+  (.choices[0].message.tool_calls // null) as $calls |
+  ($calls | type == "array" and length > 0 and length <= 8)
+  and (([$calls[].id] | unique | length) == ($calls | length))
+  and all($calls[];
+    .type == "function"
+    and .function.name == "get_time"
+    and ((.id // "") | type == "string" and length > 0)
+    and ((.function.arguments | fromjson | .timezone) | type == "string" and length > 0)
+  )
 ' "$first" >/dev/null 2>&1; then
   echo "FAIL: model did not emit a native structured get_time tool call." >&2
   echo "Text/XML guesses are NOT native OpenAI tool calling." >&2
@@ -58,13 +62,14 @@ fi
 follow="$(jq -nc --slurpfile response "$first" --arg model "$MODEL" '{
   model:$model,
   stream:false,
-  messages:[
+  messages: ([
     {role:"user",content:"Use the get_time function for Asia/Taipei first. After you receive the tool result, finish with the text TOOL_LOOP_OK."},
     ($response[0].choices[0].message |
-      {role:"assistant",content:(.content // null),tool_calls:.tool_calls}),
-    {role:"tool",tool_call_id:$response[0].choices[0].message.tool_calls[0].id,
-     content:"{\"timezone\":\"Asia/Taipei\",\"timestamp\":\"2030-01-01T12:34:56+08:00\"}"}
-  ]
+      {role:"assistant",content:(.content // null),tool_calls:.tool_calls})
+  ] + ($response[0].choices[0].message.tool_calls | map({
+    role:"tool",tool_call_id:.id,
+    content:"{\"timezone\":\"Asia/Taipei\",\"timestamp\":\"2030-01-01T12:34:56+08:00\"}"
+  })))
 }')"
 status="$(curl -sS --max-time 120 -o "$second" -w '%{http_code}' \
   -H 'Content-Type: application/json' -X POST "$BASE/v1/chat/completions" -d "$follow" || true)"

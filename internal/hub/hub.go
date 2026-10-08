@@ -414,6 +414,18 @@ func (h *Hub) handleModels(w http.ResponseWriter, r *http.Request) {
 		Data:     []map[string]any{},
 		Warnings: map[string]string{},
 	}
+	// Independent providers should not stall each other's model discovery.
+	// Four concurrent probes cap phone resource usage while preserving the
+	// existing per-provider 10s deadline, fail-closed readiness check, and
+	// deterministic final sort. No stale models are returned on errors.
+	type modelFetchResult struct {
+		id string
+		models []map[string]any
+		err error
+	}
+	results := make(chan modelFetchResult, len(h.providers))
+	slots := make(chan struct{}, 4)
+	var probes sync.WaitGroup
 	for id, p := range h.providers {
 		if !p.cfg.Enabled || !p.hasRuntime() {
 			continue
@@ -422,14 +434,30 @@ func (h *Hub) handleModels(w http.ResponseWriter, r *http.Request) {
 			result.Warnings[id] = "provider not currently usable"
 			continue
 		}
-		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
-		models, err := h.fetchModels(ctx, p.cfg)
-		cancel()
-		if err != nil {
-			result.Warnings[id] = err.Error()
+		probes.Add(1)
+		go func(id string, p *runtimeProvider) {
+			defer probes.Done()
+			select {
+			case slots <- struct{}{}:
+				defer func() { <-slots }()
+			case <-r.Context().Done():
+				results <- modelFetchResult{id: id, err: r.Context().Err()}
+				return
+			}
+			ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+			models, err := h.fetchModels(ctx, p.cfg)
+			cancel()
+			results <- modelFetchResult{id: id, models: models, err: err}
+		}(id, p)
+	}
+	probes.Wait()
+	close(results)
+	for item := range results {
+		if item.err != nil {
+			result.Warnings[item.id] = item.err.Error()
 			continue
 		}
-		result.Data = append(result.Data, models...)
+		result.Data = append(result.Data, item.models...)
 	}
 	sort.Slice(result.Data, func(i, j int) bool {
 		a, _ := result.Data[i]["id"].(string)

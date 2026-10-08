@@ -128,13 +128,16 @@ func (h *Hub) fetchProviderAccounts(parent context.Context, cfg config.ProviderC
 		now := time.Now()
 		for _, account := range payload.Accounts {
 			state := strings.ToLower(strings.TrimSpace(account.CircuitState))
-			if state != "open" {
+			// Only upstream-recognized breaker states are eligible. Unknown,
+			// missing or future states must not advertise an account as ready.
+			switch state {
+			case "closed", "half_open":
 				usable++
-				continue
-			}
-			if account.CooldownUntil != nil {
-				if until, err := time.Parse(time.RFC3339, *account.CooldownUntil); err == nil && !until.After(now) {
-					usable++
+			case "open":
+				if account.CooldownUntil != nil {
+					if until, err := time.Parse(time.RFC3339, *account.CooldownUntil); err == nil && !until.After(now) {
+						usable++
+					}
 				}
 			}
 		}
