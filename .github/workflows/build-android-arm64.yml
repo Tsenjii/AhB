@@ -70,6 +70,10 @@ jobs:
             GOOS=android GOARCH=arm64 CGO_ENABLED=1 \
             go build -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/dist/AhB/bin/opencode2api" ./cmd/opencode2api
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
       - name: Package pinned Node.js FreeBuff gateway (Termux runtime)
         shell: bash
         run: |
