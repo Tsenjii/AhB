@@ -46,7 +46,7 @@ http://127.0.0.1:8317/ui
 
 It shows provider status, process RSS, restart counts, model counts and the unified model list.
 
-Each healthy provider has a **管理原生 UI** button:
+Each healthy provider has a **管理原本 UI** button:
 
 - OpenCode: `http://127.0.0.1:8404/`
 - FreeBuff: `http://127.0.0.1:8402/ui`
