@@ -9,8 +9,8 @@ When the repository is public:
 ```sh
 pkg update
 pkg install -y git
-git clone https://github.com/Tsenjii/assistant-new.git
-cd assistant-new
+git clone https://github.com/Tsenjii/AhB.git
+cd AhB
 chmod +x scripts/*.sh
 ```
 
@@ -57,7 +57,7 @@ First run in the foreground:
 In a second Termux session:
 
 ```sh
-cd assistant-new
+cd AhB
 ./scripts/doctor-termux.sh
 ./scripts/smoke.sh
 ```
