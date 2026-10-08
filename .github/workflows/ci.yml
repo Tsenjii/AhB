@@ -15,6 +15,12 @@ jobs:
       - name: Validate Termux scripts
         run: bash -n scripts/*.sh
 
+      - name: Test safe and idempotent config migration
+        run: bash scripts/test-prepare-configs.sh
+
+      - name: Test actual model chat smoke (HTTP 200 is not enough)
+        run: bash scripts/test-chat-fixture.sh
+
       - name: Test Termux doctor execution and private bridges
         run: bash scripts/test-doctor-termux.sh
 
