@@ -22,6 +22,9 @@ jobs:
       - name: Validate embedded dashboard script
         run: bash scripts/test-dashboard.sh
 
+      - name: Validate living provider registry
+        run: bash scripts/test-provider-registry.sh
+
       - name: Validate JSON configs
         run: |
           python3 - <<'PY'
