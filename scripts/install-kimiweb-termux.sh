@@ -55,6 +55,9 @@ fi
 if [ ! -f "$SRC/app/static/dist/index.html" ]; then
   npm ci --prefix "$SRC/web"
   npm run build --prefix "$SRC/web"
+  # The mobile WebUI is compiled; keep only static assets to save phone space
+  # and prevent npm node_modules from inflating non-destructive AhB backups.
+  rm -rf "$SRC/web/node_modules"
 fi
 
 generate_secret(){ od -An -N24 -tx1 /dev/urandom | tr -d ' \n'; }
