@@ -551,9 +551,9 @@
       "id": "codearts_go_web",
       "name": "CodeArts2API independent Huawei Cloud CodeArts Agent Go bridge",
       "url": "https://github.com/HITZY2002/codearts2api",
-      "status": "research_unverified",
-      "priority": "P2",
-      "notes": "New 2026-10-08 candidate. Go 1.22 stdlib-only MIT Go API/WebUI, no CodeArts IDE daemon, Huawei Cloud browser OAuth, self-managed account pool/refresh, precise per-account benefit model discovery/claim, real stream and upstream native tool_calls for supported models with textual fallback. Overlaps already bundled Agent2API CodeArts source (web login, balance and manual welfare). CRITICAL open GitHub issues #6/#7 (2026-10-05): native tool_choice object yields invalid upstream parameter and can incorrectly cool whole account pool 10m. Unpatched main commit be43574b84f5cbf2f40dc9dafb7c5c6e13da3d51. Do NOT bundle until issue resolved, Android build, real account authorization, native tool-call two-step, cooldown regression and benefit entitlement tested. Official Huawei 10M daily promotion is only for CodeArts product use; unsupported to assume it may be used as external API quota. Official free edition and promotions region/account dependent.",
+      "status": "research_alternative",
+      "priority": "P3",
+      "notes": "NOT A NEW DISTINCT AhB SOURCE: bundled Agent2API already implements Huawei CodeArts account login, model routing, wallet/balance and manual daily welfare. HITZY2002/codearts2api (Go 1.22 stdlib-only MIT) is a specialized alternative, worth borrowing per-account benefit discovery/claim and account capability probing only if legitimately supported and missing in Agent2API. Do not install redundant sidecar. Upstream open GitHub #6/#7: tool_choice object can cause invalid param and incorrectly 10m cooldown for all accounts; do not promote as a reliable agent integration. Authorized account and Huawei service terms/benefit limitations apply. No real Android acceptance.",
       "verified_live_android": false,
       "last_reviewed": "2026-10-08"
     }
