@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/Tsenjii/AhB/internal/config"
 )
@@ -117,7 +118,11 @@ func (h *Hub) fallbackProviderIDs(primary string) []string {
 	return out
 }
 
-func (h *Hub) usableFallbackProviders(primary string) []*runtimeProvider {
+// usableFallbackProviders only considers an alternate if its live model
+// catalog advertises the exact upstream ID. Sending a nominally equal ID to
+// an unrelated service is not a valid same-model fallback. The originally
+// requested provider remains eligible without an extra model-list round trip.
+func (h *Hub) usableFallbackProviders(ctx context.Context, primary, model string) []*runtimeProvider {
 	ids := h.fallbackProviderIDs(primary)
 	out := make([]*runtimeProvider, 0, len(ids))
 	for _, id := range ids {
@@ -127,6 +132,24 @@ func (h *Hub) usableFallbackProviders(primary string) []*runtimeProvider {
 		}
 		if !providerUsableForRouting(id, p.cfg.Kind, p.snapshot(), p.accounts.snapshot()) {
 			continue
+		}
+		if id != primary {
+			probeCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+			models, err := h.fetchModels(probeCtx, p.cfg)
+			cancel()
+			if err != nil {
+				continue // Fail closed: unverified model identity must not route.
+			}
+			found := false
+			for _, entry := range models {
+				if upstream, _ := entry["x_upstream_id"].(string); upstream == model {
+					found = true
+					break
+				}
+			}
+			if !found {
+				continue
+			}
 		}
 		out = append(out, p)
 	}
@@ -148,7 +171,7 @@ func (h *Hub) handleSameModelSequential(w http.ResponseWriter, r *http.Request, 
 		writeError(w, http.StatusBadRequest, "invalid_model", err.Error())
 		return
 	}
-	providers := h.usableFallbackProviders(primary)
+	providers := h.usableFallbackProviders(r.Context(), primary, model)
 	if len(providers) == 0 {
 		writeError(w, http.StatusServiceUnavailable, "provider_unavailable", "no usable provider for same-model fallback")
 		return
@@ -217,7 +240,7 @@ func (h *Hub) handleSameModelBalanced(w http.ResponseWriter, r *http.Request, ra
 		writeError(w, http.StatusBadRequest, "invalid_model", err.Error())
 		return
 	}
-	providers := h.usableFallbackProviders(primary)
+	providers := h.usableFallbackProviders(r.Context(), primary, model)
 	if len(providers) == 0 {
 		writeError(w, http.StatusServiceUnavailable, "provider_unavailable", "no usable provider for same-model balanced routing")
 		return
