@@ -1,0 +1,66 @@
+{
+  "listen": "127.0.0.1:8317",
+  "allow_lan": false,
+  "providers": [
+    {
+      "id": "opencode",
+      "display_name": "OpenCode Free",
+      "description": "OpenCode Zen / Zen Go gateway",
+      "enabled": true,
+      "kind": "sidecar",
+      "base_url": "http://127.0.0.1:8401",
+      "ui_url": "http://127.0.0.1:8404/",
+      "docs_url": "https://github.com/jasonxu114514/opencode2api",
+      "binary": "./bin/opencode2api",
+      "args": ["-config", "config.json"],
+      "work_dir": "./data/opencode",
+      "headers": {
+        "Authorization": "Bearer __AIHUB_SERVER_KEY__"
+      },
+      "health_path": "/healthz",
+      "models_path": "/v1/models",
+      "max_restarts": 3
+    },
+    {
+      "id": "freebuff",
+      "display_name": "FreeBuff",
+      "description": "FreeBuff / CodeBuff multi-account gateway",
+      "enabled": true,
+      "kind": "sidecar",
+      "base_url": "http://127.0.0.1:8402",
+      "ui_url": "http://127.0.0.1:8402/ui",
+      "docs_url": "https://github.com/lza6/Freebuff-2API",
+      "binary": "./bin/freebuff2api",
+      "work_dir": "./data/freebuff",
+      "env": {
+        "RUST_LOG": "info"
+      },
+      "health_path": "/healthz",
+      "models_path": "/v1/models",
+      "max_restarts": 3
+    },
+    {
+      "id": "agent2api",
+      "display_name": "Agent2API",
+      "description": "Optional: CodeArts / Qoder / Cline / Trae / Loomy and more",
+      "enabled": false,
+      "kind": "sidecar",
+      "base_url": "http://127.0.0.1:8403",
+      "ui_url": "http://127.0.0.1:8403/",
+      "docs_url": "https://github.com/aimod-cc/agent2api",
+      "binary": "./bin/agent2api-server",
+      "work_dir": "./data/agent2api",
+      "env": {
+        "AGENT2API_HOST": "127.0.0.1",
+        "AGENT2API_PROXY_PORT": "8403",
+        "AGENT2API_PROXY_HOME": ".",
+        "AGENT2API_UI_DIR": "./ui",
+        "AGENT2API_ALLOW_NO_KEY": "1"
+      },
+      "health_path": "/health",
+      "models_path": "/v1/models",
+      "max_restarts": 3,
+      "startup_timeout_seconds": 60
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "listen": "127.0.0.1:8401",
+  "server_keys": ["__AIHUB_SERVER_KEY__"],
+  "zen_keys": [],
+  "go_keys": [],
+  "anonymous": true,
+  "proxies": ["direct"],
+  "proxyfile": "",
+  "upstream": {
+    "zen": "https://opencode.ai/zen",
+    "go": "https://opencode.ai/zen/go"
+  },
+  "retry": {
+    "max_attempts": 3,
+    "timeout_seconds": 300
+  },
+  "models": {
+    "refresh_seconds": 300,
+    "protocols": {}
+  },
+  "logging": {
+    "level": "info",
+    "ring_size": 500,
+    "dump_request_bodies": false
+  },
+  "webui": {
+    "enabled": true,
+    "listen": "127.0.0.1:8404",
+    "username": "admin",
+    "password": "__AIHUB_WEB_PASSWORD__",
+    "session_ttl_minutes": 720
+  },
+  "prefer": "zen"
+}

@@ -1,0 +1,21 @@
+[Unit]
+Description=Android AI Hub
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=aihub
+Group=aihub
+WorkingDirectory=/opt/android-ai-hub
+ExecStart=/opt/android-ai-hub/scripts/run-linux.sh
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/android-ai-hub/data /opt/android-ai-hub/logs
+
+[Install]
+WantedBy=multi-user.target

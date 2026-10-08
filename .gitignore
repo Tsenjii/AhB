@@ -1,0 +1,6 @@
+bin/
+data/
+logs/
+*.log
+.env
+config.json

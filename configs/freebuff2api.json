@@ -1,0 +1,20 @@
+{
+  "listen_addr": "127.0.0.1:8402",
+  "upstream_base_url": "https://www.codebuff.com",
+  "auth_tokens": [],
+  "api_keys": [],
+  "skip_upstream_check": true,
+  "http_proxy": "",
+  "memory_enabled": false,
+  "redact_logs": true,
+  "thread_cleanup_interval_sec": 0,
+  "sqlite_path": "freebuff2api.sqlite",
+  "tokens_path": "tokens.json",
+  "telemetry_path": "telemetry.sqlite",
+  "memory_path": "memory.sqlite",
+  "threads_path": "threads.json",
+  "cred_meta_path": "cred_meta.json",
+  "account_history_path": "account_history.jsonl",
+  "web_threads_path": "web_threads.json",
+  "skills_dir": "skills"
+}

@@ -1,0 +1,73 @@
+name: Build Linux bundle
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  linux-amd64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.23.x"
+
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.95.0"
+
+      - name: Build hub
+        run: |
+          mkdir -p dist/android-ai-hub/bin
+          go build -trimpath -ldflags="-s -w" -o dist/android-ai-hub/bin/hubd ./cmd/hubd
+
+      - name: Download pinned OpenCode gateway
+        shell: bash
+        run: |
+          set -euo pipefail
+          ver=v1.3.7
+          pkg="opencode2api_${ver}_linux_amd64"
+          curl -fL --retry 3 -o "/tmp/${pkg}.tar.gz" \
+            "https://github.com/jasonxu114514/opencode2api/releases/download/${ver}/${pkg}.tar.gz"
+          curl -fL --retry 3 -o "/tmp/${pkg}.tar.gz.sha256" \
+            "https://github.com/jasonxu114514/opencode2api/releases/download/${ver}/${pkg}.tar.gz.sha256"
+          cd /tmp
+          sha256sum -c "${pkg}.tar.gz.sha256"
+          tar -xzf "${pkg}.tar.gz"
+          cp "${pkg}/opencode2api" "$GITHUB_WORKSPACE/dist/android-ai-hub/bin/opencode2api"
+          cp "${pkg}/LICENSE" "$GITHUB_WORKSPACE/dist/android-ai-hub/LICENSE.opencode2api"
+
+      - name: Build pinned FreeBuff gateway
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch v0.10.3 https://github.com/lza6/Freebuff-2API.git /tmp/freebuff2api
+          cd /tmp/freebuff2api
+          cargo build --locked --release
+          cp target/release/freebuff2api "$GITHUB_WORKSPACE/dist/android-ai-hub/bin/freebuff2api"
+          cp LICENSE "$GITHUB_WORKSPACE/dist/android-ai-hub/LICENSE.freebuff2api" || true
+
+      - name: Assemble bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp config.example.json dist/android-ai-hub/
+          cp -r configs deploy dist/android-ai-hub/
+          mkdir -p dist/android-ai-hub/scripts dist/android-ai-hub/data/opencode dist/android-ai-hub/data/freebuff dist/android-ai-hub/logs
+          cp scripts/run-linux.sh scripts/smoke.sh scripts/test-chat.sh dist/android-ai-hub/scripts/
+          cp configs/opencode2api.json dist/android-ai-hub/data/opencode/config.json
+          cp configs/freebuff2api.json dist/android-ai-hub/data/freebuff/config.json
+          chmod +x dist/android-ai-hub/bin/* dist/android-ai-hub/scripts/*.sh
+          tar -C dist -czf android-ai-hub_linux_amd64.tar.gz android-ai-hub
+          sha256sum android-ai-hub_linux_amd64.tar.gz > android-ai-hub_linux_amd64.tar.gz.sha256
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-ai-hub-linux-amd64
+          path: |
+            android-ai-hub_linux_amd64.tar.gz
+            android-ai-hub_linux_amd64.tar.gz.sha256
