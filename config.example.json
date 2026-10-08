@@ -184,6 +184,26 @@
       "models_path": "/v1/models",
       "max_restarts": 3,
       "startup_timeout_seconds": 90
+    },
+    {
+      "id": "kimiweb",
+      "display_name": "Kimi Web (optional Termux)",
+      "description": "Kimi Web multi-account bridge. Optional Python install required, not bundled in base ARM64 archive.",
+      "enabled": false,
+      "kind": "sidecar",
+      "base_url": "http://127.0.0.1:8412",
+      "ui_url": "http://127.0.0.1:8412/admin",
+      "docs_url": "https://github.com/chopper1026/kimi2api",
+      "binary": "./data/kimiweb/venv/bin/python",
+      "args": [
+        "run.py"
+      ],
+      "work_dir": "./data/kimiweb/source",
+      "headers": {},
+      "health_path": "/healthz",
+      "models_path": "/v1/models",
+      "max_restarts": 3,
+      "startup_timeout_seconds": 90
     }
   ],
   "routes": [],
@@ -200,7 +220,8 @@
         "lmarena",
         "grok",
         "kiro",
-        "copilot"
+        "copilot",
+        "kimiweb"
       ]
     }
   }
