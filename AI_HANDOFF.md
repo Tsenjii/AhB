@@ -15,13 +15,40 @@ Current role:
 
 ## Current verified state
 
-Latest public CI on `main` is green. Agent2API v2.9.6 has also passed the Android ARM64 bundle build.
+Final stabilization baseline before the next real-phone test:
 
-Recent verified GitHub Actions:
-- `CI` on commit `0167ebcc3c16fc6df52f4369cb8c6f20ef884970`: **success**
-- `Build Android ARM64 bundle` on commit `1204c0e69ee830215e8b6089a8eb24591ba4d2aa`: **success**
+- Main implementation/bundle source: `ea52255a8a1c2093e045cb0835aa9f6f838891c5`
+- CI run `37751642564`: **success**
+- Android ARM64 bundle run `37751642532`: **success**
+- Public `prebuilt/source-commit.txt`: `ea52255a8a1c2093e045cb0835aa9f6f838891c5`
+- Public bundle SHA-256: `cdd633c4f704da57b4e74e6c03caa82ba5e2d23ca77a26ee265e1972117063e1`
 
-The public repo already contains a `prebuilt` branch for no-login Android/Termux installation.
+The final bundle contains:
+- `hubd`
+- `opencode2api`
+- `freebuff2api`
+- `agent2api-server`
+- `deepseek2api`
+- `grok2api`
+- `kiro-go`
+
+Stabilization completed in this baseline:
+- Agent2API pinned to v2.9.6
+- DeepSeek2API optional sidecar integrated
+- Grok2API optional sidecar integrated with original UI and one-time local Client Key bootstrap
+- Kiro-Go optional sidecar integrated with original UI and account telemetry
+- Grok Android build uses NDK + CGO and `GODEBUG=netdns=cgo` to avoid the loopback DNS failure previously reproduced on Android
+- Hub UI refreshed to a restrained, phone-first dashboard; coarse-pointer devices force the mobile layout even when CSS viewport width is large
+- optional same-model provider fallback/balancing remains off by default
+- CI validates Go code, Termux shell syntax, and JSON configs
+- Android prebuilt publishing is serialized with a workflow concurrency group to prevent concurrent force-push ref-lock races
+
+Verification terminology:
+- OpenCode and the previously tested Agent2API/Qoder path have real-device inference/tool-calling evidence from the Android phone.
+- Grok2API and Kiro-Go are currently **CI/build/prebuilt VERIFIED**, not yet **real-device VERIFIED**.
+- DeepSeek2API is also not to be called real-device VERIFIED until the phone test completes.
+
+The public repo contains a `prebuilt` branch for no-login Android/Termux installation.
 
 ## Architecture
 
