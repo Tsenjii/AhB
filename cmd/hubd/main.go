@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -27,6 +29,15 @@ func main() {
 		log.Fatalf("config: %v", err)
 	}
 
+	// Reserve the Hub port before creating any provider child processes.
+	// Otherwise a second AhB instance may exit on bind failure while leaving
+	// newly spawned sidecars behind.
+	listener, err := net.Listen("tcp", cfg.Listen)
+	if err != nil {
+		log.Fatalf("listen %s: %v", cfg.Listen, err)
+	}
+	defer listener.Close()
+
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
@@ -43,21 +54,30 @@ func main() {
 	errCh := make(chan error, 1)
 	go func() {
 		log.Printf("android-ai-hub listening on %s", cfg.Listen)
-		errCh <- server.ListenAndServe()
+		errCh <- server.Serve(listener)
 	}()
 
+	var serveErr error
 	select {
 	case <-ctx.Done():
 	case err := <-errCh:
-		if err != nil && err != http.ErrServerClosed {
-			log.Fatalf("server: %v", err)
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			serveErr = err
+			log.Printf("hub HTTP server stopped unexpectedly: %v", err)
 		}
-		return
 	}
 
+	// Shut down the HTTP listener and then wait for all supervised sidecars
+	// and health probes to exit before the Hub process disappears.
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer shutdownCancel()
 	if err := server.Shutdown(shutdownCtx); err != nil {
 		log.Printf("shutdown: %v", err)
+	}
+	shutdownCancel()
+	cancel()
+	h.Wait()
+
+	if serveErr != nil {
+		log.Fatalf("server: %v", serveErr)
 	}
 }
