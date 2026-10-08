@@ -102,8 +102,8 @@
       "name": "Kimi Web multi-account",
       "url": "https://github.com/chopper1026/kimi2api",
       "status": "new_optional_installer_unverified",
-      "priority": "P1",
-      "notes": "New isolated Termux Python/React installer and disabled managed sidecar; Python dependency availability on Android unverified.",
+      "priority": "P3",
+      "notes": "EXPERIMENTAL/DEFAULT-OFF. Python Kimi Web with account pool and explicit installation, but user reports historically unstable Kimi Web reverse proxies and upstream README is not optimized for programmatic Tool Calling. Do not promote to production or claim native tools without Android long-run, account-refresh, SSE, two-turn tool-result and 401/429/503 test.",
       "verified_live_android": false,
       "last_reviewed": "2026-10-08"
     },
@@ -443,7 +443,7 @@
       "url": "https://github.com/dvcrn/codex-oauth-proxy",
       "status": "research_unverified",
       "priority": "P1",
-      "notes": "Go 1.25.7, MIT; Chat/Responses plus stateless MCP ask_codex. Requires existing authorized Codex CLI login on normal local runtime. MCP tools are one-shot model invocations, NOT full external function-call continuations. Android CLI credential handling unverified.",
+      "notes": "Go 1.25.7, MIT; Chat/Responses plus stateless MCP ask_codex. Requires existing authorized Codex CLI login on normal local runtime. MCP tools are one-shot model invocations, NOT full external function-call continuations. Android CLI credential handling unverified. AhB now has a connector-only codex preset at localhost port 9879; NO bundled Codex binary or native login yet.",
       "verified_live_android": false,
       "last_reviewed": "2026-10-08"
     },
