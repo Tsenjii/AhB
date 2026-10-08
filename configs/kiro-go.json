@@ -1,0 +1,8 @@
+{
+  "password": "__AIHUB_KIRO_ADMIN_PASSWORD__",
+  "port": 8408,
+  "host": "127.0.0.1",
+  "apiKey": "__AIHUB_SERVER_KEY__",
+  "requireApiKey": true,
+  "accounts": []
+}

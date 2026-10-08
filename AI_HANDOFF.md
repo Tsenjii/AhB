@@ -497,3 +497,36 @@ Verification ladder:
 6. full-path tool calling
 
 Do not mark Grok real-device VERIFIED before steps 4-6 are completed.
+
+
+## Kiro-Go first-class sidecar
+
+Integration target:
+- upstream: `Quorinex/Kiro-Go`
+- pinned commit: `f8f6071c9298a4266ad3e0c7e483d4a2510cbcaf`
+- prefix: `kiro/`
+- API/UI: `127.0.0.1:8408` / `/admin`
+- work dir: `data/kiro-go`
+- health: `/health`
+- account truth: authenticated `/v1/stats` fields `accounts` and `available`
+- disabled by default
+
+Android design:
+- build with Android NDK + CGO and `GODEBUG=netdns=cgo`
+- ship the upstream `web/` directory; no Node runtime is required
+- generate a local admin password under ignored `data/kiro-go/`
+- reuse AhB's local server key for the Kiro downstream API
+- keep provider-internal multi-account rotation/token refresh/proxy logic in Kiro-Go
+
+Verification ladder is the same as Grok: CI/build/prebuilt first, then real
+Android model discovery, inference and tool-calling before real-device VERIFIED.
+
+## Hub UI direction
+
+The Hub foyer is intentionally a restrained local-service dashboard rather than
+an AI-themed landing page:
+- flat neutral background; no decorative glow/gradient
+- compact status rows, thin separators and small radii
+- clear process/readiness/account layers
+- mobile layout also triggers on coarse-pointer devices, not only viewport width
+- original provider UIs remain the place for provider-specific management

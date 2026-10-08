@@ -14,6 +14,7 @@ Optional provider pack:
 - **Agent2API v2.9.6** — adds a mature UI and adapters for personal WorkBuddy domestic/international, CodeArts, Qoder, Cline, Trae, Loomy, KukuAI and other supported accounts without reimplementing those protocols in this repo.
 - **DeepSeek2API** — optional DeepSeek Web multi-account sidecar with its original admin UI, OpenAI/Anthropic/Responses compatibility, tool calling and provider-internal account pooling.
 - **Grok2API** — optional Grok Build / Web / Console multi-account sidecar with its original management UI, quota/model sync, OpenAI/Anthropic/Responses support and media features.
+- **Kiro-Go** — optional Kiro multi-account sidecar with its original Web admin, automatic token refresh, OpenAI/Anthropic/Responses endpoints and account-level proxy support.
 - **External localhost bridges** — optional `kind: external` providers that AhB health-checks and routes without supervising a process. A disabled `lmarena/` slot is included for a user-supplied local OpenAI-compatible bridge.
 
 The Hub itself stays small. Provider-specific login, account pools, quota logic, proxy settings and diagnostics remain inside the upstream adapters.
@@ -32,6 +33,7 @@ freebuff/<model>
 agent2api/<model>
 deepseek/<model>
 grok/<model>
+kiro/<model>
 lmarena/<model>   # only when the external localhost slot is enabled
 ```
 
@@ -63,6 +65,7 @@ Each healthy provider has a **管理原本 UI** button:
 - Agent2API when installed: `http://127.0.0.1:8403/`
 - DeepSeek2API when enabled: `http://127.0.0.1:8405/admin`
 - Grok2API when enabled: `http://127.0.0.1:8407/`
+- Kiro-Go when enabled: `http://127.0.0.1:8408/admin`
 
 The Hub intentionally does not duplicate the upstream management consoles.
 
@@ -91,6 +94,8 @@ The public ARM64 bundle is rebuilt by GitHub Actions from pinned upstream versio
 - DeepSeek2API's original management UI
 - `grok2api` (disabled by default)
 - Grok2API's original management UI
+- `kiro-go` (disabled by default)
+- Kiro-Go's original management UI
 
 ## Termux install from source
 
@@ -177,3 +182,17 @@ The helper generates local Grok2API secrets, starts the sidecar temporarily on
 loopback, creates a dedicated AhB Client Key through its local admin API, stores
 the key under ignored `data/grok2api/`, enables `grok/`, then returns normal
 process lifecycle control to hubd.
+
+
+### Optional Kiro-Go provider
+
+The Android bundle also contains a pinned Kiro-Go binary and its original Web
+admin. It stays disabled until requested:
+
+```sh
+./scripts/enable-kiro-go.sh
+```
+
+AhB binds it to `127.0.0.1:8408`, supplies a local API key, and reads its
+authenticated `/v1/stats` account totals so an empty account pool is not
+treated as routable.

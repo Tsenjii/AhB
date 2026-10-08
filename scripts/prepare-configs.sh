@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-mkdir -p data/opencode data/freebuff data/agent2api data/deepseek2api data/grok2api/frontend data/grok2api/data logs bin
+mkdir -p data/opencode data/freebuff data/agent2api data/deepseek2api data/grok2api/frontend data/grok2api/data data/kiro-go/web logs bin
 
 if [ ! -f config.json ]; then
   cp config.example.json config.json
@@ -20,6 +20,9 @@ if [ ! -f data/deepseek2api/config.json ]; then
 fi
 if [ ! -f data/grok2api/config.yaml ]; then
   cp configs/grok2api.yaml data/grok2api/config.yaml
+fi
+if [ ! -f data/kiro-go/config.json ]; then
+  cp configs/kiro-go.json data/kiro-go/config.json
 fi
 
 # Migrate existing installs without overwriting user settings.
@@ -62,7 +65,7 @@ if [ ! -s "$KEY_FILE" ]; then
 fi
 LOCAL_KEY="$(tr -d '\r\n' < "$KEY_FILE")"
 
-for file in config.json data/opencode/config.json data/deepseek2api/config.json; do
+for file in config.json data/opencode/config.json data/deepseek2api/config.json data/kiro-go/config.json; do
   if [ -f "$file" ]; then
     sed -i "s/__AIHUB_SERVER_KEY__/$LOCAL_KEY/g" "$file"
     sed -i "s/hub-local-opencode/$LOCAL_KEY/g" "$file"
@@ -116,6 +119,20 @@ if [ -s "$GROK_CLIENT_FILE" ] && [ -f config.json ]; then
   sed -i "s|__AIHUB_GROK_CLIENT_KEY__|$GROK_CLIENT|g" config.json
 fi
 
+KIRO_ADMIN_FILE="data/kiro-go/admin-password.txt"
+if [ ! -s "$KIRO_ADMIN_FILE" ]; then
+  make_secret > "$KIRO_ADMIN_FILE"
+  printf '\n' >> "$KIRO_ADMIN_FILE"
+  chmod 600 "$KIRO_ADMIN_FILE"
+fi
+KIRO_ADMIN="$(tr -d '\r\n' < "$KIRO_ADMIN_FILE")"
+if [ -f data/kiro-go/config.json ]; then
+  sed -i "s|__AIHUB_KIRO_ADMIN_PASSWORD__|$KIRO_ADMIN|g" data/kiro-go/config.json
+fi
+if [ -f config.json ]; then
+  sed -i "s|__AIHUB_KIRO_ADMIN_PASSWORD__|$KIRO_ADMIN|g" config.json
+fi
+
 WEB_PASS_FILE="data/opencode/webui-password.txt"
 if grep -q "__AIHUB_WEB_PASSWORD__" data/opencode/config.json; then
   if [ ! -s "$WEB_PASS_FILE" ]; then
@@ -127,4 +144,4 @@ if grep -q "__AIHUB_WEB_PASSWORD__" data/opencode/config.json; then
   sed -i "s/__AIHUB_WEB_PASSWORD__/$WEB_PASS/g" data/opencode/config.json
 fi
 
-chmod 600 config.json data/opencode/config.json data/freebuff/config.json data/deepseek2api/config.json data/deepseek2api/admin-key.txt data/grok2api/config.yaml data/grok2api/jwt-secret.txt data/grok2api/credential-key.txt data/grok2api/admin-password.txt data/grok2api/client-key.txt 2>/dev/null || true
+chmod 600 config.json data/opencode/config.json data/freebuff/config.json data/deepseek2api/config.json data/deepseek2api/admin-key.txt data/grok2api/config.yaml data/grok2api/jwt-secret.txt data/grok2api/credential-key.txt data/grok2api/admin-password.txt data/grok2api/client-key.txt data/kiro-go/config.json data/kiro-go/admin-password.txt 2>/dev/null || true

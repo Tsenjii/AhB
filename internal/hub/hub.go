@@ -111,7 +111,7 @@ func (h *Hub) Start(ctx context.Context) {
 		if p.external != nil {
 			go h.runExternalProbe(ctx, p)
 		}
-		if p.hasRuntime() && (p.cfg.ID == "agent2api" || p.cfg.ID == "freebuff" || p.cfg.ID == "deepseek") {
+		if p.hasRuntime() && (p.cfg.ID == "agent2api" || p.cfg.ID == "freebuff" || p.cfg.ID == "deepseek" || p.cfg.ID == "kiro") {
 			go h.pollProviderAccounts(ctx, p)
 		}
 	}
@@ -286,6 +286,14 @@ func assessProviderHealth(id, kind string, snap sidecar.Snapshot, account accoun
 			} else if knownAccountState {
 				a.AccountUsable = boolPtr(false)
 				a.Detail = "no usable Grok accounts"
+			}
+		}
+	case "kiro":
+		if account.Known {
+			usable := account.Usable > 0
+			a.AccountUsable = boolPtr(usable)
+			if !usable {
+				a.Detail = "no usable Kiro accounts"
 			}
 		}
 	case "deepseek":

@@ -63,6 +63,12 @@ if provider_enabled grok; then
   check_file "data/grok2api/frontend/dist/index.html"
   check_file "data/grok2api/client-key.txt"
 fi
+if provider_enabled kiro; then
+  check_file "bin/kiro-go"
+  check_file "data/kiro-go/config.json"
+  check_file "data/kiro-go/web/index.html"
+  check_file "data/kiro-go/admin-password.txt"
+fi
 echo
 
 echo "== local endpoints =="
@@ -88,6 +94,10 @@ if provider_enabled grok; then
   check_url "grok-health" "http://127.0.0.1:8407/healthz"
   check_url "grok-ready" "http://127.0.0.1:8407/readyz"
   check_url "grok-ui" "http://127.0.0.1:8407/"
+fi
+if provider_enabled kiro; then
+  check_url "kiro-health" "http://127.0.0.1:8408/health"
+  check_url "kiro-ui" "http://127.0.0.1:8408/admin"
 fi
 echo
 

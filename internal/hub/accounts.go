@@ -94,6 +94,19 @@ func (h *Hub) fetchProviderAccounts(parent context.Context, cfg config.ProviderC
 		}
 		return accountProbe{Known: true, Total: len(envelope.Data.Accounts), Usable: usable}, nil
 
+	case "kiro":
+		var payload struct {
+			Accounts  int `json:"accounts"`
+			Available int `json:"available"`
+		}
+		if err := h.getProviderJSON(ctx, cfg, "/v1/stats", &payload); err != nil {
+			return accountProbe{}, err
+		}
+		if payload.Accounts < 0 || payload.Available < 0 || payload.Available > payload.Accounts {
+			return accountProbe{}, fmt.Errorf("kiro stats returned invalid account counts")
+		}
+		return accountProbe{Known: true, Total: payload.Accounts, Usable: payload.Available}, nil
+
 	case "deepseek":
 		return inspectDeepSeekAccounts(cfg)
 

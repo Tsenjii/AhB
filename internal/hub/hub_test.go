@@ -150,12 +150,14 @@ func TestAssessProviderHealthLayers(t *testing.T) {
 		{"agent2api aggregate empty", "agent2api", `{"status":"degraded","unavailableReason":"no login"}`, provider.StateDegraded, true, boolPtr(false)},
 		{"grok usable account", "grok", `{"ready":true,"state":"ready","components":{"grok_build":{"state":"ready"},"grok_web":{"state":"disabled"},"grok_console":{"state":"disabled"}}}`, healthy, true, boolPtr(true)},
 		{"grok no usable account", "grok", `{"ready":false,"state":"not_ready","components":{"grok_build":{"state":"unavailable"},"grok_web":{"state":"disabled"},"grok_console":{"state":"disabled"}}}`, provider.StateDegraded, false, boolPtr(false)},
+		{"kiro no accounts", "kiro", `{"status":"ok","version":"1.1.5"}`, provider.StateDegraded, true, boolPtr(false)},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			probe := accountProbe{}
 			if tc.id == "freebuff" { probe = accountProbe{Known:true, Total:0, Usable:0} }
 			if tc.id == "agent2api" { probe = accountProbe{Known:true, Total:0, Usable:0} }
+			if tc.id == "kiro" { probe = accountProbe{Known:true, Total:0, Usable:0} }
 			a := assessProviderHealth(tc.id, "sidecar", sidecar.Snapshot{State: healthy, PID: 123, HealthHTTPStatus: 200, HealthBody: []byte(tc.body)}, probe)
 			if a.State != tc.state || a.ProviderReady != tc.ready {
 				t.Fatalf("assessment = %#v", a)
@@ -326,4 +328,25 @@ func TestInspectDeepSeekAccountsCountsConfiguredCredentials(t *testing.T) {
 	if !got.Known || got.Total != 4 || got.Usable != 2 {
 		t.Fatalf("probe = %#v", got)
 	}
+}
+
+
+func TestFetchProviderAccountsKiroStats(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/v1/stats", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer local-key" {
+			http.Error(w, "missing auth", http.StatusUnauthorized)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"accounts": 4, "available": 3})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	h := New(config.Config{})
+	got, err := h.fetchProviderAccounts(context.Background(), config.ProviderConfig{
+		ID:"kiro", BaseURL:srv.URL,
+		Headers:map[string]string{"Authorization":"Bearer local-key"},
+	})
+	if err != nil { t.Fatal(err) }
+	if !got.Known || got.Total != 4 || got.Usable != 3 { t.Fatalf("probe = %#v", got) }
 }

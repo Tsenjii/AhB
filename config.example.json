@@ -122,6 +122,30 @@
       "startup_timeout_seconds": 90
     },
     {
+      "id": "kiro",
+      "display_name": "Kiro",
+      "description": "Optional: Kiro multi-account gateway via Kiro-Go",
+      "enabled": false,
+      "kind": "sidecar",
+      "base_url": "http://127.0.0.1:8408",
+      "ui_url": "http://127.0.0.1:8408/admin",
+      "docs_url": "https://github.com/Quorinex/Kiro-Go",
+      "binary": "./bin/kiro-go",
+      "work_dir": "./data/kiro-go",
+      "env": {
+        "CONFIG_PATH": "config.json",
+        "ADMIN_PASSWORD": "__AIHUB_KIRO_ADMIN_PASSWORD__",
+        "GODEBUG": "netdns=cgo"
+      },
+      "headers": {
+        "Authorization": "Bearer __AIHUB_SERVER_KEY__"
+      },
+      "health_path": "/health",
+      "models_path": "/v1/models",
+      "max_restarts": 3,
+      "startup_timeout_seconds": 60
+    },
+    {
       "id": "lmarena",
       "display_name": "LMArena External",
       "description": "Optional localhost OpenAI-compatible LMArena bridge; bridge implementation is not bundled",
@@ -147,7 +171,8 @@
         "freebuff",
         "deepseek",
         "lmarena",
-        "grok"
+        "grok",
+        "kiro"
       ]
     }
   }
