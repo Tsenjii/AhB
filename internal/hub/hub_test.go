@@ -154,7 +154,7 @@ func TestAssessProviderHealthLayers(t *testing.T) {
 			probe := accountProbe{}
 			if tc.id == "freebuff" { probe = accountProbe{Known:true, Total:0, Usable:0} }
 			if tc.id == "agent2api" { probe = accountProbe{Known:true, Total:0, Usable:0} }
-			a := assessProviderHealth(tc.id, sidecar.Snapshot{State: healthy, PID: 123, HealthHTTPStatus: 200, HealthBody: []byte(tc.body)}, probe)
+			a := assessProviderHealth(tc.id, "sidecar", sidecar.Snapshot{State: healthy, PID: 123, HealthHTTPStatus: 200, HealthBody: []byte(tc.body)}, probe)
 			if a.State != tc.state || a.ProviderReady != tc.ready {
 				t.Fatalf("assessment = %#v", a)
 			}
