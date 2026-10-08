@@ -15,7 +15,7 @@ Current role:
 
 ## Current verified state
 
-Latest public CI on `main` is green.
+Latest public CI on `main` is green. Agent2API v2.9.6 has also passed the Android ARM64 bundle build.
 
 Recent verified GitHub Actions:
 - `CI` on commit `0167ebcc3c16fc6df52f4369cb8c6f20ef884970`: **success**
@@ -71,12 +71,12 @@ http://127.0.0.1:8317/v1
 - Account pool/quota/proxy/account health stay inside upstream FreeBuff.
 
 ### Agent2API (optional provider pack)
-- Runtime target: `agent2api-server v2.9.5`
+- Runtime target: `agent2api-server v2.9.6`
 - Prefix: `agent2api/`
 - API/UI: `127.0.0.1:8403`
 - Install script: `scripts/install-agent2api-termux.sh`
 - Enable helper: `scripts/enable-agent2api.sh`
-- Intended to reuse mature adapters for personal CodeArts, Qoder, Cline, Trae, Loomy and other upstream-supported channels.
+- Intended to reuse mature adapters for personal WorkBuddy domestic/international, KukuAI, CodeArts, Qoder, Cline, Trae, Loomy and other upstream-supported channels.
 - Keep optional because it is much larger to build than the default V1.
 
 ## Hub functionality already implemented
@@ -343,3 +343,130 @@ A disabled `lmarena` slot is included at `127.0.0.1:8406`, using
 AhB deliberately does not bundle LMArena bridges whose implementation depends
 on Cloudflare clearance capture, CAPTCHA bypass, browser fingerprint evasion,
 or similar anti-bot circumvention.
+
+
+## Agent2API v2.9.6 update — 2026-10-08
+
+AhB now pins upstream `aimod-cc/agent2api v2.9.6`.
+
+Verified:
+- CI: success
+- Android ARM64 bundle: success
+- public prebuilt source commit: `bce3a6f22d6aa94593a768203ef1bc2b6567a927`
+
+Notable upstream changes:
+- new Check-in Center
+- KukuAI provider support
+- Loomy beginner-task workflow
+- per-account automatic balance querying
+- low-balance accounts can yield routing automatically
+- account-add flow improvements
+
+WorkBuddy is now split upstream into two provider identities:
+- `workbuddy` — domestic
+- `workbuddy-intl` — international
+
+Treat them as separate provider identities with separate account/catalog state. Do not merge them in AhB.
+
+Official provider eligibility and registration rules remain upstream responsibilities. AhB should not implement registration automation intended to defeat provider eligibility, account, or access controls.
+
+## Reverse-proxy / To-API research queue — 2026-10-08
+
+Project direction: broad provider coverage via mature sidecars, while keeping hubd thin.
+
+### Priority A — strong first-class sidecar candidates
+
+1. **Grok2API**
+   - https://github.com/chenyme/grok2api
+   - very active Go + React project
+   - Grok Build / Web / Console account pools
+   - multi-account, quota/model sync, retry/routing
+   - OpenAI Chat Completions, Responses, Anthropic Messages
+   - tools/reasoning/multi-turn plus media surfaces
+   - linux arm64 images already exist
+   - target prefix: `grok/`
+   - next checks: listener binding, Android cross-build, static UI packaging, health/account endpoints
+
+2. **Kiro-Go**
+   - https://github.com/Quorinex/Kiro-Go
+   - Go + Web admin
+   - multi-account pool
+   - AWS Builder ID / IAM Identity Center / Microsoft SSO / SSO token / Kiro API Key
+   - OpenAI Chat Completions + Responses + Anthropic Messages
+   - automatic token refresh and outbound proxy support
+   - target prefix: `kiro/`
+   - next checks: listener binding, storage paths, Android ARM64 build, UI packaging
+
+3. **WindsurfAPI**
+   - https://github.com/dwgx/WindsurfAPI
+   - high-activity multi-account gateway with dashboard
+   - OpenAI + Anthropic endpoints
+   - tool-call support, dynamic model discovery, account pool/usage state
+   - current canonical repo is `dwgx/WindsurfAPI`; do not use small forks as the source of truth
+   - target prefix: `windsurf/`
+   - next checks: runtime dependencies, Android feasibility, local UI assets, account-health endpoint
+
+### Priority B — useful but packaging/runtime tradeoffs
+
+4. **Qwen2API_Go**
+   - https://github.com/XxxXTeam/Qwen2API_Go
+   - Go + management UI/account pool
+   - OpenAI + Anthropic compatibility
+   - file/image/video surfaces
+   - target prefix: `qwen/`
+   - next checks: tool-call behavior, Android build, listener binding, account-health API
+
+5. **Kimi2API**
+   - https://github.com/chopper1026/kimi2api
+   - Python/FastAPI + React admin
+   - multi-account Kimi Web pool
+   - `/v1/models`, Chat Completions, Responses
+   - dynamic Kimi Web model discovery
+   - better initial fit as `kind: external` because of Python runtime cost on Termux
+   - target prefix: `kimi/`
+
+### Priority C — external/research first
+
+6. **Gemini2API**
+   - https://github.com/xwteam/gemini2api
+   - Python/FastAPI
+   - multi-account management
+   - OpenAI / Claude / Gemini protocol compatibility
+   - current session behavior is comparatively fragile; keep external-first
+
+7. **Claude2API**
+   - https://github.com/yushangxiao/claude2api
+   - Go Claude Web compatibility layer
+   - historically popular but lower current code activity
+   - re-evaluate before integration
+
+8. **LMArena**
+   - AhB already includes a disabled external slot: `lmarena/` on `127.0.0.1:8406`
+   - keep provider-specific bridge logic outside hubd until a maintainable candidate is selected
+
+### Lower-priority findings
+
+- Mistral Le Chat reverse-proxy projects exist, but current candidates are small and tightly coupled to browser/network-edge behavior; do not prioritize over Grok/Kiro/Windsurf.
+- Perplexity/Poe/Meta-AI bridge candidates found so far are much smaller and less mature.
+- kRouter is capable but overlaps AhB/ModelAtlas-style aggregation too heavily; do not make it a core AhB dependency.
+- KukuAI does not need a separate AhB sidecar while Agent2API v2.9.6 already supports it.
+
+### Recommended implementation order
+
+1. real-device verify DeepSeek2API
+2. real-device verify Agent2API v2.9.6
+3. integrate Grok2API
+4. integrate Kiro-Go
+5. integrate WindsurfAPI
+6. evaluate Qwen2API_Go
+7. keep Kimi/Gemini/LMArena external-first until runtime/session behavior is stable
+
+For each provider, preserve:
+- loopback-only listener
+- upstream management UI
+- local secrets under ignored `data/`
+- process / provider-ready / account-usable health semantics
+- no credentials in logs or `/api/providers`
+- pinned upstream version/commit
+- CI build before claiming support
+- real Android launch + real inference before marking VERIFIED
