@@ -366,6 +366,66 @@
       "notes": "Requires Cursor CLI and Bun runtime.",
       "verified_live_android": false,
       "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "agentmux",
+      "name": "OpenCode GO AgentMux",
+      "url": "https://github.com/ryusei-mogi/AgentMux",
+      "status": "research_unverified",
+      "priority": "P2",
+      "notes": "OpenCode GO specific multi-account quota-aware Node adapter; incremental only if upstream opencode2api lacks quota/circuit breaker. Avoid redundant pool layers.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "twopapi",
+      "name": "2papi Go subscription gateway",
+      "url": "https://github.com/Rethinger/2papi",
+      "status": "hold_aggregator",
+      "priority": "HOLD",
+      "notes": "Single Go executable subscription-account pool plus budgets and MCP; overlaps AhB/ModelAtlas service management rather than a focused adapter.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "operatorlm",
+      "name": "OperatorLM",
+      "url": "https://github.com/aralde/operatorlm",
+      "status": "hold_aggregator",
+      "priority": "HOLD",
+      "notes": "Go single binary but desktop keyring/tray/OpenAI API aggregator; Android OS keyring compatibility unclear.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "aiproxy_java",
+      "name": "AIProxy 5.1",
+      "url": "https://github.com/skanga/AIProxy",
+      "status": "hold_desktop",
+      "priority": "HOLD",
+      "notes": "Java 21 JAR account API for Copilot/Codex/Anthropic; larger runtime footprint on Termux vs native Go.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "llmproxy_big",
+      "name": "LLM Proxy",
+      "url": "https://github.com/Ken-Chy129/llm-proxy",
+      "status": "hold_aggregator",
+      "priority": "HOLD",
+      "notes": "Go multi-backend account pools, 429 recovery and usage UI but duplicates AhB control plane.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "official_kimi_code",
+      "name": "Official Kimi Code CLI",
+      "url": "https://github.com/MoonshotAI/kimi-code",
+      "status": "research_unverified",
+      "priority": "P2",
+      "notes": "Official login and documented server API; its experimental REST server is not a ready-made OpenAI Chat Completions bridge, can inform quota and OAuth behavior.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
     }
   ]
 }
