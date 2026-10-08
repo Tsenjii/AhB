@@ -107,6 +107,8 @@ The upgrade first verifies the downloaded archive, then preserves `config.json`,
 
 Start the upgraded Hub with `cd ~/AhB && ./scripts/run-termux.sh`. In a second Termux session, run `./scripts/doctor-termux.sh` and `./scripts/smoke.sh`. New optional providers still require setup and real-device account/inference tests; a green CI build does not prove those paths work on Android.
 
+**Release verified 2026-10-08:** Android ARM64 prebuilt source commit `91c8da481d455d3df6ef888b18a8e3001b2eb83c` built successfully. This does **not** mean the user has upgraded their existing phone or authenticated newly bundled providers. The latest inventory and evidence levels are in [Current Features and Platforms](docs/CURRENT_FEATURES_AND_PLATFORMS_2026-10-08.md).
+
 The public ARM64 bundle is rebuilt by GitHub Actions from pinned upstream versions and currently contains:
 
 - `hubd`
