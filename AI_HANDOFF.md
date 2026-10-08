@@ -245,3 +245,35 @@ It must distinguish:
 - tool calling verified
 
 Do not claim Android deployment success before the real phone test passes.
+
+
+## Cross-provider route aliases
+
+AhB now supports explicit virtual routes under the reserved `route/` prefix.
+
+Configuration shape:
+
+```json
+{
+  "routes": [
+    {
+      "id": "coding",
+      "targets": [
+        "opencode/muse-spark-1.3-contributor-free",
+        "agent2api/Qwen3.8-Flash"
+      ]
+    }
+  ]
+}
+```
+
+Clients use `route/coding`. AhB tries targets in configured order and only falls through on provider unavailability, transport failure, or retryable upstream statuses: 402, 404, 408, 425, 429, 502, 503, 504.
+
+Important design constraints:
+- route targets are explicit; AhB does not guess model equivalence
+- no nested `route/` targets
+- 400/401/403/422/500 are not automatically retried across providers
+- successful/terminal responses remain transparent pass-through
+- `GET /v1/models` exposes a route only while at least one configured target is currently present in the merged usable model catalog
+- response headers `X-AhB-Route` and `X-AhB-Provider` identify which route/provider served the request
+- provider-internal multi-account failover remains inside mature sidecars such as Agent2API/FreeBuff; hubd only handles cross-provider failover

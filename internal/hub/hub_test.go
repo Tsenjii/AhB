@@ -208,3 +208,38 @@ func TestFetchProviderAccountsFreeBuffIncludesHealthState(t *testing.T) {
 	if err != nil { t.Fatal(err) }
 	if !got.Known || got.Total != 4 || got.Usable != 3 { t.Fatalf("probe = %#v", got) }
 }
+
+
+func TestRequestedModelAndRewriteModelTo(t *testing.T) {
+	raw := []byte(`{"model":"route/coding","messages":[{"role":"user","content":"hi"}],"seed":9007199254740993}`)
+	model, err := requestedModel(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if model != "route/coding" {
+		t.Fatalf("model = %q", model)
+	}
+	out, err := rewriteModelTo(raw, "Qwen3.8-Flash")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(out), `"model":"Qwen3.8-Flash"`) {
+		t.Fatalf("model not rewritten: %s", out)
+	}
+	if !strings.Contains(string(out), `"seed":9007199254740993`) {
+		t.Fatalf("large integer changed: %s", out)
+	}
+}
+
+func TestRouteRetryableStatus(t *testing.T) {
+	for _, status := range []int{402, 404, 408, 425, 429, 502, 503, 504} {
+		if !routeRetryableStatus(status) {
+			t.Fatalf("status %d should be retryable", status)
+		}
+	}
+	for _, status := range []int{200, 400, 401, 403, 422, 500} {
+		if routeRetryableStatus(status) {
+			t.Fatalf("status %d should not be retryable", status)
+		}
+	}
+}

@@ -12,7 +12,10 @@
       "ui_url": "http://127.0.0.1:8404/",
       "docs_url": "https://github.com/jasonxu114514/opencode2api",
       "binary": "./bin/opencode2api",
-      "args": ["-config", "config.json"],
+      "args": [
+        "-config",
+        "config.json"
+      ],
       "work_dir": "./data/opencode",
       "env": {
         "GODEBUG": "netdns=cgo"
@@ -66,5 +69,6 @@
       "max_restarts": 3,
       "startup_timeout_seconds": 60
     }
-  ]
+  ],
+  "routes": []
 }

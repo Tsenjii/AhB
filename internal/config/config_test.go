@@ -48,3 +48,44 @@ func TestValidateRejectsCredentialsInUIURL(t *testing.T) {
 		t.Fatal("expected credentials in ui_url to be rejected")
 	}
 }
+
+func TestValidateAcceptsExplicitCrossProviderRoute(t *testing.T) {
+	cfg := Config{
+		Listen: "127.0.0.1:8317",
+		Providers: []ProviderConfig{
+			{ID: "opencode", Enabled: false},
+			{ID: "agent2api", Enabled: false},
+		},
+		Routes: []RouteConfig{{
+			ID: "coding",
+			Targets: []string{
+				"opencode/muse-spark-1.3-contributor-free",
+				"agent2api/Qwen3.8-Flash",
+			},
+		}},
+	}
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestValidateRejectsUnknownRouteProvider(t *testing.T) {
+	cfg := Config{
+		Listen: "127.0.0.1:8317",
+		Providers: []ProviderConfig{{ID: "opencode", Enabled: false}},
+		Routes: []RouteConfig{{ID: "coding", Targets: []string{"missing/model"}}},
+	}
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("expected unknown route provider to be rejected")
+	}
+}
+
+func TestValidateRejectsReservedRouteProviderID(t *testing.T) {
+	cfg := Config{
+		Listen: "127.0.0.1:8317",
+		Providers: []ProviderConfig{{ID: "route", Enabled: false}},
+	}
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("expected reserved provider id to be rejected")
+	}
+}

@@ -1,7 +1,6 @@
 package hub
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -321,6 +320,36 @@ func (h *Hub) handleModels(w http.ResponseWriter, r *http.Request) {
 		b, _ := result.Data[j]["id"].(string)
 		return a < b
 	})
+	available := make(map[string]struct{}, len(result.Data))
+	for _, model := range result.Data {
+		if id, _ := model["id"].(string); id != "" {
+			available[id] = struct{}{}
+		}
+	}
+	for _, route := range h.cfg.Routes {
+		usableTargets := make([]string, 0, len(route.Targets))
+		for _, target := range route.Targets {
+			if _, ok := available[target]; ok {
+				usableTargets = append(usableTargets, target)
+			}
+		}
+		if len(usableTargets) == 0 {
+			continue
+		}
+		result.Data = append(result.Data, map[string]any{
+			"id":               "route/" + route.ID,
+			"object":           "model",
+			"x_provider":       "route",
+			"x_provider_name":  "AhB Route",
+			"x_route_targets":  route.Targets,
+			"x_usable_targets": usableTargets,
+		})
+	}
+	sort.Slice(result.Data, func(i, j int) bool {
+		a, _ := result.Data[i]["id"].(string)
+		b, _ := result.Data[j]["id"].(string)
+		return a < b
+	})
 	if len(result.Warnings) == 0 {
 		result.Warnings = nil
 	}
@@ -390,6 +419,21 @@ func (h *Hub) handleProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	requested, err := requestedModel(raw)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_model", err.Error())
+		return
+	}
+	requestedProvider, requestedUpstream, err := splitModel(requested)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_model", err.Error())
+		return
+	}
+	if requestedProvider == "route" {
+		h.handleRouteProxy(w, r, raw, requestedUpstream)
+		return
+	}
+
 	providerID, _, rewritten, err := rewriteModelBody(raw)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_model", err.Error())
@@ -407,25 +451,7 @@ func (h *Hub) handleProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	endpoint, err := joinURL(p.cfg.BaseURL, r.URL.Path)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "routing_error", err.Error())
-		return
-	}
-	if r.URL.RawQuery != "" {
-		endpoint += "?" + r.URL.RawQuery
-	}
-
-	upstreamReq, err := http.NewRequestWithContext(r.Context(), http.MethodPost, endpoint, bytes.NewReader(rewritten))
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "routing_error", err.Error())
-		return
-	}
-	copyRequestHeaders(upstreamReq.Header, r.Header)
-	applyProviderHeaders(upstreamReq.Header, p.cfg.Headers)
-	upstreamReq.Header.Set("Content-Type", "application/json")
-
-	resp, err := h.client.Do(upstreamReq)
+	resp, err := h.doProviderRequest(r, p.cfg, rewritten)
 	if err != nil {
 		writeError(w, http.StatusBadGateway, "upstream_error", err.Error())
 		return

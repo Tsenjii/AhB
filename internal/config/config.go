@@ -15,6 +15,12 @@ type Config struct {
 	Listen    string           `json:"listen"`
 	AllowLAN  bool             `json:"allow_lan"`
 	Providers []ProviderConfig `json:"providers"`
+	Routes    []RouteConfig    `json:"routes,omitempty"`
+}
+
+type RouteConfig struct {
+	ID      string   `json:"id"`
+	Targets []string `json:"targets"`
 }
 
 type ProviderConfig struct {
@@ -104,6 +110,9 @@ func (c Config) Validate() error {
 		if strings.Contains(id, "/") {
 			return fmt.Errorf("provider %q: id must not contain '/'", id)
 		}
+		if id == "route" {
+			return fmt.Errorf("provider id %q is reserved for AhB virtual routes", id)
+		}
 		if _, ok := seen[id]; ok {
 			return fmt.Errorf("duplicate provider id %q", id)
 		}
@@ -143,6 +152,42 @@ func (c Config) Validate() error {
 		ip := net.ParseIP(host)
 		if host != "localhost" && (ip == nil || !ip.IsLoopback()) {
 			return fmt.Errorf("provider %q: sidecar base_url must be loopback in V1", id)
+		}
+	}
+
+	routeSeen := map[string]struct{}{}
+	for _, route := range c.Routes {
+		id := strings.TrimSpace(route.ID)
+		if id == "" {
+			return errors.New("route id is required")
+		}
+		if strings.Contains(id, "/") {
+			return fmt.Errorf("route %q: id must not contain '/'", id)
+		}
+		if _, ok := routeSeen[id]; ok {
+			return fmt.Errorf("duplicate route id %q", id)
+		}
+		routeSeen[id] = struct{}{}
+		if len(route.Targets) == 0 {
+			return fmt.Errorf("route %q: at least one target is required", id)
+		}
+		targetSeen := map[string]struct{}{}
+		for _, rawTarget := range route.Targets {
+			target := strings.TrimSpace(rawTarget)
+			providerID, modelID, ok := strings.Cut(target, "/")
+			if !ok || providerID == "" || modelID == "" {
+				return fmt.Errorf("route %q: target %q must use provider/model format", id, rawTarget)
+			}
+			if providerID == "route" {
+				return fmt.Errorf("route %q: nested route targets are not supported", id)
+			}
+			if _, ok := seen[providerID]; !ok {
+				return fmt.Errorf("route %q: target provider %q does not exist", id, providerID)
+			}
+			if _, ok := targetSeen[target]; ok {
+				return fmt.Errorf("route %q: duplicate target %q", id, target)
+			}
+			targetSeen[target] = struct{}{}
 		}
 	}
 	return nil
