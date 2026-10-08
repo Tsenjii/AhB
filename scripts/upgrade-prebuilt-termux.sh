@@ -4,7 +4,7 @@ set -euo pipefail
 # Upgrade an existing AhB prebuilt install without deleting local accounts,
 # credentials, settings, or provider databases. The old tree remains as a backup.
 REPO="Tsenjii/AhB"
-BASE="https://raw.githubusercontent.com/$REPO/prebuilt"
+BASE="${AIHUB_PREBUILT_BASE:-https://raw.githubusercontent.com/$REPO/prebuilt}"
 ASSET="AhB_android_arm64.tar.gz"
 DEST="${AIHUB_INSTALL_DIR:-$HOME/AhB}"
 
