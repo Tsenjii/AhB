@@ -13,8 +13,14 @@ for tool in curl jq; do
     exit 2
   fi
 done
-BASE="http://127.0.0.1:8407"
-HUB="http://127.0.0.1:8317"
+BASE="${AIHUB_GROK_BASE:-http://127.0.0.1:8407}"
+HUB="${AIHUB_BASE:-http://127.0.0.1:8317}"
+for url in "$BASE" "$HUB"; do
+  case "$url" in
+    http://127.0.0.1:*|http://localhost:*|http://\[::1\]:*) ;;
+    *) echo "Grok diagnostics allow loopback HTTP only." >&2; exit 2 ;;
+  esac
+done
 model="${AIHUB_TEST_MODEL:-}"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
