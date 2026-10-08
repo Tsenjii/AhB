@@ -1,18 +1,19 @@
-# FreeBuff 在 Android / Termux 的登入與驗證
+# FreeBuff Node gateway: Android / Termux device login (2026-10-09)
 
-審查上游：[Freebuff2API v0.10.3](https://github.com/lza6/Freebuff-2API/tree/v0.10.3)、[中文說明](https://github.com/lza6/Freebuff-2API/blob/v0.10.3/README_zh.md)、[平台登入入口](https://github.com/lza6/Freebuff-2API/blob/v0.10.3/src/login_window.rs)。
+AhB replaced the legacy Rust `lza6/Freebuff-2API v0.10.3` with the independently reviewed source [yutian81/freebuff2api](https://github.com/yutian81/freebuff2api), pinned to commit `e0d8c9d4d1a955f46fbeb6841ea192bd8b3f2109` (Oct 8, 2026). The upstream repository's local Node entrypoints are `server.js` and `worker.js`, requiring Node.js >=20 but no npm dependencies.
 
-## 能直接使用什麼？
+**This replacement is not evidence of real FreeBuff inference success.** The previous user's one Web-Cookie account received `web chat HTTP 409 chat_moved` (wrapped in HTTP 502) across three models. The new gateway uses its own CLI/Bearer endpoint instead of the broken legacy Web Cookie relay. Still confirm official account eligibility and real, user-authorized model inference after installing the new package.
 
-AhB 預編譯包包含 FreeBuff Rust 閘道與 WebUI；不必再安裝 Rust、Electron 或 Windows WebView2 才能在 Termux 執行。但程式能啟動不代表已有登入的帳號。
+## Account and data preservation
 
-- **Android / Termux**：原生內嵌一鍵登入程式使用 Windows WebView2，其他平台為 login_window_stub.rs，不會彈出相同登入視窗。請在 FreeBuff 自身的管理頁「帳號 → 匯入」依照上游支援的方式匯入自己有權使用的憑證。
-- **Windows 桌面安裝版**：上游桌面程式提供自己的登入視窗。
-- **桌面 Chrome／Edge 網頁面板**：上游有選裝的瀏覽器擴充套件，需自行審閱權限；擴充套件及本機閘道必須在同一台電腦。電腦瀏覽器中的 localhost 並不是 Android 手機的 localhost。
+- Existing `~/AhB/data/freebuff/` is kept, including Rust's `tokens.json`, `freebuff2api.sqlite`, `web_threads.json`, config and any credential data; the entire pre-upgrade installation is also saved to a timestamped backup.
+- Legacy Web Cookie credentials **cannot** be assumed equivalent to FreeBuff CLI Bearer credentials. We **do not** extract, convert, delete, sync or submit the old cookies.
+- The new gateway is copied into `data/freebuff/gateway/`. During upgrading, only this replaceable source directory is refreshed from the new package; `data/freebuff/credentials/` and local saved authorized CLI logins survive.
+- AhB's old `freebuff/` model namespace and loopback port **8402** remain; the gateway has **no legacy Rust management UI**.
 
-Android Chrome 不會因 AhB 已安裝就支援桌面擴充套件；AhB 不讀取其他 App 的 Cookie。切勿把 Cookie、Token、HAR、帳號匯出或含私密金鑰的截圖貼進聊天／GitHub issue。
+## Steps on Android after a verified published release
 
-## 手機上檢查帳號（不消耗模型額度）
+Upgrade with `scripts/upgrade-prebuilt-termux.sh`, which safely installs Termux Node.js and takes a backup before replacing the binaries and gateway source. Then:
 
 ```sh
 cd ~/AhB
@@ -20,12 +21,37 @@ cd ~/AhB
 ./scripts/check-freebuff-login.sh
 ```
 
-檢查程式只讀取 FreeBuff 本機 /api/accounts/health 的帳號筆數；沒有登入顯示 NO ACCOUNTS；存在 N 筆帳號也不代表可推理或有額度。HTTP 錯誤則代表本機閘道連線或認證需要檢查。
+If accounts=0, authorize the new CLI account **on your phone**:
 
-在**手機本機**瀏覽器開 http://127.0.0.1:8402/ui，使用 FreeBuff 原生「帳號／匯入」流程。完成後再次檢查帳號筆數，並在模型清單中查詢實際的 freebuff/ 模型 ID，選擇已授權模型做真實 Chat / SSE / Tool Calling 驗收。真實推理會消耗上游原有配額。
+```sh
+cd ~/AhB
+./scripts/freebuff-login-termux.sh
+```
 
-## 狀態、安全與架構
+The helper uses the upstream device-code login and asks you to open a one-time link for your own account. It stores the resulting Bearer token in owner-only files under `data/freebuff/credentials/` without echoing it to the terminal, and never uploads private credentials to GitHub or AhB. Do **not** publish the login URL or any account files. The login requires Python 3 standard library (Termux: `pkg install python` if absent). The bundled script suppresses upstream token echo. The CLI credential file is saved separately as `data/freebuff/freebuff_credentials.json` and the importer writes owner-only `*.json` files containing `authToken` to `data/freebuff/credentials/`. The Node gateway reads them at startup.
 
-FreeBuff 的憑證、帳號池與配額管理由 Freebuff2API 負責；AhB 只監督程序、顯示無敏感資料的摘要、提供模型前綴與 API 轉發。資料預設保留在 data/freebuff/，不要將真實憑證寫入 GitHub、config.example.json 或 AhB 網頁 JavaScript。升級時使用既有的非破壞性更新程序，保留舊版備份。
+After authorized login:
 
-在未確認安全、可靠的 Android 原生登入方案前，應清楚呈現手動匯入，而不是提供不會成功的「一鍵登入」假按鈕。
+```sh
+cd ~/AhB
+./scripts/stop-termux.sh
+./scripts/start-termux.sh
+./scripts/check-freebuff-login.sh
+./scripts/provider-status-termux.sh
+curl -fsS http://127.0.0.1:8317/v1/models | jq -r '.data[].id | select(startswith("freebuff/"))'
+```
+
+If a model is listed **and is authorized for that account**, opt into one real inference (consumes quota):
+
+```sh
+AIHUB_TEST_MODEL='freebuff/ACTUAL_LISTED_MODEL' ./scripts/test-chat.sh
+```
+
+Only after chat passes, separately test SSE and tool-result continuation. `/healthz` returns **observed alive / unknown / unhealthy candidates**, not guaranteed working quotas. Unknown accounts can be tried for first acceptance but are not claimed to have succeeded.
+
+## Important boundaries
+
+- New adapter's `/healthz` is public **only on phone loopback** and provides metadata without original tokens. `/v1` has the generated local AhB API key. No `0.0.0.0` exposure.
+- The upstream Node app's CLI credential importer replaces the earlier non-Windows Rust WebView onboarding. No browser extension or third-party hosted panel is necessary.
+- Account credentials are loaded from `data/freebuff/credentials/`, not via a process command-line flag. Do not pass secrets in shell history or chats.
+- Never run endless 429/403/409 retries; no guarantee that a provider/model currently accepts your account.
