@@ -121,6 +121,33 @@ jobs:
           chmod +x "$GITHUB_WORKSPACE/dist/AhB/bin/freebuff2api"
           node --check "$GITHUB_WORKSPACE/dist/AhB/data/freebuff/gateway/server.js"
           node --check "$GITHUB_WORKSPACE/dist/AhB/data/freebuff/gateway/worker.js"
+          # Local-only contract test against the actual pinned Node source,
+          # with dummy credentials and ZERO real upstream inference requests.
+          smoke="$(mktemp -d)"
+          mkdir -p "$smoke/accounts"
+          printf '%s\n' '{"authToken":"FIXTURE-LOCAL-TEST-NOT-REAL-TOKEN"}' > "$smoke/accounts/test.json"
+          chmod 600 "$smoke/accounts/test.json"
+          PORT=18482 HOST=127.0.0.1 FREEBUFF_CREDENTIALS_DIR="$smoke/accounts" \
+            FREEBUFF_API_KEY="TEST-LOCAL-KEY" \
+            node "$GITHUB_WORKSPACE/dist/AhB/data/freebuff/gateway/server.js" >"$smoke/server.log" 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true; rm -rf "$smoke"' EXIT
+          ready=0
+          for i in $(seq 1 40); do
+            if curl -fsS --max-time 2 http://127.0.0.1:18482/healthz > "$smoke/health.json" 2>/dev/null; then ready=1; break; fi
+            sleep .25
+          done
+          if [ "$ready" != 1 ]; then
+            echo "Pinned FreeBuff Node gateway failed to start and respond on localhost" >&2
+            exit 1
+          fi
+          jq -e '.accounts == 1 and .unknown_accounts == 1' "$smoke/health.json"
+          unauth="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18482/v1/models)"
+          test "$unauth" = 401
+          kill "$pid"; wait "$pid" 2>/dev/null || true
+          trap - EXIT
+          rm -rf "$smoke"
+
 
       - name: Build pinned Agent2API headless for Android ARM64
         shell: bash
