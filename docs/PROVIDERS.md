@@ -8,7 +8,7 @@ This page describes provider **integration**, not proof of live account or infer
 | `freebuff/` | [Freebuff2API v0.10.3](https://github.com/lza6/Freebuff-2API) | yes | enabled | `127.0.0.1:8402/ui` |
 | `agent2api/` | [Agent2API v2.9.6](https://github.com/aimod-cc/agent2api) | yes | enabled by prebuilt installer when complete | `127.0.0.1:8403/` |
 | `deepseek/` | [Deepseek2API](https://github.com/zengtao227/Deepseek2API) pinned source | yes | disabled | `127.0.0.1:8405/admin` |
-| `grok/` | [Grok2API](https://github.com/chenyme/grok2api) pinned source | yes | disabled | `127.0.0.1:8407/` |
+| `grok/` | [Grok2API v3.1.6](https://github.com/chenyme/grok2api/releases/tag/v3.1.6), pinned to 2026-09-30 upstream SHA | yes | disabled; **P0 to test** | `127.0.0.1:8407/` |
 | `kiro/` | [Kiro-Go](https://github.com/Quorinex/Kiro-Go) pinned source | yes | disabled | `127.0.0.1:8408/admin` |
 | `copilot/` | [copilot2api pinned](https://github.com/whtsky/copilot2api) | **new optional Go binary; publication CI pending** | disabled; use `login-copilot2api.sh` then `enable-copilot2api.sh` | no native web admin UI; OAuth in Termux |
 | `kimiweb/` | [chopper1026/kimi2api pinned](https://github.com/chopper1026/kimi2api) | **installer scripts only** (Python/React not bundled) | disabled; use `install-kimiweb-termux.sh` then `enable-kimiweb-termux.sh` | `127.0.0.1:8412/admin` |
@@ -37,3 +37,24 @@ Agent2API v2.9.6 manages `workbuddy` (domestic) and `workbuddy-intl` (internatio
 For actual versions, use the pinned commits in [the Android workflow](../.github/workflows/build-android-arm64.yml), not floating upstream branches.
 
 **Account/Quota caveat:** process HEALTHY and a credential count (e.g. Agent2API 2/2) do not prove adequate quota; the real phone test saw HTTP 503 from Agent2API with both credentialed accounts exhausted. The optional Copilot binary and Kimi Web installer are new work and must not be called Android inference VERIFIED until the package and real user login/inference succeed. See [the living source registry](TO_API_REGISTRY.json) and [installation/optimization plan](TO_API_INSTALL_AND_OPTIMIZATION_PLAN.md).
+
+
+## Grok2API community audit and on-device acceptance
+
+The pinned Go backend reports `VERSION=v3.1.6`; see [Grok2API community reliability study](GROK2API_COMMUNITY_RELIABILITY_2026-10-08.md). The author and community report good compatibility with Grok Build, Codex and Claude Code, but negative reports include Web/Console sync, rate-limit cooldown, long-running tool calls and responses that return HTTP 200 but no useful content. **Grok Web chat credits are not automatically equal to Grok Build/Codex model entitlements or capacity**. AhB marks Grok as high priority but *not* live-verified.
+
+When the new script is present in your published bundle, and you have imported an authorized account using the native UI:
+
+```sh
+cd ~/AhB
+./scripts/enable-grok2api.sh
+./scripts/stop-termux.sh && ./scripts/start-termux.sh
+
+# Safe metadata-only diagnostics (no model calls)
+./scripts/test-grok2api-termux.sh
+
+# Only when a real model is listed and your account may use it:
+AIHUB_TEST_MODEL='grok/REPLACE_WITH_LISTED_MODEL_ID' ./scripts/test-grok2api-termux.sh
+```
+
+The opt-in live test checks ordinary chat, SSE termination and **two-step** structured Tool Calling, not just an emitted tool call. Do not expose your Grok admin key, client key or session/cookies in screenshots or bug logs. Enabled-provider accounts may still be rate-limited; process liveness does not prove available quota. Transient failures during client key validation now leave the saved local key and config untouched instead of provisioning duplicates.
