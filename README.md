@@ -15,7 +15,7 @@ Optional provider pack:
 - **DeepSeek2API** — optional DeepSeek Web multi-account sidecar with its original admin UI, OpenAI/Anthropic/Responses compatibility, tool calling and provider-internal account pooling.
 - **Grok2API** — optional Grok Build / Web / Console multi-account sidecar with its original management UI, quota/model sync, OpenAI/Anthropic/Responses support and media features.
 - **Kiro-Go** — optional Kiro multi-account sidecar with its original Web admin, automatic token refresh, OpenAI/Anthropic/Responses endpoints and account-level proxy support.
-- **External localhost bridges** — optional `kind: external` providers that AhB health-checks and routes without supervising a process. A disabled `lmarena/` slot is included for a user-supplied local OpenAI-compatible bridge.
+- **External localhost bridges** — a universal attach tool and phone-first connection wizard for **LMArena, WindsurfAPI, Qwen2API, Kimi2API, Gemini2API, Claude2API**, and any custom local OpenAI-compatible service. These run separately; AhB connects to their local HTTP APIs but does not claim to install or operate the external bridge.
 
 The Hub itself stays small. Provider-specific login, account pools, quota logic, proxy settings and diagnostics remain inside the upstream adapters.
 
@@ -34,7 +34,13 @@ agent2api/<model>
 deepseek/<model>
 grok/<model>
 kiro/<model>
-lmarena/<model>   # only when the external localhost slot is enabled
+lmarena/<model>
+windsurf/<model>
+qwen/<model>
+kimi/<model>
+gemini/<model>
+claude/<model>
+<custom-id>/<model> # only after connecting that local bridge
 ```
 
 Supported proxy endpoints:
@@ -43,6 +49,8 @@ Supported proxy endpoints:
 - `POST /v1/chat/completions`
 - `POST /v1/completions`
 - `POST /v1/embeddings`
+- `POST /v1/images/generations` (JSON pass-through, upstream must support)
+- `POST /v1/audio/speech` (JSON pass-through, upstream must support)
 - `POST /v1/responses`
 - `POST /v1/messages`
 - `POST /v1/messages/count_tokens`
@@ -168,17 +176,25 @@ See:
 
 ## External To-API bridges
 
-AhB can attach an already-running localhost OpenAI-compatible bridge without
-bundling or supervising it. The included LMArena slot defaults to
-`http://127.0.0.1:8406` and is disabled by default:
+**LMArena and arbitrary local gateways:** AhB now includes a shared `connect-bridge.sh` helper, a clean mobile connection wizard, and upstream API-prefix rewriting for gateways such as Gemini2API.
+
+Start your third-party bridge separately on the same phone, then run a single command:
 
 ```sh
-./scripts/enable-lmarena-external.sh
+cd ~/AhB
+./scripts/connect-bridge.sh lmarena http://127.0.0.1:5102
 ```
 
-The bridge must provide `GET /v1/models` and the OpenAI-compatible POST
-endpoints you intend to use. AhB intentionally does not bundle browser-session,
-Cloudflare-clearance, CAPTCHA, fingerprint-evasion, or anti-bot bypass logic.
+It privately asks for an optional local bridge API key, verifies `GET /v1/models`, and only then enables the local route. Restart AhB to apply it. Supported named presets include `windsurf`, `qwen`, `kimi`, `gemini`, and `claude`; custom IDs work for other OpenAI-compatible localhost services.
+
+```sh
+./scripts/connect-bridge.sh --list
+./scripts/connect-bridge.sh windsurf http://127.0.0.1:3003
+./scripts/connect-bridge.sh kimi http://127.0.0.1:8000
+./scripts/connect-bridge.sh gemini http://127.0.0.1:5918
+```
+
+The bridge must itself be installed, running, and legitimately usable. The presets are **connectors, not bundled upstream implementations**. No browser-session bypass, CAPTCHA solving, anti-bot evasion, or bulk account creation is included. See [External bridge guide](docs/BRIDGES.md) for project links, custom API paths, precise limits and troubleshooting.
 
 
 ### Optional Grok2API provider
