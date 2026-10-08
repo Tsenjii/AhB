@@ -25,6 +25,9 @@ jobs:
       - name: Verify full native tool-call roundtrip
         run: bash scripts/test-tool-roundtrip-fixture.sh
 
+      - name: Verify Grok2API key-preserving enable workflow
+        run: bash scripts/test-enable-grok2api-fixture.sh
+
       - name: Validate Grok2API real inference diagnostic fixture
         run: bash scripts/test-grok2api-fixture.sh
 
