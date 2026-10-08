@@ -557,3 +557,26 @@ an AI-themed landing page:
 - clear process/readiness/account layers
 - mobile layout also triggers on coarse-pointer devices, not only viewport width
 - original provider UIs remain the place for provider-specific management
+
+
+## Finalization follow-up — 2026-10-08
+
+The user's latest direction is **stabilize and hand off**, not expand the provider catalog further before real Android verification.
+
+- Canonical handoff is **this file**. `docs/NEXT_AI_HANDOFF.md` was consolidated into a pointer to avoid conflicting historical status claims.
+- Added `scripts/upgrade-prebuilt-termux.sh` for an **existing** ARM64 prebuilt install. The original `install-prebuilt-termux.sh` remains for first installs only and refuses an existing target directory.
+- Upgrader verifies the downloaded bundle checksum before touching an existing installation. It stages the new version on the same filesystem, copies the existing `config.json`, all `data/` state (account databases/secrets), and `logs/`, refreshes the four bundled upstream WebUI asset trees from the archive, prepares/migrates configs, stops the existing AhB processes, and swaps the directory. The entire old install remains as a timestamped sibling `AhB.backup-YYYYMMDD-HHMMSS`.
+- Added a Linux CI fixture test (`scripts/test-upgrade-prebuilt.sh`) for state preservation, UI refresh, backup retention, and checksum failure causing **no mutation** to the installed tree. CI now runs it.
+- Android ARM64 workflow was updated to include the upgrade helper in the distributed bundle. README now documents the upgrade path.
+- **Verification gate:** Do not tell the user the latest upgraded Android bundle is validated until the Android build run succeeds and the public prebuilt source commit advances to the appropriate packaged source commit. CI can verify syntax, Go tests, and upgrade fixture behavior; it cannot prove actual Termux runtime, authentication, inference or tool calling.
+- First Android test still must measure real account usability, inference, tool-calling (including an actual tool loop), streaming and sidecar restart on the device, especially for newly bundled DeepSeek2API, Grok2API and Kiro-Go. If a provider remains untested, report it as **build VERIFIED / phone UNVERIFIED**, not finished.
+
+### Upgrade command for an existing Termux installation
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Tsenjii/AhB/main/scripts/upgrade-prebuilt-termux.sh | bash
+```
+
+After upgrading, run `cd ~/AhB && ./scripts/run-termux.sh`; from a second Termux session run `./scripts/doctor-termux.sh && ./scripts/smoke.sh`. Keep the backup until account login, model discovery, inference and logs are checked.
+
+Avoid reintroducing speculative features, rewriting provider UIs, or quietly altering fallback defaults during this finalization phase.
