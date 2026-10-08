@@ -51,6 +51,10 @@ check_file "bin/freebuff2api"
 if [ -x bin/agent2api-server ]; then
   check_file "data/agent2api/ui"
 fi
+if provider_enabled copilot; then
+  check_file "bin/copilot2api"
+  check_file "data/copilot2api/credentials.json"
+fi
 if provider_enabled deepseek; then
   check_file "bin/deepseek2api"
   check_file "data/deepseek2api/config.json"
@@ -92,6 +96,9 @@ fi
 # incorrectly treating an unauthenticated direct 401 as a failed service.
 if command -v jq >/dev/null 2>&1 && [ -f config.json ]; then
   while IFS=
+if provider_enabled copilot; then
+  check_url "copilot-models" "http://127.0.0.1:8410/v1/models"
+fi
 if provider_enabled grok; then
   check_url "grok-health" "http://127.0.0.1:8407/healthz"
   check_url "grok-ready" "http://127.0.0.1:8407/readyz"
