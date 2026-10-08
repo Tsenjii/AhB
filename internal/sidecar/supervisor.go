@@ -100,7 +100,14 @@ func (s *Supervisor) Run(ctx context.Context) {
 			continue
 		}
 
-		s.setState(provider.StateHealthy, "")
+		// A provider may expose its HTTP listener before upstream model discovery
+		// is ready. Keep the live process running in DEGRADED instead of killing it
+		// and resetting slow startup work (notably opencode2api on Android).
+		if err != nil {
+			s.setState(provider.StateDegraded, err.Error())
+		} else {
+			s.setState(provider.StateHealthy, "")
+		}
 		stableSince := time.Now()
 		healthTicker := time.NewTicker(time.Duration(s.spec.HealthIntervalSeconds) * time.Second)
 		failures := 0
@@ -122,18 +129,25 @@ func (s *Supervisor) Run(ctx context.Context) {
 				s.incrementRestart(err)
 				restart = true
 			case <-healthTicker.C:
-				if err := s.checkHealth(ctx); err != nil {
+				status, err := s.probeHealth(ctx)
+				if err != nil {
 					failures++
 					s.setState(provider.StateDegraded, err.Error())
 					if failures >= 3 {
 						healthTicker.Stop()
 						cleanup()
-						s.incrementRestart(fmt.Errorf("health check failed 3 times: %w", err))
+						s.incrementRestart(fmt.Errorf("health endpoint unreachable 3 times: %w", err))
 						restart = true
 					}
 					continue
 				}
+				// An HTTP response proves the sidecar is alive. 4xx/5xx health
+				// statuses mean "not ready" and should not cause a restart loop.
 				failures = 0
+				if status < 200 || status >= 300 {
+					s.setState(provider.StateDegraded, fmt.Sprintf("health returned HTTP %d", status))
+					continue
+				}
 				s.setState(provider.StateHealthy, "")
 			}
 		}
@@ -234,31 +248,44 @@ func (s *Supervisor) waitReady(ctx context.Context, exitCh <-chan error) (bool, 
 		case <-deadline.C:
 			return false, fmt.Errorf("startup timeout after %ds", s.spec.StartupTimeoutSeconds)
 		case <-ticker.C:
-			if err := s.checkHealth(ctx); err == nil {
-				return true, nil
+			status, err := s.probeHealth(ctx)
+			if err != nil {
+				continue
 			}
+			if status < 200 || status >= 300 {
+				return true, fmt.Errorf("health returned HTTP %d", status)
+			}
+			return true, nil
 		}
 	}
 }
 
 func (s *Supervisor) checkHealth(ctx context.Context) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(s.spec.BaseURL, "/")+"/"+strings.TrimLeft(s.spec.HealthPath, "/"), nil)
+	status, err := s.probeHealth(ctx)
 	if err != nil {
 		return err
+	}
+	if status < 200 || status >= 300 {
+		return fmt.Errorf("health returned HTTP %d", status)
+	}
+	return nil
+}
+
+func (s *Supervisor) probeHealth(ctx context.Context) (int, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(s.spec.BaseURL, "/")+"/"+strings.TrimLeft(s.spec.HealthPath, "/"), nil)
+	if err != nil {
+		return 0, err
 	}
 	for k, v := range s.spec.Headers {
 		req.Header.Set(k, v)
 	}
 	resp, err := s.client.Do(req)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer resp.Body.Close()
 	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("health returned HTTP %d", resp.StatusCode)
-	}
-	return nil
+	return resp.StatusCode, nil
 }
 
 func (s *Supervisor) incrementRestart(err error) {

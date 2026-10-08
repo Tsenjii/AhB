@@ -19,7 +19,8 @@
       },
       "health_path": "/healthz",
       "models_path": "/v1/models",
-      "max_restarts": 3
+      "max_restarts": 3,
+      "startup_timeout_seconds": 60
     },
     {
       "id": "freebuff",

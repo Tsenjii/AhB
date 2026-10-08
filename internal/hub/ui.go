@@ -149,7 +149,7 @@ async function refresh(){
   document.getElementById('runtime').textContent='總 RSS '+fmtBytes((r.process_rss_bytes||0)+sidecarRSS)+' · Hub '+fmtBytes(r.process_rss_bytes)+' · '+(r.goos||'?')+'/'+(r.goarch||'?');
   document.getElementById('modelTotal').textContent=lastModels.length+' models';
   document.getElementById('providers').innerHTML=providers.map(x=>{
-    const healthy=x.state==='HEALTHY';
+    const manageable=x.state==='HEALTHY'||x.state==='DEGRADED';
     const enabled=!!x.enabled;
     return '<article class="card">'+
       '<div class="row start"><div><div class="provider-name">'+esc(x.display_name||x.id)+'</div><div class="desc">'+esc(x.description||x.id)+'</div></div><span class="badge '+esc(x.state)+'">'+esc(x.state)+'</span></div>'+
@@ -159,7 +159,7 @@ async function refresh(){
         '<div class="metric"><b>'+esc(x.restarts||0)+'</b><span>Restarts</span></div>'+
       '</div>'+
       (x.last_error?'<div class="desc" style="color:#fda4af;margin-bottom:10px">'+esc(x.last_error)+'</div>':'')+
-      '<div class="actions">'+actionLink(x.ui_url,'管理原本 UI',true,enabled&&healthy)+actionLink(x.docs_url,'上游文件',false,true)+'</div>'+
+      '<div class="actions">'+actionLink(x.ui_url,'管理原本 UI',true,enabled&&manageable)+actionLink(x.docs_url,'上游文件',false,true)+'</div>'+
     '</article>';
   }).join('');
   if(m.x_provider_warnings&&Object.keys(m.x_provider_warnings).length){
