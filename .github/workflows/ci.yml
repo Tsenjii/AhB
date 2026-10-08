@@ -17,6 +17,8 @@ jobs:
 
       - name: Test non-destructive prebuilt upgrades
         run: bash scripts/test-upgrade-prebuilt.sh
+      - name: Test universal localhost bridge connector
+        run: bash scripts/test-connect-bridge.sh
 
       - name: Validate JSON configs
         run: |
