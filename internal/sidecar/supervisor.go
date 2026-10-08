@@ -19,12 +19,14 @@ import (
 )
 
 type Snapshot struct {
-	ID        string         `json:"id"`
-	State     provider.State `json:"state"`
-	PID       int            `json:"pid,omitempty"`
-	RSSBytes  int64          `json:"rss_bytes,omitempty"`
-	Restarts  int            `json:"restarts"`
-	LastError string         `json:"last_error,omitempty"`
+	ID               string         `json:"id"`
+	State            provider.State `json:"state"`
+	PID              int            `json:"pid,omitempty"`
+	RSSBytes         int64          `json:"rss_bytes,omitempty"`
+	Restarts         int            `json:"restarts"`
+	LastError        string         `json:"last_error,omitempty"`
+	HealthHTTPStatus int            `json:"-"`
+	HealthBody       []byte         `json:"-"`
 }
 
 type Supervisor struct {
@@ -33,8 +35,10 @@ type Supervisor struct {
 	mu        sync.RWMutex
 	state     provider.State
 	cmd       *exec.Cmd
-	lastError string
-	restarts  int
+	lastError        string
+	restarts         int
+	lastHealthStatus int
+	lastHealthBody   []byte
 
 	client *http.Client
 }
@@ -58,9 +62,11 @@ func (s *Supervisor) Snapshot() Snapshot {
 	if pid > 0 {
 		rss = processRSSBytes(pid)
 	}
+	healthBody := append([]byte(nil), s.lastHealthBody...)
 	return Snapshot{
 		ID: s.spec.ID, State: s.state, PID: pid, RSSBytes: rss,
 		Restarts: s.restarts, LastError: s.lastError,
+		HealthHTTPStatus: s.lastHealthStatus, HealthBody: healthBody,
 	}
 }
 
@@ -281,11 +287,20 @@ func (s *Supervisor) probeHealth(ctx context.Context) (int, error) {
 	}
 	resp, err := s.client.Do(req)
 	if err != nil {
+		s.recordHealth(0, nil)
 		return 0, err
 	}
 	defer resp.Body.Close()
-	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 64<<10))
+	s.recordHealth(resp.StatusCode, body)
 	return resp.StatusCode, nil
+}
+
+func (s *Supervisor) recordHealth(status int, body []byte) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.lastHealthStatus = status
+	s.lastHealthBody = append(s.lastHealthBody[:0], body...)
 }
 
 func (s *Supervisor) incrementRestart(err error) {

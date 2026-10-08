@@ -33,7 +33,7 @@ button:hover,.btn:hover{background:#233047}.btn.primary{background:#2563eb;borde
 .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}
 .metric{background:#0c1119;border:1px solid #202a39;border-radius:11px;padding:9px;min-width:0}
 .metric b{display:block;font-size:13px;overflow:hidden;text-overflow:ellipsis}.metric span{display:block;color:#7f8da2;font-size:10px;margin-top:3px}
-.actions{display:flex;gap:8px;flex-wrap:wrap}
+.health-layers{display:flex;gap:7px;flex-wrap:wrap;margin:-3px 0 11px}.health-layers span{font-size:10px;color:#7f8da2;background:#0c1119;border:1px solid #202a39;border-radius:999px;padding:5px 8px}.health-layers b{color:#dbe7f5}.actions{display:flex;gap:8px;flex-wrap:wrap}
 section{margin-top:20px}
 .section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:9px}
 .search{width:min(340px,55vw);background:#0c1119;color:#eef2f7;border:1px solid #263244;border-radius:10px;padding:9px 11px}
@@ -157,6 +157,11 @@ async function refresh(){
         '<div class="metric"><b>'+esc(counts[x.id]||0)+'</b><span>Models</span></div>'+
         '<div class="metric"><b>'+esc(fmtBytes(x.rss_bytes))+'</b><span>RSS</span></div>'+
         '<div class="metric"><b>'+esc(x.restarts||0)+'</b><span>Restarts</span></div>'+
+      '</div>'+
+      '<div class="health-layers">'+
+        '<span>Process <b>'+esc(x.process_alive?'YES':'NO')+'</b></span>'+
+        '<span>Ready <b>'+esc(x.provider_ready?'YES':'NO')+'</b></span>'+
+        '<span>Account <b>'+esc(x.account_usable===null||x.account_usable===undefined?'UNKNOWN':(x.account_usable?'YES':'NO'))+'</b></span>'+
       '</div>'+
       (x.last_error?'<div class="desc" style="color:#fda4af;margin-bottom:10px">'+esc(x.last_error)+'</div>':'')+
       '<div class="actions">'+actionLink(x.ui_url,'管理原本 UI',true,enabled&&manageable)+actionLink(x.docs_url,'上游文件',false,true)+'</div>'+

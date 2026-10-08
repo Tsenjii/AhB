@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/Tsenjii/AhB/internal/config"
+	"github.com/Tsenjii/AhB/internal/provider"
+	"github.com/Tsenjii/AhB/internal/sidecar"
 )
 
 func TestSplitModelPreservesNestedUpstreamID(t *testing.T) {
@@ -126,5 +128,34 @@ func TestProviderViewsExposeManagementMetadata(t *testing.T) {
 	}
 	if views[0].State != "DISABLED" {
 		t.Fatalf("state = %s", views[0].State)
+	}
+}
+
+func TestAssessProviderHealthLayers(t *testing.T) {
+	healthy := provider.StateHealthy
+	cases := []struct {
+		name string
+		id string
+		body string
+		state provider.State
+		ready bool
+		usable *bool
+	}{
+		{"opencode anonymous ready", "opencode", `{"status":"ok","ready":true,"keys":{"anonymous":true,"total":0}}`, healthy, true, boolPtr(true)},
+		{"freebuff no accounts", "freebuff", `{"ok":true,"accounts":[]}`, provider.StateDegraded, true, boolPtr(false)},
+		{"agent2api legacy degraded", "agent2api", `{"status":"degraded","unavailableReason":"no login"}`, provider.StateDegraded, true, nil},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := assessProviderHealth(tc.id, sidecar.Snapshot{State: healthy, PID: 123, HealthHTTPStatus: 200, HealthBody: []byte(tc.body)})
+			if a.State != tc.state || a.ProviderReady != tc.ready {
+				t.Fatalf("assessment = %#v", a)
+			}
+			if tc.usable == nil {
+				if a.AccountUsable != nil { t.Fatalf("account usable = %v, want nil", *a.AccountUsable) }
+			} else if a.AccountUsable == nil || *a.AccountUsable != *tc.usable {
+				t.Fatalf("account usable mismatch: %#v", a.AccountUsable)
+			}
+		})
 	}
 }

@@ -33,18 +33,22 @@ type runtimeProvider struct {
 }
 
 type providerView struct {
-	ID          string         `json:"id"`
-	DisplayName string         `json:"display_name"`
-	Description string         `json:"description,omitempty"`
-	Enabled     bool           `json:"enabled"`
-	Kind        string         `json:"kind"`
-	UIURL       string         `json:"ui_url,omitempty"`
-	DocsURL     string         `json:"docs_url,omitempty"`
-	State       provider.State `json:"state"`
-	PID         int            `json:"pid,omitempty"`
-	RSSBytes    int64          `json:"rss_bytes,omitempty"`
-	Restarts    int            `json:"restarts"`
-	LastError   string         `json:"last_error,omitempty"`
+	ID             string         `json:"id"`
+	DisplayName    string         `json:"display_name"`
+	Description    string         `json:"description,omitempty"`
+	Enabled        bool           `json:"enabled"`
+	Kind           string         `json:"kind"`
+	UIURL          string         `json:"ui_url,omitempty"`
+	DocsURL        string         `json:"docs_url,omitempty"`
+	State          provider.State `json:"state"`
+	ProcessAlive   bool           `json:"process_alive"`
+	ProviderReady  bool           `json:"provider_ready"`
+	AccountUsable  *bool          `json:"account_usable"`
+	ReportedStatus string         `json:"reported_status,omitempty"`
+	PID            int            `json:"pid,omitempty"`
+	RSSBytes       int64          `json:"rss_bytes,omitempty"`
+	Restarts       int            `json:"restarts"`
+	LastError      string         `json:"last_error,omitempty"`
 }
 
 func New(cfg config.Config) *Hub {
@@ -146,17 +150,123 @@ func (h *Hub) providerViews() []providerView {
 				view.LastError = "provider enabled without a supervisor"
 			} else {
 				snap := p.sup.Snapshot()
-				view.State = snap.State
+				assessment := assessProviderHealth(id, snap)
+				view.State = assessment.State
+				view.ProcessAlive = assessment.ProcessAlive
+				view.ProviderReady = assessment.ProviderReady
+				view.AccountUsable = assessment.AccountUsable
+				view.ReportedStatus = assessment.ReportedStatus
 				view.PID = snap.PID
 				view.RSSBytes = snap.RSSBytes
 				view.Restarts = snap.Restarts
 				view.LastError = snap.LastError
+				if view.LastError == "" {
+					view.LastError = assessment.Detail
+				}
 			}
 		}
 		out = append(out, view)
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
 	return out
+}
+
+type providerAssessment struct {
+	State          provider.State
+	ProcessAlive   bool
+	ProviderReady  bool
+	AccountUsable  *bool
+	ReportedStatus string
+	Detail         string
+}
+
+func boolPtr(v bool) *bool { return &v }
+
+func assessProviderHealth(id string, snap sidecar.Snapshot) providerAssessment {
+	a := providerAssessment{
+		State: snap.State, ProcessAlive: snap.PID > 0,
+		ProviderReady: snap.State == provider.StateHealthy,
+	}
+	if !a.ProcessAlive {
+		a.ProviderReady = false
+		return a
+	}
+	if snap.HealthHTTPStatus >= 200 && snap.HealthHTTPStatus < 300 {
+		a.ProviderReady = true
+	} else if snap.HealthHTTPStatus != 0 {
+		a.ProviderReady = false
+	}
+	if len(snap.HealthBody) == 0 {
+		return a
+	}
+
+	var doc map[string]any
+	if json.Unmarshal(snap.HealthBody, &doc) != nil {
+		return a
+	}
+	if status, _ := doc["status"].(string); status != "" {
+		a.ReportedStatus = strings.ToLower(strings.TrimSpace(status))
+	}
+	if ready, ok := doc["ready"].(bool); ok {
+		a.ProviderReady = ready
+	}
+	if okValue, ok := doc["ok"].(bool); ok && !okValue {
+		a.ProviderReady = false
+	}
+
+	switch id {
+	case "opencode":
+		anonymous, total := false, 0
+		if keys, ok := doc["keys"].(map[string]any); ok {
+			anonymous, _ = keys["anonymous"].(bool)
+			if n, ok := keys["total"].(float64); ok {
+				total = int(n)
+			}
+		}
+		usable := a.ProviderReady && (anonymous || total > 0)
+		a.AccountUsable = boolPtr(usable)
+	case "freebuff":
+		if accounts, ok := doc["accounts"].([]any); ok {
+			usable := len(accounts) > 0
+			a.AccountUsable = boolPtr(usable)
+			if !usable {
+				a.Detail = "no configured accounts"
+			}
+		}
+	case "agent2api":
+		// v2.9.5 /health is explicitly a legacy WorkBuddy summary, not an
+		// aggregate of all Agent2API providers. Do not turn that into a false
+		// account_usable value for Qoder/Cline/CodeArts/etc.
+		if a.ReportedStatus == "degraded" {
+			if reason, _ := doc["unavailableReason"].(string); strings.TrimSpace(reason) != "" {
+				a.Detail = reason
+			} else {
+				a.Detail = "provider self-reported degraded"
+			}
+		}
+	}
+
+	if a.State == provider.StateHealthy {
+		if !a.ProviderReady {
+			a.State = provider.StateDegraded
+		} else if a.AccountUsable != nil && !*a.AccountUsable {
+			a.State = provider.StateDegraded
+		} else if id == "agent2api" && a.ReportedStatus == "degraded" {
+			a.State = provider.StateDegraded
+		}
+	}
+	return a
+}
+
+func providerUsableForRouting(id string, snap sidecar.Snapshot) bool {
+	if snap.State != provider.StateHealthy {
+		return false
+	}
+	a := assessProviderHealth(id, snap)
+	if !a.ProviderReady {
+		return false
+	}
+	return a.AccountUsable == nil || *a.AccountUsable
 }
 
 func (h *Hub) handleModels(w http.ResponseWriter, r *http.Request) {
@@ -175,8 +285,8 @@ func (h *Hub) handleModels(w http.ResponseWriter, r *http.Request) {
 		if !p.cfg.Enabled || p.sup == nil {
 			continue
 		}
-		if p.sup.Snapshot().State != provider.StateHealthy {
-			result.Warnings[id] = "provider not healthy"
+		if !providerUsableForRouting(id, p.sup.Snapshot()) {
+			result.Warnings[id] = "provider not currently usable"
 			continue
 		}
 		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
@@ -273,8 +383,9 @@ func (h *Hub) handleProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	snap := p.sup.Snapshot()
-	if snap.State != provider.StateHealthy {
-		writeError(w, http.StatusServiceUnavailable, "provider_unavailable", fmt.Sprintf("%s is %s", providerID, snap.State))
+	if !providerUsableForRouting(providerID, snap) {
+		assessment := assessProviderHealth(providerID, snap)
+		writeError(w, http.StatusServiceUnavailable, "provider_unavailable", fmt.Sprintf("%s is %s", providerID, assessment.State))
 		return
 	}
 
