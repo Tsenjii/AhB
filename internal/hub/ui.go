@@ -303,7 +303,7 @@ document.getElementById('copyBase').addEventListener('click',async()=>{
 });
 // No secrets are requested in the browser: bridge keys are configured locally
 // through the script's private environment, never embedded into a URL or page.
-const bridgeDefaults={lmarena:5102,windsurf:3003,qwen:8411,kimi:8000,gemini:5918,claude:8080,custom:8418};
+const bridgeDefaults={lmarena:5102,windsurf:3003,qwen:3000,kimi:8000,gemini:5918,claude:8080,custom:8418};
 let previousPreset='lmarena';
 function updateBridgeCommand(){
  const preset=document.getElementById('bridgePreset').value;
