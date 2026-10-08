@@ -10,6 +10,8 @@ This page describes provider **integration**, not proof of live account or infer
 | `deepseek/` | [Deepseek2API](https://github.com/zengtao227/Deepseek2API) pinned source | yes | disabled | `127.0.0.1:8405/admin` |
 | `grok/` | [Grok2API](https://github.com/chenyme/grok2api) pinned source | yes | disabled | `127.0.0.1:8407/` |
 | `kiro/` | [Kiro-Go](https://github.com/Quorinex/Kiro-Go) pinned source | yes | disabled | `127.0.0.1:8408/admin` |
+| `copilot/` | [copilot2api pinned](https://github.com/whtsky/copilot2api) | **new optional Go binary; publication CI pending** | disabled; use `login-copilot2api.sh` then `enable-copilot2api.sh` | no native web admin UI; OAuth in Termux |
+| `kimiweb/` | [chopper1026/kimi2api pinned](https://github.com/chopper1026/kimi2api) | **installer scripts only** (Python/React not bundled) | disabled; use `install-kimiweb-termux.sh` then `enable-kimiweb-termux.sh` | `127.0.0.1:8412/admin` |
 | `lmarena/` | separate user-supplied localhost bridge | **no bridge bundled** | disabled external slot | depends on bridge |
 
 Run optional enable scripts from `~/AhB`: `scripts/enable-deepseek2api.sh`, `scripts/enable-grok2api.sh`, `scripts/enable-kiro-go.sh`, or `scripts/enable-lmarena-external.sh`; restart AhB after an enable operation. Never expose the upstream management UIs or an unauthenticated Agent2API port to a LAN or the public internet.
@@ -33,3 +35,5 @@ Agent2API v2.9.6 manages `workbuddy` (domestic) and `workbuddy-intl` (internatio
 - No automatic signup, CAPTCHA avoidance, or restriction circumvention is part of AhB.
 
 For actual versions, use the pinned commits in [the Android workflow](../.github/workflows/build-android-arm64.yml), not floating upstream branches.
+
+**Account/Quota caveat:** process HEALTHY and a credential count (e.g. Agent2API 2/2) do not prove adequate quota; the real phone test saw HTTP 503 from Agent2API with both credentialed accounts exhausted. The optional Copilot binary and Kimi Web installer are new work and must not be called Android inference VERIFIED until the package and real user login/inference succeed. See [the living source registry](TO_API_REGISTRY.json) and [installation/optimization plan](TO_API_INSTALL_AND_OPTIMIZATION_PLAN.md).
