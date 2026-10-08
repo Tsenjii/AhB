@@ -15,17 +15,19 @@ on:
       - ".github/workflows/build-android-arm64.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   android-arm64:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
+
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-go@v6
         with:
-          go-version: "1.23.x"
+          go-version: "1.24.x"
 
       - uses: dtolnay/rust-toolchain@master
         with:
@@ -51,7 +53,8 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist/AhB/bin
-          GOOS=android GOARCH=arm64 CGO_ENABLED=0             go build -trimpath -ldflags="-s -w" -o dist/AhB/bin/hubd ./cmd/hubd
+          GOOS=android GOARCH=arm64 CGO_ENABLED=0 \
+            go build -trimpath -ldflags="-s -w" -o dist/AhB/bin/hubd ./cmd/hubd
 
       - name: Build pinned OpenCode gateway for Android ARM64
         shell: bash
@@ -59,7 +62,8 @@ jobs:
           set -euo pipefail
           git clone --depth 1 --branch v1.3.7 https://github.com/jasonxu114514/opencode2api.git /tmp/opencode2api
           cd /tmp/opencode2api
-          GOOS=android GOARCH=arm64 CGO_ENABLED=0             go build -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/dist/AhB/bin/opencode2api" ./cmd/opencode2api
+          GOOS=android GOARCH=arm64 CGO_ENABLED=0 \
+            go build -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/dist/AhB/bin/opencode2api" ./cmd/opencode2api
 
       - name: Build pinned FreeBuff gateway for Android ARM64
         shell: bash
@@ -69,21 +73,47 @@ jobs:
           AR_aarch64_linux_android: ${{ env.ANDROID_TOOLCHAIN }}/llvm-ar
           CARGO_PROFILE_RELEASE_LTO: "false"
           CARGO_PROFILE_RELEASE_CODEGEN_UNITS: "8"
+          CARGO_BUILD_JOBS: "2"
         run: |
           set -euo pipefail
           git clone --depth 1 --branch v0.10.3 https://github.com/lza6/Freebuff-2API.git /tmp/freebuff2api
           cd /tmp/freebuff2api
           cargo build --locked --release --target aarch64-linux-android
           cp target/aarch64-linux-android/release/freebuff2api "$GITHUB_WORKSPACE/dist/AhB/bin/freebuff2api"
+          cp LICENSE "$GITHUB_WORKSPACE/dist/AhB/LICENSE.freebuff2api" || true
+
+      - name: Build pinned Agent2API headless for Android ARM64
+        shell: bash
+        env:
+          CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER: ${{ env.ANDROID_TOOLCHAIN }}/aarch64-linux-android24-clang
+          CC_aarch64_linux_android: ${{ env.ANDROID_TOOLCHAIN }}/aarch64-linux-android24-clang
+          AR_aarch64_linux_android: ${{ env.ANDROID_TOOLCHAIN }}/llvm-ar
+          CARGO_PROFILE_RELEASE_LTO: "false"
+          CARGO_PROFILE_RELEASE_CODEGEN_UNITS: "8"
+          CARGO_BUILD_JOBS: "2"
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch v2.9.5 https://github.com/aimod-cc/agent2api.git /tmp/agent2api
+          cd /tmp/agent2api/desktop-tauri/src-tauri
+          cargo build --locked --release --target aarch64-linux-android \
+            --package agent2api-server --bin agent2api-server
+          cp ../../target/aarch64-linux-android/release/agent2api-server \
+            "$GITHUB_WORKSPACE/dist/AhB/bin/agent2api-server"
+          mkdir -p "$GITHUB_WORKSPACE/dist/AhB/data/agent2api"
+          cp -R ../ui "$GITHUB_WORKSPACE/dist/AhB/data/agent2api/ui"
 
       - name: Assemble Termux bundle
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p dist/AhB/configs dist/AhB/scripts dist/AhB/data/opencode dist/AhB/data/freebuff dist/AhB/data/agent2api dist/AhB/logs
+          mkdir -p dist/AhB/configs dist/AhB/scripts dist/AhB/data/opencode dist/AhB/data/freebuff dist/AhB/logs
           cp config.example.json dist/AhB/
           cp configs/opencode2api.json configs/freebuff2api.json dist/AhB/configs/
-          cp scripts/prepare-configs.sh scripts/run-termux.sh scripts/start-termux.sh scripts/stop-termux.sh scripts/doctor-termux.sh scripts/smoke.sh scripts/test-chat.sh dist/AhB/scripts/
+          cp scripts/prepare-configs.sh scripts/run-termux.sh scripts/start-termux.sh \
+             scripts/stop-termux.sh scripts/doctor-termux.sh scripts/smoke.sh \
+             scripts/test-chat.sh scripts/enable-agent2api.sh dist/AhB/scripts/
+          cp configs/opencode2api.json dist/AhB/data/opencode/config.json
+          cp configs/freebuff2api.json dist/AhB/data/freebuff/config.json
           chmod 700 dist/AhB/bin/*
           chmod +x dist/AhB/scripts/*.sh
           tar -C dist -czf AhB_android_arm64.tar.gz AhB
@@ -98,3 +128,21 @@ jobs:
             AhB_android_arm64.tar.gz
             AhB_android_arm64.tar.gz.sha256
             AhB_android_arm64_binaries.sha256
+
+      - name: Publish dev-latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view dev-latest >/dev/null 2>&1; then
+            gh release delete dev-latest --yes --cleanup-tag
+          fi
+          gh release create dev-latest \
+            AhB_android_arm64.tar.gz \
+            AhB_android_arm64.tar.gz.sha256 \
+            AhB_android_arm64_binaries.sha256 \
+            --target "$GITHUB_SHA" \
+            --title "AhB Android ARM64 dev-latest" \
+            --notes "Automated Android/Termux ARM64 bundle with hubd, opencode2api, Freebuff2API and optional Agent2API." \
+            --prerelease
