@@ -116,6 +116,22 @@ jobs:
           go-version: "1.26.x"
           cache: false
 
+      - name: Build optional lightweight GitHub Copilot bridge for Android ARM64
+        shell: bash
+        run: |
+          set -euo pipefail
+          COPILOT_SHA="a4aac95d4a8f430f02121f79ea36aeaaa06daea1"
+          rm -rf /tmp/copilot2api
+          git init /tmp/copilot2api
+          git -C /tmp/copilot2api remote add origin https://github.com/whtsky/copilot2api.git
+          git -C /tmp/copilot2api fetch --depth 1 origin "$COPILOT_SHA"
+          git -C /tmp/copilot2api checkout --detach FETCH_HEAD
+          cd /tmp/copilot2api
+          CGO_ENABLED=0 GOOS=android GOARCH=arm64 \
+            go build -trimpath -ldflags="-s -w" \
+            -o "$GITHUB_WORKSPACE/dist/AhB/bin/copilot2api" .
+          cp LICENSE "$GITHUB_WORKSPACE/dist/AhB/LICENSE.copilot2api"
+
       - name: Build pinned Grok2API for Android ARM64
         shell: bash
         run: |
@@ -208,7 +224,7 @@ jobs:
           cp configs/opencode2api.json configs/freebuff2api.json configs/deepseek2api.json configs/grok2api.yaml configs/kiro-go.json dist/AhB/configs/
           cp scripts/prepare-configs.sh scripts/run-termux.sh scripts/start-termux.sh \
              scripts/stop-termux.sh scripts/doctor-termux.sh scripts/smoke.sh \
-             scripts/test-chat.sh scripts/upgrade-prebuilt-termux.sh scripts/connect-bridge.sh scripts/enable-agent2api.sh scripts/enable-deepseek2api.sh \
+             scripts/test-chat.sh scripts/upgrade-prebuilt-termux.sh scripts/connect-bridge.sh scripts/login-copilot2api.sh scripts/enable-copilot2api.sh scripts/enable-agent2api.sh scripts/enable-deepseek2api.sh \
              scripts/enable-grok2api.sh scripts/enable-kiro-go.sh scripts/enable-lmarena-external.sh dist/AhB/scripts/
           cp configs/opencode2api.json dist/AhB/data/opencode/config.json
           cp configs/freebuff2api.json dist/AhB/data/freebuff/config.json
