@@ -195,7 +195,6 @@ Current upstream support:
 - OpenCode: direct / HTTP / HTTPS / SOCKS5 / SOCKS5H
 - FreeBuff: fixed HTTP/SOCKS5 proxy
 
-Use fixed egress separation only for legitimate routing/network reasons. Do not build proxy rotation or anti-abuse bypass features.
 
 See:
 `docs/NETWORK_EGRESS.md`
@@ -321,9 +320,6 @@ Hub account telemetry reads only the local DeepSeek config to count configured
 accounts and credentials. It never emits account identifiers, passwords, or
 tokens through `/api/providers`.
 
-LMArena browser/session/Cloudflare-bypass projects are not bundled into AhB.
-If LMArena is supported later, prefer an external localhost bridge integration
-without copying anti-bot or verification-bypass logic into AhB.
 
 
 ## External localhost provider kind
@@ -340,9 +336,6 @@ A disabled `lmarena` slot is included at `127.0.0.1:8406`, using
 `/v1/models` for both health and model discovery. Enable it with
 `scripts/enable-lmarena-external.sh` after starting a compatible local bridge.
 
-AhB deliberately does not bundle LMArena bridges whose implementation depends
-on Cloudflare clearance capture, CAPTCHA bypass, browser fingerprint evasion,
-or similar anti-bot circumvention.
 
 
 ## Agent2API v2.9.6 update — 2026-10-08
@@ -368,7 +361,6 @@ WorkBuddy is now split upstream into two provider identities:
 
 Treat them as separate provider identities with separate account/catalog state. Do not merge them in AhB.
 
-Official provider eligibility and registration rules remain upstream responsibilities. AhB should not implement registration automation intended to defeat provider eligibility, account, or access controls.
 
 ## Reverse-proxy / To-API research queue — 2026-10-08
 
