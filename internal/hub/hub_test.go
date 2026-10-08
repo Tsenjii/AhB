@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Tsenjii/android-ai-hub/internal/config"
+	"github.com/Tsenjii/AhB/internal/config"
 )
 
 func TestSplitModelPreservesNestedUpstreamID(t *testing.T) {
