@@ -413,5 +413,15 @@ func (h *Hub) doProviderRequestContext(ctx context.Context, r *http.Request, cfg
 	copyRequestHeaders(req.Header, r.Header)
 	applyProviderHeaders(req.Header, cfg.Headers)
 	req.Header.Set("Content-Type", "application/json")
-	return h.client.Do(req)
+	resp, err := h.client.Do(req)
+	if p := h.providers[cfg.ID]; p != nil {
+		if err != nil {
+			p.lastRequest.record(0, true)
+		} else {
+			// Status is recorded when headers arrive. A 200 streaming response
+			// could still fail before [DONE]; this is NOT proof of successful tokens.
+			p.lastRequest.record(resp.StatusCode, false)
+		}
+	}
+	return resp, err
 }
