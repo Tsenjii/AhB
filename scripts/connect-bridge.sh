@@ -19,8 +19,9 @@ Examples:
   ./scripts/connect-bridge.sh kimi http://127.0.0.1:8000
   ./scripts/connect-bridge.sh mybridge http://127.0.0.1:8560
 
-Set AIHUB_BRIDGE_API_KEY via a private environment (not in shell history)
-when the local bridge requires an API key. Restart AhB after changing config.
+The script privately prompts for an optional API key (or accepts
+AIHUB_BRIDGE_API_KEY from a private environment). It verifies /v1/models
+before saving. Restart AhB after changing config.
 Only loopback OpenAI-compatible services are accepted.
 HELP
 }
@@ -79,10 +80,34 @@ if ! jq -e --arg id "$id" 'all(.providers[] | select(.id == $id); .kind == "exte
 fi
 
 key="${AIHUB_BRIDGE_API_KEY:-}"
+existing_auth="$(jq -r --arg id "$id" '.providers[] | select(.id == $id) | .headers.Authorization // empty' config.json | head -n 1)"
+# For an existing bridge, keep its local API key unless the user supplies another.
+if [ -z "$key" ] && [ -n "$existing_auth" ]; then
+  key="${existing_auth#Bearer }"
+elif [ -z "$key" ] && [ -t 0 ]; then
+  printf 'Local bridge API key (Enter if not required): '
+  IFS= read -rs key || true
+  printf '\n'
+fi
+
 headers='{}'
+curl_args=(--fail --silent --show-error --max-time 8)
 if [ -n "$key" ]; then
   headers="$(jq -nc --arg key "$key" '{Authorization:("Bearer " + $key)}')"
+  curl_args+=(-H "Authorization: Bearer $key")
 fi
+
+# Fail fast instead of silently installing a broken route. A model catalog
+# with no accounts can be empty, but the response must have a data array.
+if ! model_json="$(curl "${curl_args[@]}" "$base$models_path")"; then
+  echo "Bridge unavailable or unauthorized at $base$models_path; configuration unchanged." >&2
+  exit 1
+fi
+if ! printf '%s' "$model_json" | jq -e '(.data | type) == "array"' >/dev/null 2>&1; then
+  echo "Bridge does not expose a valid OpenAI models list; configuration unchanged." >&2
+  exit 1
+fi
+unset model_json key
 
 tmp="$(mktemp "$ROOT/.bridge-config.XXXXXX")"
 trap 'rm -f "$tmp"' EXIT
