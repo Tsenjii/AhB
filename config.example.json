@@ -119,7 +119,10 @@
       "health_path": "/readyz",
       "models_path": "/v1/models",
       "max_restarts": 3,
-      "startup_timeout_seconds": 90
+      "startup_timeout_seconds": 90,
+      "env": {
+        "GODEBUG": "netdns=cgo"
+      }
     },
     {
       "id": "kiro",
