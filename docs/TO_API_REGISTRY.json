@@ -72,8 +72,8 @@
       "name": "Grok2API",
       "url": "https://github.com/chenyme/grok2api",
       "status": "bundled_unverified",
-      "priority": "P1",
-      "notes": "Bundled optional, needs real Android test.",
+      "priority": "P0",
+      "notes": "Bundled Grok2API native Go sidecar. User recalls Grok To API as very stable in prior experience (positive reliability signal; not new AhB on-device proof). Prioritize enabling the existing bundled implementation and verifying actual authorized Grok Web/Build account chat, SSE, full structured tool-call continuation, 401/429/503 and restart persistence. Do not conflate upstream positive reputation with an already passed AhB integration test.",
       "verified_live_android": false,
       "last_reviewed": "2026-10-08"
     },
