@@ -224,6 +224,7 @@ th,td{font-size:12px}
       <option value="lmarena">LMArena</option><option value="windsurf">WindsurfAPI</option>
       <option value="qwen">Qwen2API</option><option value="kimi">Kimi2API</option>
       <option value="gemini">Gemini2API</option><option value="claude">Claude2API</option>
+      <option value="codex">GPT · Codex OAuth Bridge</option>
       <option value="custom">其他相容服務</option>
      </select></div>
     <div class="field"><label for="bridgeURL">本機 API 地址</label><input id="bridgeURL" type="url" inputmode="url" spellcheck="false" value="http://127.0.0.1:5102" placeholder="http://127.0.0.1:5102"></div>
@@ -333,7 +334,7 @@ document.getElementById('copyBase').addEventListener('click',async()=>{
 });
 // No secrets are requested in the browser: bridge keys are configured locally
 // through the script's private environment, never embedded into a URL or page.
-const bridgeDefaults={lmarena:5102,windsurf:3003,qwen:3000,kimi:8000,gemini:5918,claude:8080,custom:8418};
+const bridgeDefaults={lmarena:5102,windsurf:3003,qwen:3000,kimi:8000,gemini:5918,claude:8080,codex:9879,custom:8418};
 let previousPreset='lmarena';
 function updateBridgeCommand(){
  const preset=document.getElementById('bridgePreset').value;
