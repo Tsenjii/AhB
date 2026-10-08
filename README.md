@@ -251,3 +251,24 @@ The Kimi Web native admin is `http://127.0.0.1:8412/admin`. Its password is stor
 **Source status is distinct from usage entitlement:** a HEALTHY process, two configured credentials or a listed model do not prove quota availability. In the user's Android smoke test Agent2API returned HTTP 503 from two exhausted accounts. Treat provider quota and real inference as separate checks.
 
 All previously found and future To-API candidates belong in the [living registry](docs/TO_API_REGISTRY.json), with explicit statuses, direct project URLs, validation steps and a history-preserving update policy.
+
+### GPT / Codex bridge and real tool validation
+
+The **new `codex` option is connector-only** (not a bundled GPT backend). If you have *already started and authenticated* your own localhost OpenAI-compatible Codex OAuth gateway such as [Codex OAuth Proxy](https://github.com/dvcrn/codex-oauth-proxy), you can attach it with:
+
+```sh
+cd ~/AhB
+./scripts/connect-bridge.sh codex http://127.0.0.1:9879
+./scripts/stop-termux.sh && ./scripts/start-termux.sh
+```
+
+The script requests only the **local gateway's client API key** and verifies its models endpoint; it does not log into ChatGPT or install/launch a third-party backend. The provider must have authorized Codex access and its own functional model endpoint. GPT Codex OAuth is not the same as controlling the ChatGPT **web browser** via MCP/Playwright. See [GPT Web vs Codex API vs MCP](docs/GPT_WEB_CODEX_MCP_STABILITY_2026-10-08.md).
+
+To qualify any source for reliable function use, run a **full two-request tool-call test**, which verifies that an API can accept a function schema, return structured tool calls, accept a matching tool result and produce a final answer:
+
+```sh
+AIHUB_TEST_MODEL='opencode/YOUR_MODEL_ID' ./scripts/test-tool-roundtrip.sh
+```
+
+This test consumes upstream account quota. Do not call a provider tool-compatible based only on `/v1/models` or an initial single tool-call response. Kimi Web is experimental and disabled by default until real Android long-run/tool-continuation tests pass.
+
