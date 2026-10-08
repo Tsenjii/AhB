@@ -19,11 +19,13 @@ check_file() {
 check_url() {
   local name="$1"
   local url="$2"
-  if curl -fsS --max-time 3 "$url" >/dev/null 2>&1; then
-    echo "UP   $name  $url"
-  else
-    echo "DOWN $name  $url"
-  fi
+  local code
+  code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 3 "$url" 2>/dev/null || true)"
+  case "$code" in
+    2??|3??) echo "UP       $name  HTTP $code  $url" ;;
+    4??|5??) echo "DEGRADED $name  HTTP $code  $url" ;;
+    *)       echo "DOWN     $name  $url" ;;
+  esac
 }
 
 echo "== system =="

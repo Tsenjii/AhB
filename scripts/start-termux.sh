@@ -9,11 +9,17 @@ mkdir -p data logs
 if [ -f data/hubd.pid ]; then
   old_pid="$(cat data/hubd.pid 2>/dev/null || true)"
   if [ -n "$old_pid" ] && kill -0 "$old_pid" 2>/dev/null; then
-    echo "hubd already running as PID $old_pid"
-    exit 0
+    exe="$(readlink "/proc/$old_pid/exe" 2>/dev/null || true)"
+    if [ "$exe" = "$ROOT/bin/hubd" ]; then
+      echo "hubd already running as PID $old_pid"
+      exit 0
+    fi
   fi
-  rm -f data/hubd.pid
 fi
+
+# A foreground run, killed shell, or stale pid file can leave sidecars alive.
+# Clean only AhB's own binaries before launching a fresh supervisor.
+./scripts/stop-termux.sh >/dev/null 2>&1 || true
 
 if command -v termux-wake-lock >/dev/null 2>&1; then
   termux-wake-lock || true
@@ -22,6 +28,14 @@ fi
 nohup ./scripts/run-termux.sh >> logs/hubd.log 2>&1 &
 pid=$!
 echo "$pid" > data/hubd.pid
+
+sleep 1
+if ! kill -0 "$pid" 2>/dev/null; then
+  echo "hubd failed to stay running; recent log:"
+  tail -n 40 logs/hubd.log 2>/dev/null || true
+  rm -f data/hubd.pid
+  exit 1
+fi
 
 echo "hubd started as PID $pid"
 echo "log: $ROOT/logs/hubd.log"

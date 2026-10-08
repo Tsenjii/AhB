@@ -62,7 +62,8 @@ jobs:
           set -euo pipefail
           git clone --depth 1 --branch v1.3.7 https://github.com/jasonxu114514/opencode2api.git /tmp/opencode2api
           cd /tmp/opencode2api
-          GOOS=android GOARCH=arm64 CGO_ENABLED=0 \
+          CC="$ANDROID_TOOLCHAIN/aarch64-linux-android24-clang" \
+            GOOS=android GOARCH=arm64 CGO_ENABLED=1 \
             go build -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/dist/AhB/bin/opencode2api" ./cmd/opencode2api
 
       - name: Build pinned FreeBuff gateway for Android ARM64

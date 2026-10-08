@@ -16,6 +16,17 @@ if [ ! -f data/freebuff/config.json ]; then
   cp configs/freebuff2api.json data/freebuff/config.json
 fi
 
+# Android/Termux: opencode2api needs Android's libc resolver. A pure-Go DNS
+# resolver may read a loopback nameserver such as ::1 and fail every upstream
+# lookup. Keep existing user config but migrate this provider env safely.
+if command -v jq >/dev/null 2>&1 && [ -f config.json ]; then
+  tmp="$(mktemp)"
+  if jq '(.providers[] | select(.id == "opencode") | .env) = (((.providers[] | select(.id == "opencode") | .env) // {}) + {"GODEBUG":"netdns=cgo"})' config.json > "$tmp"; then
+    cat "$tmp" > config.json
+  fi
+  rm -f "$tmp"
+fi
+
 make_secret() {
   od -An -N24 -tx1 /dev/urandom | tr -d ' \n'
 }
