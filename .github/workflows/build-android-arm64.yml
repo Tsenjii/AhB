@@ -129,20 +129,21 @@ jobs:
             AhB_android_arm64.tar.gz.sha256
             AhB_android_arm64_binaries.sha256
 
-      - name: Publish dev-latest release
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Publish public prebuilt branch
         shell: bash
         run: |
           set -euo pipefail
-          if gh release view dev-latest >/dev/null 2>&1; then
-            gh release delete dev-latest --yes --cleanup-tag
-          fi
-          gh release create dev-latest \
-            AhB_android_arm64.tar.gz \
-            AhB_android_arm64.tar.gz.sha256 \
-            AhB_android_arm64_binaries.sha256 \
-            --target "$GITHUB_SHA" \
-            --title "AhB Android ARM64 dev-latest" \
-            --notes "Automated Android/Termux ARM64 bundle with hubd, opencode2api, Freebuff2API and optional Agent2API." \
-            --prerelease
+          mkdir -p /tmp/ahb-prebuilt
+          cp AhB_android_arm64.tar.gz /tmp/ahb-prebuilt/
+          cp AhB_android_arm64.tar.gz.sha256 /tmp/ahb-prebuilt/
+          cp AhB_android_arm64_binaries.sha256 /tmp/ahb-prebuilt/
+          printf '%s\n' "$GITHUB_SHA" > /tmp/ahb-prebuilt/source-commit.txt
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan prebuilt-publish
+          git rm -rf .
+          cp /tmp/ahb-prebuilt/* .
+          git add AhB_android_arm64.tar.gz AhB_android_arm64.tar.gz.sha256 AhB_android_arm64_binaries.sha256 source-commit.txt
+          git commit -m "prebuilt: Android ARM64 $GITHUB_SHA"
+          git push --force origin HEAD:prebuilt
