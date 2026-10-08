@@ -553,7 +553,7 @@
       "url": "https://github.com/HITZY2002/codearts2api",
       "status": "research_alternative",
       "priority": "P3",
-      "notes": "NOT A NEW DISTINCT AhB SOURCE: bundled Agent2API already implements Huawei CodeArts account login, model routing, wallet/balance and manual daily welfare. HITZY2002/codearts2api (Go 1.22 stdlib-only MIT) is a specialized alternative, worth borrowing per-account benefit discovery/claim and account capability probing only if legitimately supported and missing in Agent2API. Do not install redundant sidecar. Upstream open GitHub #6/#7: tool_choice object can cause invalid param and incorrectly 10m cooldown for all accounts; do not promote as a reliable agent integration. Authorized account and Huawei service terms/benefit limitations apply. No real Android acceptance.",
+      "notes": "DUPLICATE / DO NOT INSTALL BY DEFAULT: AhB already bundles Agent2API with a CodeArts provider supporting web login, multiple accounts, welfare, models and streaming. This MIT Go implementation is a fallback/reference only if Agent2API CodeArts has a verified gap. Its open issue #7 (2026-10-05) reports tool_choice object arguments may cause invalid upstream parameters and account-pool cooldown. No independent Android integration or live inference verified.",
       "verified_live_android": false,
       "last_reviewed": "2026-10-08"
     }
