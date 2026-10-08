@@ -49,14 +49,12 @@ for path in bin/hubd bin/opencode2api bin/freebuff2api scripts/prepare-configs.s
   fi
 done
 
-# Preserve local user state. Packaged frontends are then refreshed from the
-# downloaded archive so stale WebUI files cannot overwrite the new version.
-cp -a "$DEST/data/." "$NEW/data/"
-cp -a "$DEST/config.json" "$NEW/config.json"
-if [ -d "$DEST/logs" ]; then
-  mkdir -p "$NEW/logs"
-  cp -a "$DEST/logs/." "$NEW/logs/"
-fi
+# Validate the incoming package and existing config before stopping services.
+# In particular, never copy a live SQLite database or account state: providers
+# may be writing to their databases until stop-termux.sh finishes.
+jq -e '.providers | type == "array"' "$DEST/config.json" > /dev/null
+jq -e '.providers | type == "array"' "$NEW/config.example.json" > /dev/null
+bash -n "$NEW/scripts/prepare-configs.sh"
 
 assets=(
   AhB/data/agent2api/ui
@@ -64,6 +62,34 @@ assets=(
   AhB/data/grok2api/frontend/dist
   AhB/data/kiro-go/web
 )
+for path in "${assets[@]}"; do
+  if [ ! -d "$TMP/stage/$path" ]; then
+    echo "Incomplete prebuilt archive: missing $path"
+    exit 1
+  fi
+done
+
+BACKUP="$PARENT/$NAME.backup-$(date +%Y%m%d-%H%M%S)"
+if [ -e "$BACKUP" ]; then
+  echo "Backup directory already exists: $BACKUP"
+  exit 1
+fi
+
+echo "Stopping AhB before taking a consistent account/database snapshot..."
+if [ -x "$DEST/scripts/stop-termux.sh" ]; then
+  "$DEST/scripts/stop-termux.sh"
+fi
+
+# Only after the sidecars stop is it safe to copy on-disk account databases.
+# The full original install is retained unchanged for rollback.
+cp -a "$DEST/data/." "$NEW/data/"
+cp -a "$DEST/config.json" "$NEW/config.json"
+if [ -d "$DEST/logs" ]; then
+  mkdir -p "$NEW/logs"
+  cp -a "$DEST/logs/." "$NEW/logs/"
+fi
+
+# A historical UI directory from user data must never shadow new bundled UI.
 for path in "${assets[@]}"; do
   rm -rf "$TMP/stage/$path"
 done
@@ -75,17 +101,6 @@ chmod +x "$NEW"/scripts/*.sh "$NEW"/bin/*
   ./scripts/prepare-configs.sh
   jq -e '.providers | type == "array"' config.json > /dev/null
 )
-
-BACKUP="$PARENT/$NAME.backup-$(date +%Y%m%d-%H%M%S)"
-if [ -e "$BACKUP" ]; then
-  echo "Backup directory already exists: $BACKUP"
-  exit 1
-fi
-
-echo "Stopping the old AhB before switching installations..."
-if [ -x "$DEST/scripts/stop-termux.sh" ]; then
-  "$DEST/scripts/stop-termux.sh"
-fi
 
 mv "$DEST" "$BACKUP"
 if ! mv "$NEW" "$DEST"; then
