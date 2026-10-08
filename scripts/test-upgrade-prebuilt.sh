@@ -53,6 +53,8 @@ printf 'old assets\n' > "$OLD/data/agent2api/ui/index.html"
 cat > "$OLD/scripts/stop-termux.sh" <<'EOF'
 #!/usr/bin/env bash
 printf 'stopped\n' > "$AIHUB_TEST_STOP_MARKER"
+# Simulate a final sidecar database flush during graceful shutdown.
+printf 'final transaction\n' > "$AIHUB_INSTALL_DIR/data/opencode/last-transaction.txt"
 EOF
 chmod +x "$OLD/scripts/stop-termux.sh"
 
@@ -64,6 +66,7 @@ bash "$ROOT/scripts/upgrade-prebuilt-termux.sh" > "$TMP/output.txt"
 
 test -e "$AIHUB_TEST_STOP_MARKER"
 test "$(cat "$OLD/data/opencode/account.txt")" = "secret account state"
+test "$(cat "$OLD/data/opencode/last-transaction.txt")" = "final transaction"
 test "$(cat "$OLD/data/agent2api/ui/index.html")" = "new assets"
 test "$(cat "$OLD/data/migration-tested.txt")" = "ready"
 test "$(jq -r '.providers[0].id' "$OLD/config.json")" = "existing"
