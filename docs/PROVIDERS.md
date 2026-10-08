@@ -6,7 +6,7 @@ This page describes provider **integration**, not proof of live account or infer
 |---|---|---|---|---|
 | `opencode/` | [opencode2api v1.3.7](https://github.com/jasonxu114514/opencode2api) | yes | enabled | `127.0.0.1:8404/` |
 | `freebuff/` | [Freebuff2API v0.10.3](https://github.com/lza6/Freebuff-2API) | yes | enabled | `127.0.0.1:8402/ui` |
-| `agent2api/` | [Agent2API v2.9.6](https://github.com/aimod-cc/agent2api) | yes | enabled by prebuilt installer when complete | `127.0.0.1:8403/` |
+| `agent2api/` | [Agent2API v2.9.7](https://github.com/aimod-cc/agent2api) | yes | enabled by prebuilt installer when complete | `127.0.0.1:8403/` |
 | `deepseek/` | [Deepseek2API](https://github.com/zengtao227/Deepseek2API) pinned source | yes | disabled | `127.0.0.1:8405/admin` |
 | `grok/` | [Grok2API v3.1.6](https://github.com/chenyme/grok2api/releases/tag/v3.1.6), pinned to 2026-09-30 upstream SHA | yes | disabled; **P0 to test** | `127.0.0.1:8407/` |
 | `kiro/` | [Kiro-Go](https://github.com/Quorinex/Kiro-Go) pinned source | yes | disabled | `127.0.0.1:8408/admin` |
@@ -15,6 +15,14 @@ This page describes provider **integration**, not proof of live account or infer
 | `lmarena/` | separate user-supplied localhost bridge | **no bridge bundled** | disabled external slot | depends on bridge |
 
 Run optional enable scripts from `~/AhB`: `scripts/enable-deepseek2api.sh`, `scripts/enable-grok2api.sh`, `scripts/enable-kiro-go.sh`, or `scripts/enable-lmarena-external.sh`; restart AhB after an enable operation. Never expose the upstream management UIs or an unauthenticated Agent2API port to a LAN or the public internet.
+
+## FreeBuff login on Android
+
+Freebuff2API has a Windows-only embedded login window, but the Termux Rust sidecar runs without WebView2. The browser-panel one-click login on desktop Chrome/Edge requires its upstream browser extension on the SAME computer as the gateway; a desktop 127.0.0.1 is not the phone's localhost. On Android use FreeBuff's original account import UI; no secret is accepted by AhB. After importing, run ./scripts/check-freebuff-login.sh for private metadata-only account count (not quota). See [Android FreeBuff login guide](FREEBUFF_ANDROID_LOGIN.md).
+
+## Agent2API release pin
+
+The next Android build pins the **released v2.9.7** source SHA 3618f6413610ca04b72991987c0b6589dc2fe54b (Trae SOLO and WorkBuddy international daily tasks). Upstream main has newer 2.9.8-labelled changes, not yet a published release at review. Those should be assessed separately, not pulled silently. Previously published AhB prebuilt 91c8da4 remains on v2.9.6 until a new Android build succeeds and prebuilt/source-commit.txt points to its new source SHA.
 
 ## What the upstream management UIs own
 
@@ -25,7 +33,7 @@ Run optional enable scripts from `~/AhB`: `scripts/enable-deepseek2api.sh`, `scr
 
 AhB intentionally **does not** replicate that internal management logic. It supervises provider processes, exposes a unified `/v1` API with namespaced model IDs, and shows process/readiness/account states, model lists and memory usage in a phone-friendly foyer.
 
-Agent2API v2.9.6 manages `workbuddy` (domestic) and `workbuddy-intl` (international) as separate account/provider identities inside Agent2API. AhB presents them through its `agent2api/` service prefix, not as separately launched processes.
+Agent2API v2.9.7 manages `workbuddy` (domestic) and `workbuddy-intl` (international) as separate account/provider identities inside Agent2API. AhB presents them through its `agent2api/` service prefix, not as separately launched processes.
 
 ## Verified vs unverified
 
