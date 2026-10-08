@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-mkdir -p data/opencode data/freebuff data/agent2api data/deepseek2api data/grok2api/frontend data/grok2api/data data/kiro-go/web logs bin
+mkdir -p data/opencode data/freebuff data/agent2api data/deepseek2api data/grok2api/frontend data/grok2api/data data/kiro-go/web data/copilot2api logs bin
 
 if [ ! -f config.json ]; then
   cp config.example.json config.json
