@@ -5,6 +5,7 @@ import (
  "net/http"
  "net/http/httptest"
  "strings"
+ "sync/atomic"
  "testing"
  "time"
 
@@ -12,11 +13,12 @@ import (
 )
 
 func TestRecentRequestStatusDoesNotConflateHTTPWithQuotaOrLeakSecrets(t *testing.T) {
- status := http.StatusServiceUnavailable
- receivedAuthorization := ""
+ var status atomic.Int32
+ status.Store(int32(http.StatusServiceUnavailable))
+ receivedAuthorization := make(chan string, 2)
  srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-  receivedAuthorization = r.Header.Get("Authorization")
-  w.WriteHeader(status)
+  receivedAuthorization <- r.Header.Get("Authorization")
+  w.WriteHeader(int(status.Load()))
   _, _ = w.Write([]byte(`{"error":{"message":"quota empty"}}`))
  }))
  defer srv.Close()
@@ -31,7 +33,7 @@ func TestRecentRequestStatusDoesNotConflateHTTPWithQuotaOrLeakSecrets(t *testing
  resp, err := h.doProviderRequest(req,cfg,[]byte(`{"model":"test"}`))
  if err != nil { t.Fatal(err) }
  _ = resp.Body.Close()
- if receivedAuthorization != "Bearer LOCAL_PRIVATE_KEY" {t.Fatal("upstream local authorization missing")}
+ if <-receivedAuthorization != "Bearer LOCAL_PRIVATE_KEY" {t.Fatal("upstream local authorization missing")}
  view := h.providerViews()[0]
  if view.LastRequestStatus != 503 || view.LastRequestTransportError || view.LastRequestAt == "" {
   t.Fatalf("bad inference failure status: %#v",view)
@@ -42,7 +44,7 @@ func TestRecentRequestStatusDoesNotConflateHTTPWithQuotaOrLeakSecrets(t *testing
   if strings.Contains(string(raw),secret){ t.Fatalf("sensitive value leaked in provider UI response: %s",secret)}
  }
 
- status = http.StatusOK
+ status.Store(int32(http.StatusOK))
  resp,err = h.doProviderRequest(req,cfg,[]byte(`{"model":"test"}`))
  if err!=nil{t.Fatal(err)}
  _ = resp.Body.Close()
