@@ -546,6 +546,16 @@
       "notes": "Discovered via NodeLoc 2026-08-30. Generic Python FastAPI+DrissionPage+Chromium desktop browser session automation (not a small native phone adapter). Supports OpenAI/Anthropic/SSE and best-effort tool parsing, experimental Responses. Community feedback mixed; Windows fully supported; Android ARM64 availability and reliable multi-turn function schema not proven. Do not replace mature pinned Grok2API with it.",
       "verified_live_android": false,
       "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "codearts_go_web",
+      "name": "CodeArts2API independent Huawei Cloud CodeArts Agent Go bridge",
+      "url": "https://github.com/HITZY2002/codearts2api",
+      "status": "research_unverified",
+      "priority": "P2",
+      "notes": "New 2026-10-08 candidate. Go 1.22 stdlib-only MIT Go API/WebUI, no CodeArts IDE daemon, Huawei Cloud browser OAuth, self-managed account pool/refresh, precise per-account benefit model discovery/claim, real stream and upstream native tool_calls for supported models with textual fallback. Overlaps already bundled Agent2API CodeArts source (web login, balance and manual welfare). CRITICAL open GitHub issues #6/#7 (2026-10-05): native tool_choice object yields invalid upstream parameter and can incorrectly cool whole account pool 10m. Unpatched main commit be43574b84f5cbf2f40dc9dafb7c5c6e13da3d51. Do NOT bundle until issue resolved, Android build, real account authorization, native tool-call two-step, cooldown regression and benefit entitlement tested. Official Huawei 10M daily promotion is only for CodeArts product use; unsupported to assume it may be used as external API quota. Official free edition and promotions region/account dependent.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
     }
   ]
 }
