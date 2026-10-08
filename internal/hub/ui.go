@@ -191,8 +191,8 @@ th,td{font-size:12px}
  <div class="quick-connect">
   <div>
    <div class="eyebrow">Connect</div>
-   <div class="quick-title">新的來源，三個步驟就好。</div>
-   <p>選擇已在本機啟動的相容 API，填入連接埠，複製指令至 Termux 執行後重新啟動 AhB。既有帳號與原始管理介面不受影響。</p>
+   <div class="quick-title">接入新的 API，不用改程式。</div>
+   <p>選擇已在本機啟動的相容 API，填入連接埠，複製一條指令至 Termux 即可套用。既有帳號與原始管理介面不受影響。</p>
    <p>AhB 不代替上游登入，也不負責自動繞過網站驗證。你可以連接自己的 LMArena、Windsurf、Kimi 或其他相容橋接服務。</p>
   </div>
   <div class="quick-form">
@@ -273,7 +273,7 @@ async function refresh(){
   const counts=modelCounts(lastModels);
   const providers=p.providers||[];
   const sidecarRSS=providers.reduce((n,x)=>n+(x.rss_bytes||0),0);
-  const ready=providers.filter(x=>x.enabled&&(x.state==='HEALTHY'||x.state==='DEGRADED')).length;
+  const ready=providers.filter(x=>x.enabled&&x.state==='HEALTHY').length;
   document.getElementById('runtime').textContent='RSS '+fmtBytes((r.process_rss_bytes||0)+sidecarRSS)+' · '+(r.goos||'?')+'/'+(r.goarch||'?');
   document.getElementById('providerTotal').textContent=providers.filter(x=>x.enabled).length;
   document.getElementById('modelTotal').textContent=lastModels.length;
@@ -316,8 +316,8 @@ function updateBridgeCommand(){
  const urlMatch=address.match(/^http:\/\/(127\.0\.0\.1|localhost|\[::1\]):([0-9]{1,5})\/?$/);
  const validURL=!!urlMatch&&Number(urlMatch[2])>0&&Number(urlMatch[2])<=65535;
  const valid=validID&&validURL;
- cmd.textContent=valid?'cd ~/AhB && ./scripts/connect-bridge.sh '+id+' '+address:'請輸入有效的來源代號和 127.0.0.1 本機連接埠。';
- hint.textContent=valid?'儲存後重新啟動 AhB。此操作只連接已存在的橋接服務，不會幫你啟動外部服務。':'代號只能含小寫英文、數字、- 或 _；網址須為本機 HTTP 地址。';
+ cmd.textContent=valid?'cd ~/AhB && ./scripts/connect-bridge.sh '+id+' '+address+' && ./scripts/stop-termux.sh && ./scripts/start-termux.sh':'請輸入有效的來源代號和 127.0.0.1 本機連接埠。';
+ hint.textContent=valid?'這條指令會驗證並連接本機橋接服務，接著重新啟動 AhB 使設定生效；現有請求會中斷。':'代號只能含小寫英文、數字、- 或 _；網址須為本機 HTTP 地址。';
  hint.classList.toggle('tip-error',!valid);
  copy.disabled=!valid;
 }
