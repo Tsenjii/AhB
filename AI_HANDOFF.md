@@ -616,3 +616,14 @@ Latest scope requested: make LMArena and other mature To-API **connections** sim
 **Important final gate:** after all related source/build script commits, check the most recent green CI, successful Android ARM64 build and public `prebuilt/source-commit.txt` are aligned. Real LMArena browser bridge, third-party credentials, actual inference and tool-calling still require on-device or independently deployed upstream tests. Avoid promising that every known third-party reverse proxy works. Do not automate CAPTCHA, anti-bot bypass or account-farming.
 
 UI-generated command will restart Hub after successful connection; this **interrupts active in-flight requests**. The standalone connector script only saves config and asks for an explicit restart.
+
+
+## REAL Android device acceptance (user-tested, 2026-10-08)
+
+**Read [docs/DEVICE_ACCEPTANCE_2026-10-08.md](docs/DEVICE_ACCEPTANCE_2026-10-08.md) before the next release or health-status UI change.** The user's device test reached all eight basic smoke checklist items with scope limits: Hub 0.2.0-dev responds 200 and returns `{"status":"ok"}`; OpenCode real `nemotron-3.5-lightning-free` chat succeeded (HTTP 200, AIHUB_OK); SSE output emitted 147 `data:` events and terminated with `[DONE]`; 15 advertised models (14 OpenCode + 1 Agent2API); prior settings/accounts/databases survived upgrade; the new LMArena/bridge connector wizard and dark Hub UI displayed; a model emitted a `get_time` tool call with `finish_reason=tool_calls`. Keep original backup `~/AhB.backup-20261008-194847` until other provider accounts are verified.
+
+**Critical distinction:** Agent2API reported **HEALTHY** with 2/2 credentialed accounts, yet real `Qwen3.8-Flash` inference returned **HTTP 503** because both accounts were skipped for **below-threshold remaining balance**. The current Hub Agent2API probe counts enabled + credentialed + chat-capable accounts, **not quota-available/inference-usable accounts**. The UI must not present 2/2 as proof of usable quota. FreeBuff showed DEGRADED because the user had 0 accounts. These are account availability/usage findings rather than demonstrated Hub transport regressions.
+
+**Unverified in that report:** actual LMArena/custom bridge connection and inference (UI/preset only); complete tool-call execution + second model request (initial function-call emission only); real inference on Agent2API and FreeBuff while they lack usable quota/accounts; DeepSeek, Grok and Kiro live inference. Do not mark all provider/end-to-end tests 100% complete based on this report.
+
+Next product UX improvement: distinguish provider process health, credential readiness, and account/model quota sufficiency. Obtain genuine quota status from supported upstream APIs or clear 503 error state; never simulate balances or bypass usage limits.
