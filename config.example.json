@@ -151,12 +151,12 @@
     {
       "id": "lmarena",
       "display_name": "LMArena External",
-      "description": "Optional localhost OpenAI-compatible LMArena bridge; bridge implementation is not bundled",
+      "description": "Optional external LMArena OpenAI-compatible local bridge; launch separately",
       "enabled": false,
       "kind": "external",
-      "base_url": "http://127.0.0.1:8406",
+      "base_url": "http://127.0.0.1:5102",
       "ui_url": "",
-      "docs_url": "",
+      "docs_url": "https://github.com/Lianues/LMArenaBridge",
       "health_path": "/v1/models",
       "models_path": "/v1/models",
       "health_interval_seconds": 15
