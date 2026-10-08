@@ -112,6 +112,6 @@ if [ "$sse" != 200 ] || [ "$events" -lt 2 ] ||
 fi
 echo "PASS: SSE event format, events=$events, [DONE] seen."
 echo "Checking two-turn structured tool-call protocol..."
-AIHUB_BASE="$HUB" AIHUB_TEST_MODEL="$model" ./scripts/test-tool-roundtrip.sh
+AIHUB_BASE="$HUB" AIHUB_TEST_MODEL="$model" bash ./scripts/test-tool-roundtrip.sh
 echo "GROK ACCEPTANCE PASS: chat, SSE event formatting, structured tool-call and tool-result continuation."
 echo "This is a short test, not long-term reliability or every Grok provider's entitlement."
