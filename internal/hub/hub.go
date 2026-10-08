@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Tsenjii/AhB/internal/config"
@@ -25,6 +26,7 @@ type Hub struct {
 	providers map[string]*runtimeProvider
 	client    *http.Client
 	balance   fallbackBalancer
+	runWG     sync.WaitGroup
 }
 
 type runtimeProvider struct {
@@ -103,18 +105,36 @@ func New(cfg config.Config) *Hub {
 	return h
 }
 
+// Start launches the provider workers. The caller must cancel ctx and call
+// Wait before exiting so child processes are reaped during clean shutdown.
 func (h *Hub) Start(ctx context.Context) {
 	for _, p := range h.providers {
 		if p.sup != nil {
-			go p.sup.Run(ctx)
+			h.runWG.Add(1)
+			go func(p *runtimeProvider) {
+				defer h.runWG.Done()
+				p.sup.Run(ctx)
+			}(p)
 		}
 		if p.external != nil {
-			go h.runExternalProbe(ctx, p)
+			h.runWG.Add(1)
+			go func(p *runtimeProvider) {
+				defer h.runWG.Done()
+				h.runExternalProbe(ctx, p)
+			}(p)
 		}
 		if p.hasRuntime() && (p.cfg.ID == "agent2api" || p.cfg.ID == "freebuff" || p.cfg.ID == "deepseek" || p.cfg.ID == "kiro") {
-			go h.pollProviderAccounts(ctx, p)
+			h.runWG.Add(1)
+			go func(p *runtimeProvider) {
+				defer h.runWG.Done()
+				h.pollProviderAccounts(ctx, p)
+			}(p)
 		}
 	}
+}
+
+func (h *Hub) Wait() {
+	h.runWG.Wait()
 }
 
 func (h *Hub) Handler() http.Handler {
