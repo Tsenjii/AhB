@@ -111,37 +111,24 @@ func (h *Hub) fetchProviderAccounts(parent context.Context, cfg config.ProviderC
 		return inspectDeepSeekAccounts(cfg)
 
 	case "freebuff":
+		// Node gateway exposes local-only summary of configured Bearer/CLI
+		// identities in /healthz. It does not expose the Rust API's
+		// /api/accounts/health and cannot import Web cookies automatically.
+		// "unknown" identities are only candidates for first live test, NOT
+		// proven-valid tokens or spendable quota.
 		var payload struct {
-			OK       bool `json:"ok"`
-			Accounts []struct {
-				CircuitState string  `json:"circuit_state"`
-				CooldownUntil *string `json:"cooldown_until"`
-			} `json:"accounts"`
+			Accounts int `json:"accounts"`
+			Alive int `json:"alive_accounts"`
+			Unknown int `json:"unknown_accounts"`
 		}
-		if err := h.getProviderJSON(ctx, cfg, "/api/accounts/health", &payload); err != nil {
+		if err := h.getProviderJSON(ctx, cfg, "/healthz", &payload); err != nil {
 			return accountProbe{}, err
 		}
-		if !payload.OK {
-			return accountProbe{}, fmt.Errorf("freebuff account health response was not ok")
+		if payload.Accounts < 0 || payload.Alive < 0 || payload.Unknown < 0 ||
+			payload.Alive+payload.Unknown > payload.Accounts {
+			return accountProbe{}, fmt.Errorf("freebuff health returned invalid account counts")
 		}
-		usable := 0
-		now := time.Now()
-		for _, account := range payload.Accounts {
-			state := strings.ToLower(strings.TrimSpace(account.CircuitState))
-			// Only upstream-recognized breaker states are eligible. Unknown,
-			// missing or future states must not advertise an account as ready.
-			switch state {
-			case "closed", "half_open":
-				usable++
-			case "open":
-				if account.CooldownUntil != nil {
-					if until, err := time.Parse(time.RFC3339, *account.CooldownUntil); err == nil && !until.After(now) {
-						usable++
-					}
-				}
-			}
-		}
-		return accountProbe{Known: true, Total: len(payload.Accounts), Usable: usable}, nil
+		return accountProbe{Known: true, Total: payload.Accounts, Usable: payload.Alive + payload.Unknown}, nil
 	default:
 		return accountProbe{}, fmt.Errorf("provider %s does not expose an account probe", cfg.ID)
 	}

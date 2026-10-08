@@ -19,7 +19,7 @@ case "$(uname -m)" in
     ;;
 esac
 
-pkg install -y curl coreutils tar
+pkg install -y curl coreutils tar nodejs
 
 echo "Downloading AhB Android ARM64 bundle..."
 curl -fL --retry 3 -o "$TMP/$ASSET" "$BASE/$ASSET"
@@ -58,8 +58,8 @@ echo
 echo "OpenCode UI:"
 echo "  http://127.0.0.1:8404/"
 echo
-echo "FreeBuff UI:"
-echo "  http://127.0.0.1:8402/ui"
+echo "FreeBuff CLI login (new Node gateway):"
+echo "  cd $DEST && ./scripts/freebuff-login-termux.sh"
 echo
 echo "Agent2API UI:"
 echo "  http://127.0.0.1:8403/"

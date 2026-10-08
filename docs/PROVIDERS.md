@@ -5,7 +5,7 @@ This page describes provider **integration**, not proof of live account or infer
 | AhB prefix | Upstream / version | Packaged in ARM64 prebuilt | Initial state | Original management UI |
 |---|---|---|---|---|
 | `opencode/` | [opencode2api v1.3.7](https://github.com/jasonxu114514/opencode2api) | yes | enabled | `127.0.0.1:8404/` |
-| `freebuff/` | [Freebuff2API v0.10.3](https://github.com/lza6/Freebuff-2API) | yes | enabled | `127.0.0.1:8402/ui` |
+| `freebuff/` | [yutian81/freebuff2api](https://github.com/yutian81/freebuff2api) pinned e0d8c9d (Node >=20) | yes | enabled; requires fresh CLI/Bearer login | no management UI; `scripts/freebuff-login-termux.sh` |
 | `agent2api/` | [Agent2API v2.9.7](https://github.com/aimod-cc/agent2api) | yes | enabled by prebuilt installer when complete | `127.0.0.1:8403/` |
 | `deepseek/` | [Deepseek2API](https://github.com/zengtao227/Deepseek2API) pinned source | yes | disabled | `127.0.0.1:8405/admin` |
 | `grok/` | [Grok2API v3.1.6](https://github.com/chenyme/grok2api/releases/tag/v3.1.6), pinned to 2026-09-30 upstream SHA | yes | disabled; **P0 to test** | `127.0.0.1:8407/` |
@@ -16,9 +16,11 @@ This page describes provider **integration**, not proof of live account or infer
 
 Run optional enable scripts from `~/AhB`: `scripts/enable-deepseek2api.sh`, `scripts/enable-grok2api.sh`, `scripts/enable-kiro-go.sh`, or `scripts/enable-lmarena-external.sh`; restart AhB after an enable operation. Never expose the upstream management UIs or an unauthenticated Agent2API port to a LAN or the public internet.
 
-## FreeBuff login on Android
+## FreeBuff login on Android — new Node adapter
 
-Freebuff2API has a Windows-only embedded login window, but the Termux Rust sidecar runs without WebView2. The browser-panel one-click login on desktop Chrome/Edge requires its upstream browser extension on the SAME computer as the gateway; a desktop 127.0.0.1 is not the phone's localhost. On Android use FreeBuff's original account import UI; no secret is accepted by AhB. After importing, run ./scripts/check-freebuff-login.sh for private metadata-only account count (not quota). See [Android FreeBuff login guide](FREEBUFF_ANDROID_LOGIN.md).
+The old Rust Freebuff2API v0.10.3 Web Cookie bridge produced 409 `chat_moved` (wrapped as 502). The new package replaces the executable implementation with the [pinned yutian81 Node gateway](https://github.com/yutian81/freebuff2api), still listening only at 127.0.0.1:8402 using the existing `freebuff/` namespace. It exposes no old management UI, and uses authenticated CLI/Bearer tokens, **not** the previous Web Cookie sessions. All old tokens, SQLite, JSON, configs and backups are preserved without automatic reinterpretation.
+
+Android upgrade installs Termux Node.js. The next step is explicit user-initiated device-code authorization: `./scripts/freebuff-login-termux.sh`, then restart via `./scripts/stop-termux.sh && ./scripts/start-termux.sh`. Check with `./scripts/check-freebuff-login.sh` (account count only) and a real opt-in `AIHUB_TEST_MODEL='freebuff/<actual-listed-model>' ./scripts/test-chat.sh`. See [new Android login guide](FREEBUFF_ANDROID_LOGIN.md). Until live inference is confirmed, this remains **packaged and CI-verified, not phone-verified**.
 
 ## Agent2API release pin
 

@@ -48,6 +48,14 @@ check_file "data/freebuff/config.json"
 check_file "bin/hubd"
 check_file "bin/opencode2api"
 check_file "bin/freebuff2api"
+check_file "data/freebuff/gateway/server.js"
+check_file "data/freebuff/gateway/worker.js"
+if command -v node >/dev/null 2>&1; then
+  echo "OK   node $(node --version)"
+else
+  echo "MISS node runtime (pkg install nodejs)"
+  fail=1
+fi
 if [ -x bin/agent2api-server ]; then
   check_file "data/agent2api/ui"
 fi
@@ -86,7 +94,7 @@ check_url "hub-ui" "http://127.0.0.1:8317/ui"
 check_url "opencode-api" "http://127.0.0.1:8401/healthz"
 check_url "opencode-ui" "http://127.0.0.1:8404/"
 check_url "freebuff-api" "http://127.0.0.1:8402/healthz"
-check_url "freebuff-ui" "http://127.0.0.1:8402/ui"
+# The Node FreeBuff adapter has no legacy Rust /ui management page.
 if [ -x bin/agent2api-server ]; then
   check_url "agent2api" "http://127.0.0.1:8403/health"
   check_url "agent2api-ui" "http://127.0.0.1:8403/"

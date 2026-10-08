@@ -203,23 +203,22 @@ th,td{font-size:12px}
 </section>
 
 <section id="freebuffLogin">
-  <div class="section-head"><div class="section-title"><h2>FreeBuff 登入</h2><span class="count">Android account setup</span></div></div>
+  <div class="section-head"><div class="section-title"><h2>FreeBuff 登入</h2><span class="count">Android Node.js CLI / Bearer</span></div></div>
   <div class="quick-connect">
     <div>
-      <div class="eyebrow">FreeBuff accounts</div>
-      <div class="quick-title">先完成原生帳號匯入，再測試模型。</div>
-      <p>Android／Termux 的 FreeBuff 是獨立 Rust 程式，但不包含 Windows 專用內嵌登入視窗。請開啟原生管理頁的「帳號」頁，依照上游提供的匯入流程操作。</p>
-      <div class="command-actions" style="margin-top:15px">
-        <a class="btn primary" href="http://127.0.0.1:8402/ui" target="_blank" rel="noopener noreferrer">開啟 FreeBuff 管理頁</a>
-        <a class="btn" href="https://github.com/lza6/Freebuff-2API/blob/v0.10.3/README_zh.md" target="_blank" rel="noopener noreferrer">原作者登入說明</a>
+      <div class="eyebrow">FreeBuff account onboarding</div>
+      <div class="quick-title">新版 Node.js FreeBuff 需要重新完成裝置授權。</div>
+      <p>舊 Rust 版的 Web Cookie 不能直接匯入新版；原本的帳號資料會保留在備份和 data/freebuff/。新版以自己的 CLI/Bearer 帳號為來源，無額外管理網頁。</p>
+      <div class="quick-actions">
+        <a class="btn" href="https://github.com/yutian81/freebuff2api" target="_blank" rel="noopener noreferrer">新版原始碼與說明</a>
       </div>
     </div>
     <div class="command-panel">
-      <div class="eyebrow">Check account records</div>
+      <div class="eyebrow">Device-code login on Termux</div>
+      <div class="command-box">cd ~/AhB &amp;&amp; ./scripts/freebuff-login-termux.sh</div>
+      <div class="command-help">指令會顯示僅供你本人使用的授權連結，登入後將 Bearer Token 私密保存在手機，不會顯示或上傳給 AhB。登入後請重啟服務。</div>
       <div class="command-box">cd ~/AhB &amp;&amp; ./scripts/check-freebuff-login.sh</div>
-      <div class="command-help">檢查只顯示帳號筆數，不顯示 Cookie、Token 或個人資料；有帳號仍不代表剩餘額度足夠。</div>
-      <div class="command-help">桌面 Chrome／Edge 的「一鍵登入」需安裝 FreeBuff 官方瀏覽器擴充套件，且擴充套件與本機閘道必須位於同一台電腦。Android Chrome 不會因為 AhB 已安裝就自動支援桌面擴充套件。電腦上的 127.0.0.1 也不是手機的 127.0.0.1。</div>
-      <div class="command-help">請只在原始服務管理頁處理自己的帳號資料，勿把登入憑證貼進聊天或公開紀錄。</div>
+      <div class="command-help">帳號數與健康狀態僅為本機觀測；0 個帳號或舊版 Cookie 無法推理。請勿將任何授權連結、Token 或包含敏感資料的輸出分享。</div>
     </div>
   </div>
 </section>

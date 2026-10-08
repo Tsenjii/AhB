@@ -29,6 +29,10 @@ jq -e '
   and (any(.providers[]; .id == "grok" and .enabled == false))
   and (any(.providers[]; .id == "custom-provider" and .headers.Authorization == "Bearer preserved-bridge-secret"))
   and (any(.providers[]; .id == "opencode" and .headers.Authorization == "Bearer preserved-user-secret" and .env.CUSTOM == "preserved" and .env.GODEBUG == "netdns=cgo"))
+  and (any(.providers[]; .id == "freebuff" and .enabled == true
+    and .env.FREEBUFF_CREDENTIALS_DIR == "./credentials"
+    and .env.FREEBUFF_API_KEY != "__AIHUB_SERVER_KEY__"
+    and (.headers.Authorization | startswith("Bearer "))))
   and (.custom_user_metadata.important == "must-survive")
 ' config.json >/dev/null
 test "$(cat data/grok2api/data/backend.db)" = "account database must survive"

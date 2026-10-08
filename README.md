@@ -81,6 +81,19 @@ Each healthy provider has a **管理原本 UI** button:
 
 The Hub intentionally does not duplicate the upstream management consoles.
 
+### FreeBuff migration (Oct 9, 2026)
+
+The old Rust `lza6/Freebuff-2API v0.10.3` was replaced by a pinned, dependency-free Node.js gateway from [yutian81/freebuff2api](https://github.com/yutian81/freebuff2api). This is **not** proof the upstream accepts every model. The old Web Cookie 409 `chat_moved` path is no longer used, but you must complete a **fresh authorized CLI/Bearer login** after upgrading. Old cookies, account files and SQLite data are preserved intact in the backup; old Cookie tokens are **never** converted or exposed. The freebuff/ prefix and localhost port 8402 remain. The new gateway does **not** offer the old /ui management dashboard.
+
+```sh
+cd ~/AhB
+./scripts/check-freebuff-login.sh
+./scripts/freebuff-login-termux.sh    # only if there are no new CLI tokens
+./scripts/stop-termux.sh && ./scripts/start-termux.sh
+```
+
+Termux Node.js >=20 is installed by the prebuilt install/upgrade scripts. Python 3 is required for the optional interactive device-code login. See [login and migration guide](docs/FREEBUFF_ANDROID_LOGIN.md).
+
 ### All bundled sources: read-only readiness inventory
 
 After the new package has been published and safely installed on your own Termux device, run:

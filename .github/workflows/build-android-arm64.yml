@@ -70,22 +70,84 @@ jobs:
             GOOS=android GOARCH=arm64 CGO_ENABLED=1 \
             go build -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/dist/AhB/bin/opencode2api" ./cmd/opencode2api
 
-      - name: Build pinned FreeBuff gateway for Android ARM64
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Package pinned Node.js FreeBuff gateway (Termux runtime)
         shell: bash
-        env:
-          CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER: ${{ env.ANDROID_TOOLCHAIN }}/aarch64-linux-android24-clang
-          CC_aarch64_linux_android: ${{ env.ANDROID_TOOLCHAIN }}/aarch64-linux-android24-clang
-          AR_aarch64_linux_android: ${{ env.ANDROID_TOOLCHAIN }}/llvm-ar
-          CARGO_PROFILE_RELEASE_LTO: "false"
-          CARGO_PROFILE_RELEASE_CODEGEN_UNITS: "8"
-          CARGO_BUILD_JOBS: "2"
         run: |
           set -euo pipefail
-          git clone --depth 1 --branch v0.10.3 https://github.com/lza6/Freebuff-2API.git /tmp/freebuff2api
+          # yutian81/freebuff2api latest reviewed 2026-10-08; no npm dependencies.
+          FREEBUFF_SHA="e0d8c9d4d1a955f46fbeb6841ea192bd8b3f2109"
+          git init /tmp/freebuff2api
+          git -C /tmp/freebuff2api remote add origin https://github.com/yutian81/freebuff2api.git
+          git -C /tmp/freebuff2api fetch --depth 1 origin "$FREEBUFF_SHA"
+          git -C /tmp/freebuff2api checkout --detach FETCH_HEAD
           cd /tmp/freebuff2api
-          cargo build --locked --release --target aarch64-linux-android
-          cp target/aarch64-linux-android/release/freebuff2api "$GITHUB_WORKSPACE/dist/AhB/bin/freebuff2api"
-          cp LICENSE "$GITHUB_WORKSPACE/dist/AhB/LICENSE.freebuff2api" || true
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("server.js")
+          s = p.read_text()
+          before = "const credDir = resolve(__dirname, 'credentials');"
+          after = "const credDir = process.env.FREEBUFF_CREDENTIALS_DIR || resolve(__dirname, 'credentials');"
+          assert s.count(before) == 1, "unsupported upstream credentials directory format"
+          s = s.replace(before, after)
+          before = 'apiKey=${env.FREEBUFF_API_KEY.slice(0,8)}...'
+          assert s.count(before) == 1, "unsupported upstream API key log format"
+          s = s.replace(before, 'apiKey=configured')
+          p.write_text(s)
+          p = Path("freebuff_tools/extract_freebuff.py")
+          s = p.read_text()
+          before = 'CRED_FILE = Path(__file__).resolve().parent / "freebuff_credentials.json"'
+          after = 'CRED_FILE = Path(os.environ.get("FREEBUFF_CRED_FILE", str(Path(__file__).resolve().parent / "freebuff_credentials.json")))'
+          assert s.count(before) == 1, "unsupported upstream login credential store"
+          s = s.replace(before, after)
+          before = 'print("    " + auth_token)'
+          assert s.count(before) == 1, "unsupported upstream auth-token stdout format"
+          s = s.replace(before, 'print("    已儲存至本機安全檔案，請使用 AhB 匯入腳本（不顯示 token）。")')
+          p.write_text(s)
+          PY
+          mkdir -p "$GITHUB_WORKSPACE/dist/AhB/data/freebuff/gateway" "$GITHUB_WORKSPACE/dist/AhB/bin"
+          cp server.js worker.js package.json freebuff_tools/extract_freebuff.py             "$GITHUB_WORKSPACE/dist/AhB/data/freebuff/gateway/"
+          cp LICENSE "$GITHUB_WORKSPACE/dist/AhB/LICENSE.freebuff2api"
+          cat > "$GITHUB_WORKSPACE/dist/AhB/bin/freebuff2api" <<'SH'
+          #!/data/data/com.termux/files/usr/bin/bash
+          set -euo pipefail
+          ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+          export HOST=127.0.0.1 PORT=8402
+          exec node "$ROOT/data/freebuff/gateway/server.js"
+          SH
+          chmod +x "$GITHUB_WORKSPACE/dist/AhB/bin/freebuff2api"
+          node --check "$GITHUB_WORKSPACE/dist/AhB/data/freebuff/gateway/server.js"
+          node --check "$GITHUB_WORKSPACE/dist/AhB/data/freebuff/gateway/worker.js"
+          # Local-only contract test against the actual pinned Node source,
+          # with dummy credentials and ZERO real upstream inference requests.
+          smoke="$(mktemp -d)"
+          mkdir -p "$smoke/accounts"
+          printf '%s\n' '{"authToken":"FIXTURE-LOCAL-TEST-NOT-REAL-TOKEN"}' > "$smoke/accounts/test.json"
+          chmod 600 "$smoke/accounts/test.json"
+          PORT=18482 HOST=127.0.0.1 FREEBUFF_CREDENTIALS_DIR="$smoke/accounts" \
+            FREEBUFF_API_KEY="TEST-LOCAL-KEY" \
+            node "$GITHUB_WORKSPACE/dist/AhB/data/freebuff/gateway/server.js" >"$smoke/server.log" 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true; rm -rf "$smoke"' EXIT
+          ready=0
+          for i in $(seq 1 40); do
+            if curl -fsS --max-time 2 http://127.0.0.1:18482/healthz > "$smoke/health.json" 2>/dev/null; then ready=1; break; fi
+            sleep .25
+          done
+          if [ "$ready" != 1 ]; then
+            echo "Pinned FreeBuff Node gateway failed to start and respond on localhost" >&2
+            exit 1
+          fi
+          jq -e '.accounts == 1 and .unknown_accounts == 1' "$smoke/health.json"
+          unauth="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18482/v1/models)"
+          test "$unauth" = 401
+          kill "$pid"; wait "$pid" 2>/dev/null || true
+          trap - EXIT
+          rm -rf "$smoke"
+
 
       - name: Build pinned Agent2API headless for Android ARM64
         shell: bash
@@ -229,7 +291,7 @@ jobs:
           cp configs/opencode2api.json configs/freebuff2api.json configs/deepseek2api.json configs/grok2api.yaml configs/kiro-go.json dist/AhB/configs/
           cp scripts/prepare-configs.sh scripts/run-termux.sh scripts/start-termux.sh \
              scripts/stop-termux.sh scripts/doctor-termux.sh scripts/smoke.sh \
-             scripts/test-chat.sh scripts/test-stream.sh scripts/check-freebuff-login.sh scripts/provider-status-termux.sh scripts/test-tool-roundtrip.sh scripts/test-provider-acceptance.sh scripts/test-grok2api-termux.sh scripts/upgrade-prebuilt-termux.sh scripts/connect-bridge.sh scripts/login-copilot2api.sh scripts/enable-copilot2api.sh scripts/install-kimiweb-termux.sh scripts/enable-kimiweb-termux.sh scripts/enable-agent2api.sh scripts/enable-deepseek2api.sh \
+             scripts/test-chat.sh scripts/test-stream.sh scripts/freebuff-login-termux.sh scripts/check-freebuff-login.sh scripts/provider-status-termux.sh scripts/test-tool-roundtrip.sh scripts/test-provider-acceptance.sh scripts/test-grok2api-termux.sh scripts/upgrade-prebuilt-termux.sh scripts/connect-bridge.sh scripts/login-copilot2api.sh scripts/enable-copilot2api.sh scripts/install-kimiweb-termux.sh scripts/enable-kimiweb-termux.sh scripts/enable-agent2api.sh scripts/enable-deepseek2api.sh \
              scripts/enable-grok2api.sh scripts/enable-kiro-go.sh scripts/enable-lmarena-external.sh dist/AhB/scripts/
           cp configs/opencode2api.json dist/AhB/data/opencode/config.json
           cp configs/freebuff2api.json dist/AhB/data/freebuff/config.json

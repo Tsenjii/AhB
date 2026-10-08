@@ -31,20 +31,28 @@
     {
       "id": "freebuff",
       "display_name": "FreeBuff",
-      "description": "FreeBuff / CodeBuff multi-account gateway",
+      "description": "Freebuff local Node.js bearer/CLI bridge (yutian81), requires explicit authorized device login",
       "enabled": true,
       "kind": "sidecar",
       "base_url": "http://127.0.0.1:8402",
-      "ui_url": "http://127.0.0.1:8402/ui",
-      "docs_url": "https://github.com/lza6/Freebuff-2API",
+      "ui_url": "",
+      "docs_url": "https://github.com/yutian81/freebuff2api",
       "binary": "./bin/freebuff2api",
       "work_dir": "./data/freebuff",
       "env": {
-        "RUST_LOG": "info"
+        "HOST": "127.0.0.1",
+        "PORT": "8402",
+        "FREEBUFF_CREDENTIALS_DIR": "./credentials",
+        "FREEBUFF_API_KEY": "__AIHUB_SERVER_KEY__",
+        "FREEBUFF_DEBUG": "false"
       },
       "health_path": "/healthz",
       "models_path": "/v1/models",
-      "max_restarts": 3
+      "max_restarts": 3,
+      "headers": {
+        "Authorization": "Bearer __AIHUB_SERVER_KEY__"
+      },
+      "startup_timeout_seconds": 60
     },
     {
       "id": "agent2api",

@@ -1,3 +1,12 @@
+## 2026-10-09 FreeBuff replacement gate
+
+- User explicitly requested replace existing legacy FreeBuff2API Rust v0.10.3 with the most recently updated candidate (yutian81/freebuff2api), **not** add a parallel duplicative provider. The previous Rust Web Cookie path returned 409 `chat_moved` upstream and outward 502 across three tested models. Old cookie health 1/1 did not equal usable quota.
+- New pinned source `https://github.com/yutian81/freebuff2api` SHA `e0d8c9d4d1a955f46fbeb6841ea192bd8b3f2109` (2026-10-08). Local Node.js server.js/worker.js, no npm deps; no prior Rust UI; same `freebuff/` prefix and 127.0.0.1:8402. New CLI/Bearer login required; old Web Cookies are **not** migrated, reused or exfiltrated.
+- Build packages pinned upstream into `data/freebuff/gateway` and bash wrapper `bin/freebuff2api`. Node gateway is forced to localhost and local AhB shared API key. Credentials live in `data/freebuff/credentials`; upgrade refreshes ONLY `gateway` within `data/freebuff` after safeguarding user data + complete backup. Upgrade/install includes nodejs; manual device login uses Python stdlib with hidden token output to disk.
+- `scripts/prepare-configs.sh` updates existing provider metadata/env/headers without dropping custom config or user data; `accounts.go` uses new public-only local `/healthz` metadata count, not old Rust `/api/accounts/health`. Unknown credentials are *candidates* for first inference, not verified quotas. Tests for fixtures updated.
+- New GitHub ARM64 build should syntax-check upstream Node source and boot local dummy-auth gateway to verify 1/1 unknown accounts and reject unauthenticated /v1/models (401). CI must pass, prebuilt SHA must match merged main commit before phone upgrading. Real account login, model inference, SSE, tool loop still require user's phone.
+- No changes were made to any upstream repo; all edits are in AhB. Tracking: our Issue #3, our PR #4.
+
 ## Seven bundled providers stability pass — 2026-10-09
 
 - Reviewed seven binary-bundled sources: OpenCode, FreeBuff, Agent2API, DeepSeek Web, Grok Build/Web/Console (one sidecar), Kiro-Go, GitHub Copilot; experimental Kimi Web is a separate installer-only case. Agent2API subplatforms are NOT independent binaries, and external presets are connectors, not installed gateways.

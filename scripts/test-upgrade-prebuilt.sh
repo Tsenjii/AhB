@@ -31,9 +31,13 @@ EOF
 chmod +x "$NEW/scripts/prepare-configs.sh"
 printf '{"providers":[{"id":"new"}]}\n' > "$NEW/config.example.json"
 
-for path in   data/agent2api/ui   data/deepseek2api/static/admin   data/grok2api/frontend/dist   data/kiro-go/web; do
+for path in data/freebuff/gateway data/agent2api/ui data/deepseek2api/static/admin data/grok2api/frontend/dist data/kiro-go/web; do
   mkdir -p "$NEW/$path"
   printf 'new assets\n' > "$NEW/$path/index.html"
+  if [ "$path" = "data/freebuff/gateway" ]; then
+    printf '// mock node gateway\n' > "$NEW/$path/server.js"
+    printf '// mock worker\n' > "$NEW/$path/worker.js"
+  fi
 done
 
 (
@@ -47,9 +51,11 @@ done
 
 OLD="$TMP/installed/AhB"
 printf '{"providers":[{"id":"existing"}]}\n' > "$OLD/config.json"
-mkdir -p "$OLD/data/opencode" "$OLD/data/agent2api/ui"
+mkdir -p "$OLD/data/opencode" "$OLD/data/freebuff/gateway" "$OLD/data/agent2api/ui"
 printf 'secret account state\n' > "$OLD/data/opencode/account.txt"
 printf 'old assets\n' > "$OLD/data/agent2api/ui/index.html"
+printf 'old gateway\n' > "$OLD/data/freebuff/gateway/index.html"
+printf 'old private cookie\n' > "$OLD/data/freebuff/tokens.json"
 cat > "$OLD/scripts/stop-termux.sh" <<'EOF'
 #!/usr/bin/env bash
 printf 'stopped\n' > "$AIHUB_TEST_STOP_MARKER"
@@ -68,6 +74,8 @@ test -e "$AIHUB_TEST_STOP_MARKER"
 test "$(cat "$OLD/data/opencode/account.txt")" = "secret account state"
 test "$(cat "$OLD/data/opencode/last-transaction.txt")" = "final transaction"
 test "$(cat "$OLD/data/agent2api/ui/index.html")" = "new assets"
+test "$(cat "$OLD/data/freebuff/gateway/index.html")" = "new assets"
+test "$(cat "$OLD/data/freebuff/tokens.json")" = "old private cookie"
 test "$(cat "$OLD/data/migration-tested.txt")" = "ready"
 test "$(jq -r '.providers[0].id' "$OLD/config.json")" = "existing"
 
@@ -75,6 +83,7 @@ shopt -s nullglob
 backups=("$TMP/installed/AhB.backup-"*)
 test "${#backups[@]}" -eq 1
 test "$(cat "${backups[0]}/data/agent2api/ui/index.html")" = "old assets"
+test "$(cat "${backups[0]}/data/freebuff/gateway/index.html")" = "old gateway"
 test "$(cat "${backups[0]}/data/opencode/account.txt")" = "secret account state"
 
 # A checksum failure must leave an existing install untouched and running.
