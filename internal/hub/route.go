@@ -395,7 +395,11 @@ func (h *Hub) doProviderRequest(r *http.Request, cfg config.ProviderConfig, body
 }
 
 func (h *Hub) doProviderRequestContext(ctx context.Context, r *http.Request, cfg config.ProviderConfig, body []byte) (*http.Response, error) {
-	endpoint, err := joinURL(cfg.BaseURL, r.URL.Path)
+	upstreamPath := r.URL.Path
+	if cfg.APIPathPrefix != "" && strings.HasPrefix(upstreamPath, "/v1/") {
+		upstreamPath = cfg.APIPathPrefix + strings.TrimPrefix(upstreamPath, "/v1")
+	}
+	endpoint, err := joinURL(cfg.BaseURL, upstreamPath)
 	if err != nil {
 		return nil, err
 	}
