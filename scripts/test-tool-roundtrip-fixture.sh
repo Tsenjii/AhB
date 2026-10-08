@@ -59,7 +59,7 @@ launch(){
 launch success
 AIHUB_BASE="http://127.0.0.1:$(cat "$tmp/port")" \
   AIHUB_TEST_MODEL="mock/test" \
-  bash scripts/test-tool-roundtrip.sh | grep -q "PASS: native function call"
+  bash scripts/test-tool-roundtrip.sh | grep "PASS: native function call"
 kill "$server_pid"
 wait "$server_pid" 2>/dev/null || true
 server_pid=""
