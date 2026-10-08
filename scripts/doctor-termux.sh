@@ -87,8 +87,40 @@ if provider_enabled deepseek; then
   check_url "deepseek-ready" "http://127.0.0.1:8405/readyz"
   check_url "deepseek-ui" "http://127.0.0.1:8405/admin"
 fi
-if provider_enabled lmarena; then
-  check_url "lmarena-external" "http://127.0.0.1:8406/v1/models"
+# Read the actual configured bridge URLs. Hard-coded LMArena ports are stale,
+# and authenticated external bridges must be checked through hubd instead of
+# incorrectly treating an unauthenticated direct 401 as a failed service.
+if command -v jq >/dev/null 2>&1 && [ -f config.json ]; then
+  while IFS=
+if provider_enabled grok; then
+  check_url "grok-health" "http://127.0.0.1:8407/healthz"
+  check_url "grok-ready" "http://127.0.0.1:8407/readyz"
+  check_url "grok-ui" "http://127.0.0.1:8407/"
+fi
+if provider_enabled kiro; then
+  check_url "kiro-health" "http://127.0.0.1:8408/health"
+  check_url "kiro-ui" "http://127.0.0.1:8408/admin"
+fi
+echo
+
+echo "== hub runtime =="
+curl -fsS --max-time 3 http://127.0.0.1:8317/api/runtime 2>/dev/null || true
+echo
+echo "== providers =="
+curl -fsS --max-time 3 http://127.0.0.1:8317/api/providers 2>/dev/null || true
+echo
+
+exit "$fail"\t' read -r ext_id ext_base ext_health ext_auth; do
+    [ -n "$ext_id" ] || continue
+    if [ "$ext_auth" = "true" ]; then
+      echo "HUB CHECK external-$ext_id (bridge has private auth; see /api/providers)"
+    else
+      check_url "external-$ext_id" "${ext_base%/}$ext_health"
+    fi
+  done < <(jq -r '
+    .providers[] | select(.kind == "external" and .enabled == true) |
+    [.id, .base_url, (.health_path // .models_path // "/v1/models"),
+     ((.headers.Authorization // "") != "")] | @tsv' config.json)
 fi
 if provider_enabled grok; then
   check_url "grok-health" "http://127.0.0.1:8407/healthz"
