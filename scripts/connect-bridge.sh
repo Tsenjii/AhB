@@ -17,6 +17,7 @@ Examples:
   ./scripts/connect-bridge.sh lmarena http://127.0.0.1:5102
   ./scripts/connect-bridge.sh windsurf http://127.0.0.1:3003
   ./scripts/connect-bridge.sh kimi http://127.0.0.1:8000
+  ./scripts/connect-bridge.sh gemini http://127.0.0.1:5918
   ./scripts/connect-bridge.sh mybridge http://127.0.0.1:8560
 
 The script privately prompts for an optional API key (or accepts
@@ -36,6 +37,9 @@ fi
 id="${1:-}"
 base="${2:-}"
 models_path="${3:-/v1/models}"
+if [ "$id" = "gemini" ] && [ "$#" -lt 3 ]; then
+  models_path="/openai/v1/models"
+fi
 if [ -z "$id" ] || [ -z "$base" ]; then usage; exit 2; fi
 if [[ ! "$id" =~ ^[a-z][a-z0-9_-]{1,30}$ ]] || [ "$id" = "route" ]; then
   echo "Invalid provider ID; use lowercase letters, digits, hyphen or underscore." >&2
@@ -53,10 +57,11 @@ if ((10#$port < 1 || 10#$port > 65535)); then
   exit 2
 fi
 base="${base%/}"
-if [[ ! "$models_path" =~ ^/[a-zA-Z0-9/_-]+$ ]]; then
-  echo "Invalid models path." >&2
+if [[ ! "$models_path" =~ ^/[a-zA-Z0-9/_-]+$ ]] || [[ "$models_path" != */models ]]; then
+  echo "Invalid models path (expected /v1/models or /openai/v1/models)." >&2
   exit 2
 fi
+api_prefix="${models_path%/models}"
 
 if ! command -v jq >/dev/null 2>&1; then
   if command -v pkg >/dev/null 2>&1; then pkg install -y jq; else echo "Install jq first" >&2; exit 1; fi
@@ -112,11 +117,12 @@ unset model_json key
 tmp="$(mktemp "$ROOT/.bridge-config.XXXXXX")"
 trap 'rm -f "$tmp"' EXIT
 jq --arg id "$id" --arg title "$title" --arg docs "$docs" \
-  --arg base "$base" --arg models "$models_path" --argjson headers "$headers" '
+  --arg base "$base" --arg models "$models_path" --arg api_prefix "$api_prefix" --argjson headers "$headers" '
   .providers = (
     if any(.providers[]; .id == $id) then
       [.providers[] | if .id == $id then
         .enabled = true | .base_url = $base | .models_path = $models
+        | .api_path_prefix = $api_prefix
         | .health_path = $models | .headers = (if ($headers|length) > 0 then $headers else (.headers // {}) end)
       else . end]
     else
@@ -124,6 +130,7 @@ jq --arg id "$id" --arg title "$title" --arg docs "$docs" \
         id:$id, display_name:$title, description:"Local OpenAI-compatible bridge",
         enabled:true, kind:"external", base_url:$base,
         ui_url:"", docs_url:$docs, models_path:$models,
+        api_path_prefix:$api_prefix,
         health_path:$models, health_interval_seconds:15,
         headers:$headers
       }]
