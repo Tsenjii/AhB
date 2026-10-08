@@ -17,5 +17,19 @@ if [ -z "$MODEL" ]; then
   exit 2
 fi
 
-curl -fsS -N   -H "content-type: application/json"   -X POST "$BASE/v1/chat/completions"   -d "$(printf '{"model":"%s","messages":[{"role":"user","content":"%s"}],"stream":false}' "$MODEL" "$PROMPT")"
+tmp="$(mktemp)"
+trap 'rm -f "$tmp"' EXIT
+
+status="$(curl -sS -N -o "$tmp" -w '%{http_code}' \
+  -H "content-type: application/json" \
+  -X POST "$BASE/v1/chat/completions" \
+  -d "$(printf '{"model":"%s","messages":[{"role":"user","content":"%s"}],"stream":false}' "$MODEL" "$PROMPT")" || true)"
+
+cat "$tmp"
 echo
+echo "HTTP $status"
+
+case "$status" in
+  2??) exit 0 ;;
+  *) exit 1 ;;
+esac
