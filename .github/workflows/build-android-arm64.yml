@@ -17,6 +17,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: ahb-android-prebuilt
+  cancel-in-progress: true
+
 jobs:
   android-arm64:
     runs-on: ubuntu-latest
@@ -110,6 +114,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: "1.26.x"
+          cache: false
 
       - name: Build pinned Grok2API for Android ARM64
         shell: bash
