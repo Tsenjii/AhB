@@ -1,11 +1,13 @@
 package hub
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Tsenjii/AhB/internal/config"
 	"github.com/Tsenjii/AhB/internal/provider"
@@ -143,11 +145,14 @@ func TestAssessProviderHealthLayers(t *testing.T) {
 	}{
 		{"opencode anonymous ready", "opencode", `{"status":"ok","ready":true,"keys":{"anonymous":true,"total":0}}`, healthy, true, boolPtr(true)},
 		{"freebuff no accounts", "freebuff", `{"ok":true,"accounts":[]}`, provider.StateDegraded, true, boolPtr(false)},
-		{"agent2api legacy degraded", "agent2api", `{"status":"degraded","unavailableReason":"no login"}`, provider.StateDegraded, true, nil},
+		{"agent2api aggregate empty", "agent2api", `{"status":"degraded","unavailableReason":"no login"}`, provider.StateDegraded, true, boolPtr(false)},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			a := assessProviderHealth(tc.id, sidecar.Snapshot{State: healthy, PID: 123, HealthHTTPStatus: 200, HealthBody: []byte(tc.body)})
+			probe := accountProbe{}
+			if tc.id == "freebuff" { probe = accountProbe{Known:true, Total:0, Usable:0} }
+			if tc.id == "agent2api" { probe = accountProbe{Known:true, Total:0, Usable:0} }
+			a := assessProviderHealth(tc.id, sidecar.Snapshot{State: healthy, PID: 123, HealthHTTPStatus: 200, HealthBody: []byte(tc.body)}, probe)
 			if a.State != tc.state || a.ProviderReady != tc.ready {
 				t.Fatalf("assessment = %#v", a)
 			}
@@ -158,4 +163,48 @@ func TestAssessProviderHealthLayers(t *testing.T) {
 			}
 		})
 	}
+}
+
+
+func TestFetchProviderAccountsAgent2API(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/accounts", func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"success": true,
+			"data": map[string]any{"accounts": []map[string]any{
+				{"enabled": true, "hasCredentials": true, "chatSupported": true},
+				{"enabled": false, "hasCredentials": true, "chatSupported": true},
+				{"enabled": true, "hasCredentials": false, "chatSupported": true},
+			}},
+		})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	h := New(config.Config{})
+	got, err := h.fetchProviderAccounts(context.Background(), config.ProviderConfig{ID:"agent2api", BaseURL:srv.URL})
+	if err != nil { t.Fatal(err) }
+	if !got.Known || got.Total != 3 || got.Usable != 1 { t.Fatalf("probe = %#v", got) }
+}
+
+func TestFetchProviderAccountsFreeBuffIncludesHealthState(t *testing.T) {
+	past := time.Now().Add(-time.Minute).UTC().Format(time.RFC3339)
+	future := time.Now().Add(time.Minute).UTC().Format(time.RFC3339)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/accounts/health", func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"ok": true,
+			"accounts": []map[string]any{
+				{"circuit_state":"closed"},
+				{"circuit_state":"half_open"},
+				{"circuit_state":"open","cooldown_until":past},
+				{"circuit_state":"open","cooldown_until":future},
+			},
+		})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	h := New(config.Config{})
+	got, err := h.fetchProviderAccounts(context.Background(), config.ProviderConfig{ID:"freebuff", BaseURL:srv.URL})
+	if err != nil { t.Fatal(err) }
+	if !got.Known || got.Total != 4 || got.Usable != 3 { t.Fatalf("probe = %#v", got) }
 }

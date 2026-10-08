@@ -120,6 +120,11 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 let lastModels=[];
 async function getJSON(path){const r=await fetch(path,{cache:'no-store'});if(!r.ok)throw new Error(path+' HTTP '+r.status);return r.json()}
 function modelCounts(models){const out={};for(const m of models){const p=m.x_provider||'';out[p]=(out[p]||0)+1}return out}
+function accountLabel(x){
+ if(x.account_total!==null&&x.account_total!==undefined)return String(x.account_usable_count||0)+'/'+String(x.account_total);
+ if(x.id==='opencode'&&x.account_usable===true)return 'ANON';
+ return x.account_usable===true?'YES':(x.account_usable===false?'NO':'UNKNOWN');
+}
 function renderModels(){
  const q=(document.getElementById('search').value||'').trim().toLowerCase();
  const rows=lastModels.filter(m=>!q||String(m.id||'').toLowerCase().includes(q)||String(m.x_provider_name||m.x_provider||'').toLowerCase().includes(q));
@@ -161,7 +166,7 @@ async function refresh(){
       '<div class="health-layers">'+
         '<span>Process <b>'+esc(x.process_alive?'YES':'NO')+'</b></span>'+
         '<span>Ready <b>'+esc(x.provider_ready?'YES':'NO')+'</b></span>'+
-        '<span>Account <b>'+esc(x.account_usable===null||x.account_usable===undefined?'UNKNOWN':(x.account_usable?'YES':'NO'))+'</b></span>'+
+        '<span>Account <b>'+esc(accountLabel(x))+'</b></span>'+
       '</div>'+
       (x.last_error?'<div class="desc" style="color:#fda4af;margin-bottom:10px">'+esc(x.last_error)+'</div>':'')+
       '<div class="actions">'+actionLink(x.ui_url,'管理原本 UI',true,enabled&&manageable)+actionLink(x.docs_url,'上游文件',false,true)+'</div>'+

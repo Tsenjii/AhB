@@ -28,8 +28,9 @@ type Hub struct {
 }
 
 type runtimeProvider struct {
-	cfg config.ProviderConfig
-	sup *sidecar.Supervisor
+	cfg      config.ProviderConfig
+	sup      *sidecar.Supervisor
+	accounts accountProbeState
 }
 
 type providerView struct {
@@ -44,6 +45,8 @@ type providerView struct {
 	ProcessAlive   bool           `json:"process_alive"`
 	ProviderReady  bool           `json:"provider_ready"`
 	AccountUsable  *bool          `json:"account_usable"`
+	AccountTotal   *int           `json:"account_total,omitempty"`
+	AccountUsableCount *int       `json:"account_usable_count,omitempty"`
 	ReportedStatus string         `json:"reported_status,omitempty"`
 	PID            int            `json:"pid,omitempty"`
 	RSSBytes       int64          `json:"rss_bytes,omitempty"`
@@ -83,6 +86,9 @@ func (h *Hub) Start(ctx context.Context) {
 	for _, p := range h.providers {
 		if p.sup != nil {
 			go p.sup.Run(ctx)
+			if p.cfg.ID == "agent2api" || p.cfg.ID == "freebuff" {
+				go h.pollProviderAccounts(ctx, p)
+			}
 		}
 	}
 }
@@ -150,11 +156,17 @@ func (h *Hub) providerViews() []providerView {
 				view.LastError = "provider enabled without a supervisor"
 			} else {
 				snap := p.sup.Snapshot()
-				assessment := assessProviderHealth(id, snap)
+				account := p.accounts.snapshot()
+				assessment := assessProviderHealth(id, snap, account)
 				view.State = assessment.State
 				view.ProcessAlive = assessment.ProcessAlive
 				view.ProviderReady = assessment.ProviderReady
 				view.AccountUsable = assessment.AccountUsable
+				if account.Known {
+					total, usable := account.Total, account.Usable
+					view.AccountTotal = &total
+					view.AccountUsableCount = &usable
+				}
 				view.ReportedStatus = assessment.ReportedStatus
 				view.PID = snap.PID
 				view.RSSBytes = snap.RSSBytes
@@ -182,7 +194,7 @@ type providerAssessment struct {
 
 func boolPtr(v bool) *bool { return &v }
 
-func assessProviderHealth(id string, snap sidecar.Snapshot) providerAssessment {
+func assessProviderHealth(id string, snap sidecar.Snapshot, account accountProbe) providerAssessment {
 	a := providerAssessment{
 		State: snap.State, ProcessAlive: snap.PID > 0,
 		ProviderReady: snap.State == provider.StateHealthy,
@@ -226,18 +238,24 @@ func assessProviderHealth(id string, snap sidecar.Snapshot) providerAssessment {
 		usable := a.ProviderReady && (anonymous || total > 0)
 		a.AccountUsable = boolPtr(usable)
 	case "freebuff":
-		if accounts, ok := doc["accounts"].([]any); ok {
-			usable := len(accounts) > 0
+		if account.Known {
+			usable := account.Usable > 0
 			a.AccountUsable = boolPtr(usable)
 			if !usable {
-				a.Detail = "no configured accounts"
+				a.Detail = "no usable FreeBuff accounts"
 			}
 		}
 	case "agent2api":
-		// v2.9.5 /health is explicitly a legacy WorkBuddy summary, not an
-		// aggregate of all Agent2API providers. Do not turn that into a false
-		// account_usable value for Qoder/Cline/CodeArts/etc.
-		if a.ReportedStatus == "degraded" {
+		// /health is a legacy WorkBuddy-only summary in Agent2API v2.9.5.
+		// The aggregate truth comes from /api/accounts, which includes every
+		// built-in/custom provider and exposes enabled/credentials/chat support.
+		if account.Known {
+			usable := account.Usable > 0
+			a.AccountUsable = boolPtr(usable)
+			if !usable {
+				a.Detail = "no usable Agent2API accounts"
+			}
+		} else if a.ReportedStatus == "degraded" {
 			if reason, _ := doc["unavailableReason"].(string); strings.TrimSpace(reason) != "" {
 				a.Detail = reason
 			} else {
@@ -251,18 +269,18 @@ func assessProviderHealth(id string, snap sidecar.Snapshot) providerAssessment {
 			a.State = provider.StateDegraded
 		} else if a.AccountUsable != nil && !*a.AccountUsable {
 			a.State = provider.StateDegraded
-		} else if id == "agent2api" && a.ReportedStatus == "degraded" {
+		} else if id == "agent2api" && !account.Known && a.ReportedStatus == "degraded" {
 			a.State = provider.StateDegraded
 		}
 	}
 	return a
 }
 
-func providerUsableForRouting(id string, snap sidecar.Snapshot) bool {
+func providerUsableForRouting(id string, snap sidecar.Snapshot, account accountProbe) bool {
 	if snap.State != provider.StateHealthy {
 		return false
 	}
-	a := assessProviderHealth(id, snap)
+	a := assessProviderHealth(id, snap, account)
 	if !a.ProviderReady {
 		return false
 	}
@@ -285,7 +303,7 @@ func (h *Hub) handleModels(w http.ResponseWriter, r *http.Request) {
 		if !p.cfg.Enabled || p.sup == nil {
 			continue
 		}
-		if !providerUsableForRouting(id, p.sup.Snapshot()) {
+		if !providerUsableForRouting(id, p.sup.Snapshot(), p.accounts.snapshot()) {
 			result.Warnings[id] = "provider not currently usable"
 			continue
 		}
@@ -383,8 +401,8 @@ func (h *Hub) handleProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	snap := p.sup.Snapshot()
-	if !providerUsableForRouting(providerID, snap) {
-		assessment := assessProviderHealth(providerID, snap)
+	if !providerUsableForRouting(providerID, snap, p.accounts.snapshot()) {
+		assessment := assessProviderHealth(providerID, snap, p.accounts.snapshot())
 		writeError(w, http.StatusServiceUnavailable, "provider_unavailable", fmt.Sprintf("%s is %s", providerID, assessment.State))
 		return
 	}
