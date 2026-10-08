@@ -45,7 +45,39 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
 #error{display:none;background:#43191d;color:#fecaca;border:1px solid #7f1d1d;padding:10px;border-radius:11px;margin:12px 0}
 #warnings{display:none;background:#3c2c0b;color:#fde68a;border:1px solid #6d5315;padding:10px;border-radius:11px;margin:12px 0;font-size:12px;white-space:pre-wrap}
 .footer{margin-top:18px;font-size:11px;color:#66758b}
-@media(max-width:600px){main{padding:14px 12px 28px}header{align-items:flex-start}.hero{padding:13px}.base-row{align-items:stretch;flex-direction:column}.grid{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(3,1fr)}.search{width:48vw}h1{font-size:21px}}
+@media(max-width:820px){
+ main{padding:14px 12px calc(28px + env(safe-area-inset-bottom))}
+ header{align-items:center;margin:2px 0 14px}
+ h1{font-size:21px}.sub{font-size:12px;line-height:1.45}
+ .hero{padding:13px;border-radius:14px}
+ .base-row{align-items:stretch;flex-direction:column}
+ .base-row button{width:100%;min-height:44px}
+ .grid{grid-template-columns:1fr;gap:10px}
+ .card{padding:14px;border-radius:14px}
+ .provider-name{font-size:17px}
+ .desc{font-size:12px}
+ .metrics{grid-template-columns:repeat(3,1fr);margin:12px 0}
+ .metric{padding:10px}.metric b{font-size:14px}
+ .actions{display:grid;grid-template-columns:1fr 1fr}
+ .actions .btn{text-align:center;min-height:44px;display:flex;align-items:center;justify-content:center}
+ section{margin-top:18px}
+ .section-head{align-items:stretch;flex-direction:column}
+ .search{width:100%;min-height:44px;font-size:16px}
+ .table-wrap{overflow:hidden}
+ table{min-width:0;table-layout:fixed}
+ th,td{padding:11px 10px;font-size:12px}
+ th:first-child,td:first-child{width:68%}
+ th:nth-child(2),td:nth-child(2){width:32%}
+ th:nth-child(3),td:nth-child(3){display:none}
+ td code{white-space:normal;overflow-wrap:anywhere;word-break:break-word}
+ .footer{font-size:10px;line-height:1.5}
+ button,.btn{font-size:13px}
+}
+@media(max-width:390px){
+ main{padding-left:10px;padding-right:10px}
+ .metrics{gap:6px}.metric{padding:8px}
+ .actions{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
