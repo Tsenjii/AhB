@@ -83,6 +83,18 @@ cd ~/AhB
 
 The installer downloads the public `prebuilt` branch bundle, verifies its SHA-256 checksum, prepares local secrets, and enables Agent2API when its prebuilt binary is present.
 
+### Updating an existing Termux installation
+
+Do **not** delete `~/AhB` or re-run the first-install script over an existing installation. For an existing prebuilt install, run:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Tsenjii/AhB/main/scripts/upgrade-prebuilt-termux.sh | bash
+```
+
+The upgrade first verifies the downloaded archive, then preserves `config.json`, account data, databases, local secrets, and logs. It refreshes bundled upstream WebUI assets, stops the old AhB processes, and swaps the installation. The original directory is retained as `~/AhB.backup-YYYYMMDD-HHMMSS` for rollback. No user data is intentionally deleted.
+
+Start the upgraded Hub with `cd ~/AhB && ./scripts/run-termux.sh`. In a second Termux session, run `./scripts/doctor-termux.sh` and `./scripts/smoke.sh`. New optional providers still require setup and real-device account/inference tests; a green CI build does not prove those paths work on Android.
+
 The public ARM64 bundle is rebuilt by GitHub Actions from pinned upstream versions and currently contains:
 
 - `hubd`
