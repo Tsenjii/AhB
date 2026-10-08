@@ -94,7 +94,7 @@ jobs:
           CARGO_BUILD_JOBS: "2"
         run: |
           set -euo pipefail
-          git clone --depth 1 --branch v2.9.5 https://github.com/aimod-cc/agent2api.git /tmp/agent2api
+          git clone --depth 1 --branch v2.9.6 https://github.com/aimod-cc/agent2api.git /tmp/agent2api
           cd /tmp/agent2api/desktop-tauri/src-tauri
           cargo build --locked --release --target aarch64-linux-android \
             --package agent2api-server --bin agent2api-server
