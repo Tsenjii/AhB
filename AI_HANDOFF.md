@@ -260,7 +260,7 @@ Configuration:
     "route_aliases_enabled": false,
     "same_model_fallback": {
       "enabled": false,
-      "mode": "sequential",
+      "mode": "balanced",
       "providers": ["opencode", "agent2api", "freebuff"]
     }
   }
@@ -269,32 +269,25 @@ Configuration:
 
 ### Same-model fallback
 
-When enabled, a request such as `opencode/foo` may fall back only to the exact same upstream model id `foo` on another configured provider. AhB does not substitute a different model.
+When enabled, a request such as `opencode/foo` may move only to the exact same upstream model id `foo` on another configured provider. AhB never substitutes a different model.
 
 Modes:
-- `sequential`: requested provider first, then configured providers in order after retryable failure/unavailability.
-- `parallel`: all usable configured providers receive the same model request concurrently; first non-retryable response wins and remaining requests are cancelled.
+- `sequential`: requested provider first, then configured providers in order after a retryable failure/unavailability.
+- `balanced`: independent concurrent requests are distributed toward the provider with the lowest current in-flight count. A single request is sent to only one provider at a time; if that attempt fails with a retryable error, the same request falls back to the next provider.
+- Legacy config value `parallel` is accepted as an alias for `balanced`. It does **not** race one request across multiple providers.
 
-Parallel mode is explicit opt-in because upstreams may begin work or charge usage before cancellation, and tool-call requests may be duplicated across providers.
+This avoids duplicate billing and duplicate tool side effects while still allowing aggregate concurrency across providers.
 
 Retryable statuses remain conservative: 402, 404, 408, 425, 429, 502, 503, 504. Transport errors and provider unavailability also allow fallback.
 
+Responses identify routing decisions with:
+- `X-AhB-Provider`
+- `X-AhB-Routing`
+- `X-AhB-Attempts`
+- `X-AhB-Fallback: same-model` when the final provider differs from the requested provider
+
 ### Route aliases
 
-The older explicit `route/<id>` alias feature is retained only as an optional advanced feature and requires `routing.route_aliases_enabled=true`. It is hidden from `/v1/models` and unavailable for requests while disabled.
+The older explicit `route/<id>` cross-model alias feature is retained only as an optional advanced feature and requires `routing.route_aliases_enabled=true`. It is hidden from `/v1/models` and unavailable for requests while disabled.
 
 Provider-internal account routing/failover remains inside mature sidecars such as Agent2API and FreeBuff. AhB only coordinates provider-level behavior when explicitly enabled.
-
-
-## Same-model pool and optional cross-model routes
-
-Routing semantics were refined after real-device testing:
-
-- `provider/model`: pinned provider. No cross-provider fallback.
-- `pool/model`: optional same-model pool. It is available only when `routing.same_model_pool_enabled=true`.
-- Concurrent independent `pool/model` requests are distributed toward the currently least-busy providers using per-provider in-flight counters. AhB never races one request against multiple providers, so it does not intentionally duplicate billing or tool side effects.
-- A pooled request falls through to another provider only when that provider exposes the exact same upstream model ID and the attempt fails with a transport error or retryable HTTP status (402, 404, 408, 425, 429, 502, 503, 504).
-- `GET /v1/models` exposes `pool/<model>` entries when the same exact upstream model ID is currently available from at least two usable providers.
-- Pool responses include `X-AhB-Pool`, `X-AhB-Provider`, and `X-AhB-Attempts`.
-- Explicit cross-model `route/*` aliases remain supported only as an opt-in compatibility feature. They are disabled unless `routing.explicit_routes_enabled=true`.
-- Both routing features default to off when the fields are absent, preserving the original provider-prefixed behavior.

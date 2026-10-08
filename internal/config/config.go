@@ -71,8 +71,13 @@ func Load(path string) (Config, error) {
 	if cfg.Listen == "" {
 		cfg.Listen = "127.0.0.1:8317"
 	}
-	if strings.TrimSpace(cfg.Routing.SameModelFallback.Mode) == "" {
-		cfg.Routing.SameModelFallback.Mode = "sequential"
+	mode := strings.ToLower(strings.TrimSpace(cfg.Routing.SameModelFallback.Mode))
+	if mode == "" {
+		cfg.Routing.SameModelFallback.Mode = "balanced"
+	} else if mode == "parallel" {
+		// Compatibility with the short-lived experimental name. "parallel"
+		// no longer duplicates one request across providers; it is balanced.
+		cfg.Routing.SameModelFallback.Mode = "balanced"
 	}
 	root, err := filepath.Abs(filepath.Dir(path))
 	if err != nil {
@@ -125,8 +130,8 @@ func (c Config) Validate() error {
 		if strings.Contains(id, "/") {
 			return fmt.Errorf("provider %q: id must not contain '/'", id)
 		}
-		if id == "route" || id == "pool" {
-			return fmt.Errorf("provider id %q is reserved for AhB virtual routing", id)
+		if id == "route" {
+			return fmt.Errorf("provider id %q is reserved for AhB virtual routes", id)
 		}
 		if _, ok := seen[id]; ok {
 			return fmt.Errorf("duplicate provider id %q", id)
@@ -174,8 +179,8 @@ func (c Config) Validate() error {
 	if mode == "" {
 		mode = "sequential"
 	}
-	if mode != "sequential" && mode != "parallel" {
-		return fmt.Errorf("same_model_fallback mode must be sequential or parallel")
+	if mode != "sequential" && mode != "balanced" && mode != "parallel" {
+		return fmt.Errorf("same_model_fallback mode must be sequential or balanced")
 	}
 	fallbackSeen := map[string]struct{}{}
 	for _, rawID := range c.Routing.SameModelFallback.Providers {

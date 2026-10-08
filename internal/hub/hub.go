@@ -24,14 +24,13 @@ type Hub struct {
 	cfg       config.Config
 	providers map[string]*runtimeProvider
 	client    *http.Client
-	pool      poolBalancer
+	balance   fallbackBalancer
 }
 
 type runtimeProvider struct {
 	cfg      config.ProviderConfig
 	sup      *sidecar.Supervisor
 	accounts accountProbeState
-	models   modelCatalog
 	load     providerLoad
 }
 
@@ -316,7 +315,6 @@ func (h *Hub) handleModels(w http.ResponseWriter, r *http.Request) {
 			result.Warnings[id] = err.Error()
 			continue
 		}
-		p.models.set(models)
 		result.Data = append(result.Data, models...)
 	}
 	sort.Slice(result.Data, func(i, j int) bool {
@@ -331,7 +329,6 @@ func (h *Hub) handleModels(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if h.cfg.Routing.RouteAliasesEnabled {
-	if h.cfg.Routing.ExplicitRoutesEnabled {
 		for _, route := range h.cfg.Routes {
 			usableTargets := make([]string, 0, len(route.Targets))
 			for _, target := range route.Targets {
@@ -351,10 +348,6 @@ func (h *Hub) handleModels(w http.ResponseWriter, r *http.Request) {
 				"x_usable_targets": usableTargets,
 			})
 		}
-	}
-	if h.cfg.Routing.SameModelPoolEnabled {
-		result.Data = append(result.Data, sameModelPoolEntries(result.Data)...)
-	}
 	}
 	sort.Slice(result.Data, func(i, j int) bool {
 		a, _ := result.Data[i]["id"].(string)
@@ -444,11 +437,11 @@ func (h *Hub) handleProxy(w http.ResponseWriter, r *http.Request) {
 		h.handleRouteProxy(w, r, raw, requestedUpstream)
 		return
 	}
-	if requestedProvider == "pool" {
-		h.handlePoolProxy(w, r, raw, requestedUpstream)
-		return
-	}
 	if h.cfg.Routing.SameModelFallback.Enabled {
+		if _, ok := h.providers[requestedProvider]; !ok {
+			writeError(w, http.StatusBadRequest, "unknown_provider", "provider is not configured")
+			return
+		}
 		h.handleSameModelFallback(w, r, raw, requestedProvider, requestedUpstream)
 		return
 	}

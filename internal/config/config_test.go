@@ -80,15 +80,13 @@ func TestValidateRejectsUnknownRouteProvider(t *testing.T) {
 	}
 }
 
-func TestValidateRejectsReservedVirtualProviderIDs(t *testing.T) {
-	for _, id := range []string{"route", "pool"} {
-		cfg := Config{
-			Listen: "127.0.0.1:8317",
-			Providers: []ProviderConfig{{ID: id, Enabled: false}},
-		}
-		if err := cfg.Validate(); err == nil {
-			t.Fatalf("expected reserved provider id %q to be rejected", id)
-		}
+func TestValidateRejectsReservedRouteProviderID(t *testing.T) {
+	cfg := Config{
+		Listen: "127.0.0.1:8317",
+		Providers: []ProviderConfig{{ID: "route", Enabled: false}},
+	}
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("expected reserved provider id to be rejected")
 	}
 }
 
@@ -101,7 +99,7 @@ func TestValidateSameModelFallbackModes(t *testing.T) {
 			{ID: "agent2api", Enabled: false},
 		},
 	}
-	for _, mode := range []string{"sequential", "parallel"} {
+	for _, mode := range []string{"sequential", "balanced", "parallel"} {
 		cfg := base
 		cfg.Routing.SameModelFallback = SameModelFallbackConfig{
 			Enabled: true, Mode: mode, Providers: []string{"opencode", "agent2api"},
