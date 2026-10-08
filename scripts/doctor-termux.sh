@@ -55,6 +55,11 @@ if provider_enabled copilot; then
   check_file "bin/copilot2api"
   check_file "data/copilot2api/credentials.json"
 fi
+if provider_enabled kimiweb; then
+  check_file "data/kimiweb/venv/bin/python"
+  check_file "data/kimiweb/source/run.py"
+  check_file "data/kimiweb/source/app/static/dist/index.html"
+fi
 if provider_enabled deepseek; then
   check_file "bin/deepseek2api"
   check_file "data/deepseek2api/config.json"
@@ -98,6 +103,10 @@ if command -v jq >/dev/null 2>&1 && [ -f config.json ]; then
   while IFS=
 if provider_enabled copilot; then
   check_url "copilot-models" "http://127.0.0.1:8410/v1/models"
+fi
+if provider_enabled kimiweb; then
+  check_url "kimiweb-health" "http://127.0.0.1:8412/healthz"
+  check_url "kimiweb-ui" "http://127.0.0.1:8412/admin"
 fi
 if provider_enabled grok; then
   check_url "grok-health" "http://127.0.0.1:8407/healthz"
