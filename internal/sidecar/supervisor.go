@@ -14,8 +14,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Tsenjii/android-ai-hub/internal/config"
-	"github.com/Tsenjii/android-ai-hub/internal/provider"
+	"github.com/Tsenjii/AhB/internal/config"
+	"github.com/Tsenjii/AhB/internal/provider"
 )
 
 type Snapshot struct {
