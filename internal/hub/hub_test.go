@@ -148,6 +148,8 @@ func TestAssessProviderHealthLayers(t *testing.T) {
 		{"opencode anonymous ready", "opencode", `{"status":"ok","ready":true,"keys":{"anonymous":true,"total":0}}`, healthy, true, boolPtr(true)},
 		{"freebuff no accounts", "freebuff", `{"ok":true,"accounts":[]}`, provider.StateDegraded, true, boolPtr(false)},
 		{"agent2api aggregate empty", "agent2api", `{"status":"degraded","unavailableReason":"no login"}`, provider.StateDegraded, true, boolPtr(false)},
+		{"grok usable account", "grok", `{"ready":true,"state":"ready","components":{"grok_build":{"state":"ready"},"grok_web":{"state":"disabled"},"grok_console":{"state":"disabled"}}}`, healthy, true, boolPtr(true)},
+		{"grok no usable account", "grok", `{"ready":false,"state":"not_ready","components":{"grok_build":{"state":"unavailable"},"grok_web":{"state":"disabled"},"grok_console":{"state":"disabled"}}}`, provider.StateDegraded, false, boolPtr(false)},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

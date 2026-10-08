@@ -111,6 +111,32 @@ jobs:
         with:
           go-version: "1.26.x"
 
+      - name: Build pinned Grok2API for Android ARM64
+        shell: bash
+        run: |
+          set -euo pipefail
+          GROK_SHA="7c889a960e2638341b4dae9a5c81af0e0f38c87f"
+          rm -rf /tmp/grok2api
+          git init /tmp/grok2api
+          git -C /tmp/grok2api remote add origin https://github.com/chenyme/grok2api.git
+          git -C /tmp/grok2api fetch --depth 1 origin "$GROK_SHA"
+          git -C /tmp/grok2api checkout --detach FETCH_HEAD
+
+          cd /tmp/grok2api
+          corepack enable
+          corepack prepare pnpm@11.5.2 --activate
+          pnpm --dir frontend install --frozen-lockfile
+          pnpm --dir frontend build
+
+          cd backend
+          GOOS=android GOARCH=arm64 CGO_ENABLED=0 \
+            go build -buildvcs=false -trimpath -ldflags="-s -w" \
+            -o "$GITHUB_WORKSPACE/dist/AhB/bin/grok2api" ./cmd/grok2api
+
+          mkdir -p "$GITHUB_WORKSPACE/dist/AhB/data/grok2api/frontend"
+          cp -R /tmp/grok2api/frontend/dist "$GITHUB_WORKSPACE/dist/AhB/data/grok2api/frontend/dist"
+          cp /tmp/grok2api/LICENSE "$GITHUB_WORKSPACE/dist/AhB/LICENSE.grok2api" || true
+
       - name: Build pinned DeepSeek2API for Android ARM64
         shell: bash
         run: |
@@ -150,16 +176,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p dist/AhB/configs dist/AhB/scripts dist/AhB/data/opencode dist/AhB/data/freebuff dist/AhB/data/deepseek2api dist/AhB/logs
+          mkdir -p dist/AhB/configs dist/AhB/scripts dist/AhB/data/opencode dist/AhB/data/freebuff dist/AhB/data/deepseek2api dist/AhB/data/grok2api/frontend dist/AhB/logs
           cp config.example.json dist/AhB/
-          cp configs/opencode2api.json configs/freebuff2api.json configs/deepseek2api.json dist/AhB/configs/
+          cp configs/opencode2api.json configs/freebuff2api.json configs/deepseek2api.json configs/grok2api.yaml dist/AhB/configs/
           cp scripts/prepare-configs.sh scripts/run-termux.sh scripts/start-termux.sh \
              scripts/stop-termux.sh scripts/doctor-termux.sh scripts/smoke.sh \
              scripts/test-chat.sh scripts/enable-agent2api.sh scripts/enable-deepseek2api.sh \
-             scripts/enable-lmarena-external.sh dist/AhB/scripts/
+             scripts/enable-grok2api.sh scripts/enable-lmarena-external.sh dist/AhB/scripts/
           cp configs/opencode2api.json dist/AhB/data/opencode/config.json
           cp configs/freebuff2api.json dist/AhB/data/freebuff/config.json
           cp configs/deepseek2api.json dist/AhB/data/deepseek2api/config.json
+          cp configs/grok2api.yaml dist/AhB/data/grok2api/config.yaml
           chmod 700 dist/AhB/bin/*
           chmod +x dist/AhB/scripts/*.sh
           tar -C dist -czf AhB_android_arm64.tar.gz AhB

@@ -49,7 +49,7 @@
     {
       "id": "agent2api",
       "display_name": "Agent2API",
-      "description": "Optional: CodeArts / Qoder / Cline / Trae / Loomy and more",
+      "description": "Optional: WorkBuddy CN/Intl / KukuAI / CodeArts / Qoder / Cline / Trae / Loomy and more",
       "enabled": false,
       "kind": "sidecar",
       "base_url": "http://127.0.0.1:8403",
@@ -97,6 +97,31 @@
       "startup_timeout_seconds": 60
     },
     {
+      "id": "grok",
+      "display_name": "Grok",
+      "description": "Optional: Grok Build / Web / Console multi-account gateway via Grok2API",
+      "enabled": false,
+      "kind": "sidecar",
+      "base_url": "http://127.0.0.1:8407",
+      "ui_url": "http://127.0.0.1:8407/",
+      "docs_url": "https://github.com/chenyme/grok2api",
+      "binary": "./bin/grok2api",
+      "args": [
+        "--config",
+        "config.yaml",
+        "--listen",
+        "127.0.0.1:8407"
+      ],
+      "work_dir": "./data/grok2api",
+      "headers": {
+        "Authorization": "Bearer __AIHUB_GROK_CLIENT_KEY__"
+      },
+      "health_path": "/readyz",
+      "models_path": "/v1/models",
+      "max_restarts": 3,
+      "startup_timeout_seconds": 90
+    },
+    {
       "id": "lmarena",
       "display_name": "LMArena External",
       "description": "Optional localhost OpenAI-compatible LMArena bridge; bridge implementation is not bundled",
@@ -121,7 +146,8 @@
         "agent2api",
         "freebuff",
         "deepseek",
-        "lmarena"
+        "lmarena",
+        "grok"
       ]
     }
   }

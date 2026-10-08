@@ -13,6 +13,7 @@ Optional provider pack:
 
 - **Agent2API v2.9.6** — adds a mature UI and adapters for personal WorkBuddy domestic/international, CodeArts, Qoder, Cline, Trae, Loomy, KukuAI and other supported accounts without reimplementing those protocols in this repo.
 - **DeepSeek2API** — optional DeepSeek Web multi-account sidecar with its original admin UI, OpenAI/Anthropic/Responses compatibility, tool calling and provider-internal account pooling.
+- **Grok2API** — optional Grok Build / Web / Console multi-account sidecar with its original management UI, quota/model sync, OpenAI/Anthropic/Responses support and media features.
 - **External localhost bridges** — optional `kind: external` providers that AhB health-checks and routes without supervising a process. A disabled `lmarena/` slot is included for a user-supplied local OpenAI-compatible bridge.
 
 The Hub itself stays small. Provider-specific login, account pools, quota logic, proxy settings and diagnostics remain inside the upstream adapters.
@@ -30,6 +31,7 @@ opencode/<model>
 freebuff/<model>
 agent2api/<model>
 deepseek/<model>
+grok/<model>
 lmarena/<model>   # only when the external localhost slot is enabled
 ```
 
@@ -60,6 +62,7 @@ Each healthy provider has a **管理原本 UI** button:
 - FreeBuff: `http://127.0.0.1:8402/ui`
 - Agent2API when installed: `http://127.0.0.1:8403/`
 - DeepSeek2API when enabled: `http://127.0.0.1:8405/admin`
+- Grok2API when enabled: `http://127.0.0.1:8407/`
 
 The Hub intentionally does not duplicate the upstream management consoles.
 
@@ -86,6 +89,8 @@ The public ARM64 bundle is rebuilt by GitHub Actions from pinned upstream versio
 - Agent2API's original management UI
 - `deepseek2api` (disabled by default)
 - DeepSeek2API's original management UI
+- `grok2api` (disabled by default)
+- Grok2API's original management UI
 
 ## Termux install from source
 
@@ -157,3 +162,18 @@ bundling or supervising it. The included LMArena slot defaults to
 The bridge must provide `GET /v1/models` and the OpenAI-compatible POST
 endpoints you intend to use. AhB intentionally does not bundle browser-session,
 Cloudflare-clearance, CAPTCHA, fingerprint-evasion, or anti-bot bypass logic.
+
+
+### Optional Grok2API provider
+
+The Android prebuilt contains the pinned Grok2API backend and its original Web
+UI, but the provider is disabled until it is initialized:
+
+```sh
+./scripts/enable-grok2api.sh
+```
+
+The helper generates local Grok2API secrets, starts the sidecar temporarily on
+loopback, creates a dedicated AhB Client Key through its local admin API, stores
+the key under ignored `data/grok2api/`, enables `grok/`, then returns normal
+process lifecycle control to hubd.

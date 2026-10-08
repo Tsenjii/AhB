@@ -462,3 +462,38 @@ For each provider, preserve:
 - pinned upstream version/commit
 - CI build before claiming support
 - real Android launch + real inference before marking VERIFIED
+
+
+## Grok2API first-class sidecar
+
+Integration target:
+- upstream: `chenyme/grok2api`
+- pinned commit: `7c889a960e2638341b4dae9a5c81af0e0f38c87f`
+- prefix: `grok/`
+- API/UI: `127.0.0.1:8407`
+- health/readiness: `/readyz`
+- models: `/v1/models`
+- disabled by default
+
+Design:
+- preserve the original Grok2API management UI
+- build the Go backend for Android ARM64 with `CGO_ENABLED=0`
+- build the React frontend in CI; no Node runtime is needed on the phone
+- local secrets live only under ignored `data/grok2api/`
+- `scripts/enable-grok2api.sh` performs one-time localhost bootstrap and
+  creates a dedicated downstream Client Key for AhB rather than sharing an
+  administrator credential
+- normal process lifecycle is hubd-supervised after bootstrap
+- use `/readyz`, not liveness-only `/healthz`, so no-account/model state is
+  visible as degraded rather than falsely routable
+- Hub interprets Grok readiness components for account usability
+
+Verification ladder:
+1. AhB CI green
+2. Android ARM64 Grok2API build green
+3. public prebuilt contains the backend and frontend assets
+4. real Android launch
+5. real account model discovery and inference
+6. full-path tool calling
+
+Do not mark Grok real-device VERIFIED before steps 4-6 are completed.

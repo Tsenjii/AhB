@@ -57,6 +57,12 @@ if provider_enabled deepseek; then
   check_file "data/deepseek2api/static/admin"
   check_file "data/deepseek2api/admin-key.txt"
 fi
+if provider_enabled grok; then
+  check_file "bin/grok2api"
+  check_file "data/grok2api/config.yaml"
+  check_file "data/grok2api/frontend/dist/index.html"
+  check_file "data/grok2api/client-key.txt"
+fi
 echo
 
 echo "== local endpoints =="
@@ -77,6 +83,11 @@ if provider_enabled deepseek; then
 fi
 if provider_enabled lmarena; then
   check_url "lmarena-external" "http://127.0.0.1:8406/v1/models"
+fi
+if provider_enabled grok; then
+  check_url "grok-health" "http://127.0.0.1:8407/healthz"
+  check_url "grok-ready" "http://127.0.0.1:8407/readyz"
+  check_url "grok-ui" "http://127.0.0.1:8407/"
 fi
 echo
 

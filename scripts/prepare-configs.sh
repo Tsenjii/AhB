@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-mkdir -p data/opencode data/freebuff data/agent2api data/deepseek2api logs bin
+mkdir -p data/opencode data/freebuff data/agent2api data/deepseek2api data/grok2api/frontend data/grok2api/data logs bin
 
 if [ ! -f config.json ]; then
   cp config.example.json config.json
@@ -18,37 +18,40 @@ fi
 if [ ! -f data/deepseek2api/config.json ]; then
   cp configs/deepseek2api.json data/deepseek2api/config.json
 fi
+if [ ! -f data/grok2api/config.yaml ]; then
+  cp configs/grok2api.yaml data/grok2api/config.yaml
+fi
 
 # Migrate existing installs without overwriting user settings.
-# DeepSeek is appended disabled; enabling it remains an explicit user action.
-# Android/Termux Go sidecars use libc DNS to avoid loopback-resolver failures.
+# Newly bundled providers are appended from config.example.json without
+# replacing existing provider-specific settings.
 if command -v jq >/dev/null 2>&1 && [ -f config.json ]; then
   tmp="$(mktemp)"
-  deepseek_provider="$(jq -c '.providers[] | select(.id == "deepseek")' config.example.json)"
-  lmarena_provider="$(jq -c '.providers[] | select(.id == "lmarena")' config.example.json)"
-  if jq --argjson deepseek "$deepseek_provider" --argjson lmarena "$lmarena_provider" '
-      if any(.providers[]; .id == "deepseek") then . else .providers += [$deepseek] end
-      | if any(.providers[]; .id == "lmarena") then . else .providers += [$lmarena] end
+  if jq --slurpfile example config.example.json '
+      reduce $example[0].providers[] as $p (.;
+        if any(.providers[]?; .id == $p.id) then . else .providers += [$p] end
+      )
       | (.providers[] | select(.id == "opencode") | .env) =
           (((.providers[] | select(.id == "opencode") | .env) // {}) + {"GODEBUG":"netdns=cgo"})
-      | (.routing.same_model_fallback.providers // []) as $p
-      | if (.routing.same_model_fallback? != null and ($p | index("deepseek")) == null)
-        then .routing.same_model_fallback.providers += ["deepseek"]
-        else .
-        end
-      | (.routing.same_model_fallback.providers // []) as $p2
-      | if (.routing.same_model_fallback? != null and ($p2 | index("lmarena")) == null)
-        then .routing.same_model_fallback.providers += ["lmarena"]
-        else .
-        end
+      | .routing.same_model_fallback.providers =
+          (.routing.same_model_fallback.providers // [])
+      | reduce ($example[0].routing.same_model_fallback.providers // [])[] as $id (.;
+          if (.routing.same_model_fallback.providers | index($id)) == null
+          then .routing.same_model_fallback.providers += [$id]
+          else .
+          end
+        )
     ' config.json > "$tmp"; then
     cat "$tmp" > config.json
   fi
   rm -f "$tmp"
 fi
-
 make_secret() {
   od -An -N24 -tx1 /dev/urandom | tr -d ' \n'
+}
+
+make_base64_32() {
+  dd if=/dev/urandom bs=32 count=1 2>/dev/null | base64 | tr -d '\r\n'
 }
 
 KEY_FILE="data/hub-local-key.txt"
@@ -77,6 +80,42 @@ if [ -f config.json ]; then
   sed -i "s/__AIHUB_DEEPSEEK_ADMIN_KEY__/$DEEPSEEK_ADMIN_KEY/g" config.json
 fi
 
+GROK_JWT_FILE="data/grok2api/jwt-secret.txt"
+if [ ! -s "$GROK_JWT_FILE" ]; then
+  make_secret > "$GROK_JWT_FILE"
+  printf '\n' >> "$GROK_JWT_FILE"
+  chmod 600 "$GROK_JWT_FILE"
+fi
+GROK_JWT="$(tr -d '\r\n' < "$GROK_JWT_FILE")"
+
+GROK_CRED_FILE="data/grok2api/credential-key.txt"
+if [ ! -s "$GROK_CRED_FILE" ]; then
+  make_base64_32 > "$GROK_CRED_FILE"
+  printf '\n' >> "$GROK_CRED_FILE"
+  chmod 600 "$GROK_CRED_FILE"
+fi
+GROK_CRED="$(tr -d '\r\n' < "$GROK_CRED_FILE")"
+
+GROK_ADMIN_FILE="data/grok2api/admin-password.txt"
+if [ ! -s "$GROK_ADMIN_FILE" ]; then
+  make_secret > "$GROK_ADMIN_FILE"
+  printf '\n' >> "$GROK_ADMIN_FILE"
+  chmod 600 "$GROK_ADMIN_FILE"
+fi
+GROK_ADMIN="$(tr -d '\r\n' < "$GROK_ADMIN_FILE")"
+
+if [ -f data/grok2api/config.yaml ]; then
+  sed -i "s|__AIHUB_GROK_JWT_SECRET__|$GROK_JWT|g" data/grok2api/config.yaml
+  sed -i "s|__AIHUB_GROK_CREDENTIAL_KEY__|$GROK_CRED|g" data/grok2api/config.yaml
+  sed -i "s|__AIHUB_GROK_ADMIN_PASSWORD__|$GROK_ADMIN|g" data/grok2api/config.yaml
+fi
+
+GROK_CLIENT_FILE="data/grok2api/client-key.txt"
+if [ -s "$GROK_CLIENT_FILE" ] && [ -f config.json ]; then
+  GROK_CLIENT="$(tr -d '\r\n' < "$GROK_CLIENT_FILE")"
+  sed -i "s|__AIHUB_GROK_CLIENT_KEY__|$GROK_CLIENT|g" config.json
+fi
+
 WEB_PASS_FILE="data/opencode/webui-password.txt"
 if grep -q "__AIHUB_WEB_PASSWORD__" data/opencode/config.json; then
   if [ ! -s "$WEB_PASS_FILE" ]; then
@@ -88,4 +127,4 @@ if grep -q "__AIHUB_WEB_PASSWORD__" data/opencode/config.json; then
   sed -i "s/__AIHUB_WEB_PASSWORD__/$WEB_PASS/g" data/opencode/config.json
 fi
 
-chmod 600 config.json data/opencode/config.json data/freebuff/config.json data/deepseek2api/config.json data/deepseek2api/admin-key.txt 2>/dev/null || true
+chmod 600 config.json data/opencode/config.json data/freebuff/config.json data/deepseek2api/config.json data/deepseek2api/admin-key.txt data/grok2api/config.yaml data/grok2api/jwt-secret.txt data/grok2api/credential-key.txt data/grok2api/admin-password.txt data/grok2api/client-key.txt 2>/dev/null || true

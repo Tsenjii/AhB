@@ -266,6 +266,28 @@ func assessProviderHealth(id, kind string, snap sidecar.Snapshot, account accoun
 		}
 		usable := a.ProviderReady && (anonymous || total > 0)
 		a.AccountUsable = boolPtr(usable)
+	case "grok":
+		if components, ok := doc["components"].(map[string]any); ok {
+			readyAccount := false
+			knownAccountState := false
+			for _, key := range []string{"grok_build", "grok_web", "grok_console"} {
+				component, _ := components[key].(map[string]any)
+				state, _ := component["state"].(string)
+				switch strings.ToLower(strings.TrimSpace(state)) {
+				case "ready":
+					readyAccount = true
+					knownAccountState = true
+				case "unavailable":
+					knownAccountState = true
+				}
+			}
+			if readyAccount {
+				a.AccountUsable = boolPtr(true)
+			} else if knownAccountState {
+				a.AccountUsable = boolPtr(false)
+				a.Detail = "no usable Grok accounts"
+			}
+		}
 	case "deepseek":
 		if account.Known {
 			usable := account.Usable > 0
