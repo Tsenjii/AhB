@@ -620,8 +620,12 @@ func joinURL(base, path string) (string, error) {
 }
 
 func copyRequestHeaders(dst, src http.Header) {
+	drop := connectionHeaderTokens(src)
 	for k, values := range src {
 		if shouldDropRequestHeader(k) {
+			continue
+		}
+		if _, nominated := drop[strings.ToLower(k)]; nominated {
 			continue
 		}
 		for _, v := range values {
@@ -637,14 +641,32 @@ func applyProviderHeaders(dst http.Header, headers map[string]string) {
 }
 
 func copyResponseHeaders(dst, src http.Header) {
+	drop := connectionHeaderTokens(src)
 	for k, values := range src {
 		if isHopByHop(k) {
+			continue
+		}
+		if _, nominated := drop[strings.ToLower(k)]; nominated {
 			continue
 		}
 		for _, v := range values {
 			dst.Add(k, v)
 		}
 	}
+}
+
+// RFC 9110: a Connection header also names additional hop-by-hop fields.
+// Forwarding one of those headers can leak a private upstream control field.
+func connectionHeaderTokens(h http.Header) map[string]struct{} {
+	out := make(map[string]struct{})
+	for _, value := range h.Values("Connection") {
+		for _, token := range strings.Split(value, ",") {
+			if field := strings.ToLower(strings.TrimSpace(token)); field != "" {
+				out[field] = struct{}{}
+			}
+		}
+	}
+	return out
 }
 
 func shouldDropRequestHeader(k string) bool {
@@ -675,7 +697,9 @@ func copyStreaming(w http.ResponseWriter, r io.Reader) {
 	for {
 		n, err := r.Read(buf)
 		if n > 0 {
-			_, _ = w.Write(buf[:n])
+			if _, writeErr := w.Write(buf[:n]); writeErr != nil {
+				return // Caller disconnected; stop consuming the upstream stream.
+			}
 			if flusher != nil {
 				flusher.Flush()
 			}
