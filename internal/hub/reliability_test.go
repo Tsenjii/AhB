@@ -3,6 +3,8 @@ package hub
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -110,5 +112,59 @@ func TestSameModelFallbackRejectsUnadvertisedAlternates(t *testing.T) {
 				t.Fatal("successful fallback missing routing identification")
 			}
 		})
+	}
+}
+
+func TestConnectionNominatedHeadersAreNotForwarded(t *testing.T) {
+	requestSource := http.Header{
+		"Connection":  []string{"keep-alive, X-Internal-Token"},
+		"X-Internal-Token": []string{"sensitive"},
+		"Authorization": []string{"Bearer caller-secret"},
+		"X-Api-Key": []string{"caller-key"},
+		"X-Custom": []string{"allowed"},
+	}
+	requestDest := http.Header{}
+	copyRequestHeaders(requestDest, requestSource)
+	if requestDest.Get("X-Internal-Token") != "" || requestDest.Get("Authorization") != "" ||
+		requestDest.Get("X-Api-Key") != "" || requestDest.Get("Connection") != "" {
+		t.Fatal("request leaked hop-by-hop or caller credential headers")
+	}
+	if requestDest.Get("X-Custom") != "allowed" {
+		t.Fatal("request lost permitted header")
+	}
+
+	responseSource := http.Header{
+		"Connection": []string{"X-Private-Control, keep-alive"},
+		"X-Private-Control": []string{"do-not-forward"},
+		"Content-Type": []string{"text/event-stream"},
+	}
+	responseDest := http.Header{}
+	copyResponseHeaders(responseDest, responseSource)
+	if responseDest.Get("X-Private-Control") != "" || responseDest.Get("Connection") != "" {
+		t.Fatal("response leaked connection-specific headers")
+	}
+	if responseDest.Get("Content-Type") != "text/event-stream" {
+		t.Fatal("response lost streaming content type")
+	}
+}
+
+type disconnectedWriter struct{}
+
+func (disconnectedWriter) Header() http.Header { return make(http.Header) }
+func (disconnectedWriter) WriteHeader(int) {}
+func (disconnectedWriter) Write([]byte) (int, error) { return 0, errors.New("client closed") }
+
+type countingReader struct { calls int }
+func (r *countingReader) Read(p []byte) (int, error) {
+	r.calls++
+	if r.calls > 1 { return 0, io.EOF }
+	return copy(p, []byte("chunk")), nil
+}
+
+func TestStreamingStopsAfterClientDisconnect(t *testing.T) {
+	reader := &countingReader{}
+	copyStreaming(disconnectedWriter{}, reader)
+	if reader.calls != 1 {
+		t.Fatalf("stream consumed upstream after downstream disconnected: %d reads", reader.calls)
 	}
 }
