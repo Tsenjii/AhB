@@ -20,5 +20,13 @@ curl -fsS "$BASE/v1/models"
 echo
 
 echo "== ui =="
-curl -fsS "$BASE/ui" | grep -q "Android AI Hub"
-echo "UI HTML OK"
+ui_html="$(curl -fsS "$BASE/ui")"
+if [[ "$ui_html" != *'<title>AhB</title>'* ]]; then
+  echo "UI HTML FAIL: AhB dashboard title missing" >&2
+  exit 1
+fi
+if [[ "$ui_html" != *'id="bridgePreset"'* ]]; then
+  echo "UI HTML FAIL: bridge connector wizard missing" >&2
+  exit 1
+fi
+echo "UI HTML OK (AhB dashboard + bridge wizard)"
