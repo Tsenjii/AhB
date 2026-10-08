@@ -10,8 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Tsenjii/android-ai-hub/internal/config"
-	"github.com/Tsenjii/android-ai-hub/internal/hub"
+	"github.com/Tsenjii/AhB/internal/config"
+	"github.com/Tsenjii/AhB/internal/hub"
 )
 
 func main() {
