@@ -257,7 +257,7 @@ th,td{font-size:12px}
  </div>
 </section>
 
-<div class="footer">Account 顯示的是帳號憑證或上游回報狀態，並非可用餘額；如 Agent2API 可能顯示 2/2 但實際回 503。Quota 請以來源管理介面或真實請求為準。</div>
+<div class="footer">Account 顯示的是帳號憑證或上游回報狀態，並非可用餘額；如 Agent2API 可能顯示 2/2 但實際回 503。Last API 只顯示本次啟動後最近一次上游 HTTP 狀態，不含對話或金鑰；HTTP 200 亦不保證完整串流或下一次有額度。Quota 請以來源管理介面或真實請求為準。</div>
 </main>
 <script>
 const fmtBytes=n=>!n?'—':n<1048576?(n/1024).toFixed(1)+' KiB':(n/1048576).toFixed(1)+' MiB';
@@ -269,6 +269,11 @@ function accountLabel(x){
  if(x.account_total!==null&&x.account_total!==undefined)return String(x.account_usable_count||0)+'/'+String(x.account_total);
  if(x.id==='opencode'&&x.account_usable===true)return 'ANON';
  return x.account_usable===true?'YES':(x.account_usable===false?'NO':'UNKNOWN');
+}
+function lastRequestLabel(x){
+ if(!x.last_request_at)return 'NOT TESTED';
+ if(x.last_request_transport_error)return 'NETWORK ERROR';
+ return x.last_request_http_status?'HTTP '+x.last_request_http_status:'UNKNOWN';
 }
 function renderModels(){
  const q=(document.getElementById('search').value||'').trim().toLowerCase();
@@ -307,7 +312,7 @@ async function refresh(){
    const enabled=!!x.enabled;
    return '<article class="card"><div class="card-top">'+
     '<div class="provider-main"><div class="provider-name"><span class="state-dot '+esc(x.state)+'"></span>'+esc(x.display_name||x.id)+' <span class="badge">'+esc(x.state)+'</span></div><div class="desc">'+esc(x.description||x.id)+'</div>'+
-     '<div class="layers"><span class="layer">Process <b>'+esc(x.kind==='external'?'N/A':(x.process_alive?'YES':'NO'))+'</b></span><span class="layer">Ready <b>'+esc(x.provider_ready?'YES':'NO')+'</b></span><span class="layer">Credentials <b>'+esc(accountLabel(x))+'</b></span></div>'+
+     '<div class="layers"><span class="layer">Process <b>'+esc(x.kind==='external'?'N/A':(x.process_alive?'YES':'NO'))+'</b></span><span class="layer">Ready <b>'+esc(x.provider_ready?'YES':'NO')+'</b></span><span class="layer">Credentials <b>'+esc(accountLabel(x))+'</b></span><span class="layer" title="最近一次 API 上游回覆 HTTP 狀態；200 不保證串流完整或有可用額度">Last API <b>'+esc(lastRequestLabel(x))+'</b></span></div>'+
      (x.last_error?'<div class="provider-error">'+esc(x.last_error)+'</div>':'')+'</div>'+
     '<div class="metrics"><div class="metric"><b>'+esc(counts[x.id]||0)+'</b><span>Models</span></div><div class="metric"><b>'+esc(fmtBytes(x.rss_bytes))+'</b><span>RSS</span></div><div class="metric"><b>'+esc(x.restarts||0)+'</b><span>Restarts</span></div></div>'+
     '<div class="provider-actions">'+actionLink(x.ui_url,'管理原本 UI',true,enabled&&manageable)+actionLink(x.docs_url,'上游文件',false,true)+'</div>'+
