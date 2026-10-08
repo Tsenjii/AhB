@@ -38,28 +38,28 @@ chmod +x "$TMP/shims/curl" "$TMP/AhB/scripts/"*.sh
 export PATH="$TMP/shims:$PATH"
 
 cd "$TMP/AhB"
-AIHUB_BRIDGE_API_KEY="private-key" ./scripts/connect-bridge.sh lmarena http://127.0.0.1:5102
+AIHUB_BRIDGE_API_KEY="private-key" bash ./scripts/connect-bridge.sh lmarena http://127.0.0.1:5102
 jq -e '.providers[] | select(.id=="lmarena" and .enabled==true and .base_url=="http://127.0.0.1:5102")' config.json >/dev/null
 jq -e '.providers[] | select(.id=="lmarena").headers.Authorization=="Bearer private-key"' config.json >/dev/null
-AIHUB_BRIDGE_API_KEY="" ./scripts/connect-bridge.sh lmarena http://127.0.0.1:5102
+AIHUB_BRIDGE_API_KEY="" bash ./scripts/connect-bridge.sh lmarena http://127.0.0.1:5102
 test "$(jq '[.providers[] | select(.id=="lmarena")] | length' config.json)" -eq 1
 jq -e '.providers[] | select(.id=="lmarena").headers.Authorization=="Bearer private-key"' config.json >/dev/null
 
-./scripts/connect-bridge.sh mybridge http://127.0.0.1:8560
+bash ./scripts/connect-bridge.sh mybridge http://127.0.0.1:8560
 jq -e '.providers[] | select(.id=="mybridge" and .kind=="external" and .enabled==true)' config.json >/dev/null
 test "$(jq '[.routing.same_model_fallback.providers[] | select(.=="mybridge")] | length' config.json)" -eq 1
 
 cp config.json "$TMP/before.json"
-if ./scripts/connect-bridge.sh opencode http://127.0.0.1:9999; then
+if bash ./scripts/connect-bridge.sh opencode http://127.0.0.1:9999; then
  echo "expected managed sidecar rejection" >&2; exit 1
 fi
-if ./scripts/connect-bridge.sh bad http://example.com:3000; then
+if bash ./scripts/connect-bridge.sh bad http://example.com:3000; then
  echo "expected non-loopback rejection" >&2; exit 1
 fi
-if AHB_STUB_CURL_FAIL=1 ./scripts/connect-bridge.sh unreachable http://127.0.0.1:9112; then
+if AHB_STUB_CURL_FAIL=1 bash ./scripts/connect-bridge.sh unreachable http://127.0.0.1:9112; then
  echo "expected probe failure" >&2; exit 1
 fi
-if AHB_STUB_CURL_INVALID=1 ./scripts/connect-bridge.sh invalid http://127.0.0.1:9113; then
+if AHB_STUB_CURL_INVALID=1 bash ./scripts/connect-bridge.sh invalid http://127.0.0.1:9113; then
  echo "expected malformed model-list rejection" >&2; exit 1
 fi
 cmp config.json "$TMP/before.json"
