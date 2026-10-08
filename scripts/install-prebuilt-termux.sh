@@ -2,14 +2,22 @@
 set -euo pipefail
 
 REPO="Tsenjii/AhB"
-TAG="dev-latest"
+BRANCH="prebuilt"
 ASSET="AhB_android_arm64.tar.gz"
-BASE="https://github.com/$REPO/releases/download/$TAG"
+BASE="https://raw.githubusercontent.com/$REPO/$BRANCH"
 DEST="${AIHUB_INSTALL_DIR:-$HOME/AhB}"
 TMP="$(mktemp -d)"
 
 cleanup(){ rm -rf "$TMP"; }
 trap cleanup EXIT
+
+case "$(uname -m)" in
+  aarch64|arm64) ;;
+  *)
+    echo "This prebuilt bundle is ARM64-only. Detected: $(uname -m)"
+    exit 1
+    ;;
+esac
 
 pkg install -y curl coreutils tar
 
@@ -35,6 +43,10 @@ chmod +x "$DEST"/scripts/*.sh "$DEST"/bin/*
 cd "$DEST"
 ./scripts/prepare-configs.sh
 
+if [ -x ./bin/agent2api-server ] && [ -d ./data/agent2api/ui ]; then
+  ./scripts/enable-agent2api.sh
+fi
+
 echo
 echo "Installed to: $DEST"
 echo "Start with:"
@@ -42,3 +54,12 @@ echo "  cd $DEST && ./scripts/run-termux.sh"
 echo
 echo "Hub UI:"
 echo "  http://127.0.0.1:8317/ui"
+echo
+echo "OpenCode UI:"
+echo "  http://127.0.0.1:8404/"
+echo
+echo "FreeBuff UI:"
+echo "  http://127.0.0.1:8402/ui"
+echo
+echo "Agent2API UI:"
+echo "  http://127.0.0.1:8403/"
