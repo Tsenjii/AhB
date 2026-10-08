@@ -237,14 +237,11 @@ func assessProviderHealth(id, kind string, snap sidecar.Snapshot, account accoun
 	} else if snap.HealthHTTPStatus != 0 {
 		a.ProviderReady = false
 	}
-	if len(snap.HealthBody) == 0 {
-		return a
-	}
-
+	// Health endpoints sometimes return empty bodies or temporarily invalid JSON.
+	// Account-backed providers must still be assessed using the independent
+	// account probe, and must not become routable while that probe is unknown.
 	var doc map[string]any
-	if json.Unmarshal(snap.HealthBody, &doc) != nil {
-		return a
-	}
+	_ = json.Unmarshal(snap.HealthBody, &doc)
 	if status, _ := doc["status"].(string); status != "" {
 		a.ReportedStatus = strings.ToLower(strings.TrimSpace(status))
 	}
@@ -331,8 +328,17 @@ func assessProviderHealth(id, kind string, snap sidecar.Snapshot, account accoun
 		}
 	}
 
+	if accountStatusRequired(id) && !account.Known {
+		a.Detail = "account availability not yet verified"
+		if account.LastError != "" {
+			a.Detail = "account availability probe failed"
+		}
+	}
+
 	if a.State == provider.StateHealthy {
-		if !a.ProviderReady {
+		if accountStatusRequired(id) && !account.Known {
+			a.State = provider.StateDegraded
+		} else if !a.ProviderReady {
 			a.State = provider.StateDegraded
 		} else if a.AccountUsable != nil && !*a.AccountUsable {
 			a.State = provider.StateDegraded
@@ -343,12 +349,22 @@ func assessProviderHealth(id, kind string, snap sidecar.Snapshot, account accoun
 	return a
 }
 
+// These backends require accounts and expose an account-health probe.
+func accountStatusRequired(id string) bool {
+	switch id {
+	case "agent2api", "freebuff", "deepseek", "kiro":
+		return true
+	default:
+		return false
+	}
+}
+
 func providerUsableForRouting(id, kind string, snap sidecar.Snapshot, account accountProbe) bool {
 	if snap.State != provider.StateHealthy {
 		return false
 	}
 	a := assessProviderHealth(id, kind, snap, account)
-	if !a.ProviderReady {
+	if a.State != provider.StateHealthy || !a.ProviderReady {
 		return false
 	}
 	return a.AccountUsable == nil || *a.AccountUsable
