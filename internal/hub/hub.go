@@ -87,7 +87,7 @@ func (h *Hub) Start(ctx context.Context) {
 	for _, p := range h.providers {
 		if p.sup != nil {
 			go p.sup.Run(ctx)
-			if p.cfg.ID == "agent2api" || p.cfg.ID == "freebuff" {
+			if p.cfg.ID == "agent2api" || p.cfg.ID == "freebuff" || p.cfg.ID == "deepseek" {
 				go h.pollProviderAccounts(ctx, p)
 			}
 		}
@@ -238,6 +238,14 @@ func assessProviderHealth(id string, snap sidecar.Snapshot, account accountProbe
 		}
 		usable := a.ProviderReady && (anonymous || total > 0)
 		a.AccountUsable = boolPtr(usable)
+	case "deepseek":
+		if account.Known {
+			usable := account.Usable > 0
+			a.AccountUsable = boolPtr(usable)
+			if !usable {
+				a.Detail = "no configured DeepSeek accounts"
+			}
+		}
 	case "freebuff":
 		if account.Known {
 			usable := account.Usable > 0

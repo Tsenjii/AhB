@@ -16,6 +16,13 @@ check_file() {
   fi
 }
 
+provider_enabled() {
+  local id="$1"
+  command -v jq >/dev/null 2>&1 &&
+    [ -f config.json ] &&
+    jq -e --arg id "$id" '.providers[] | select(.id == $id and .enabled == true)' config.json >/dev/null 2>&1
+}
+
 check_url() {
   local name="$1"
   local url="$2"
@@ -44,6 +51,12 @@ check_file "bin/freebuff2api"
 if [ -x bin/agent2api-server ]; then
   check_file "data/agent2api/ui"
 fi
+if provider_enabled deepseek; then
+  check_file "bin/deepseek2api"
+  check_file "data/deepseek2api/config.json"
+  check_file "data/deepseek2api/static/admin"
+  check_file "data/deepseek2api/admin-key.txt"
+fi
 echo
 
 echo "== local endpoints =="
@@ -56,6 +69,11 @@ check_url "freebuff-ui" "http://127.0.0.1:8402/ui"
 if [ -x bin/agent2api-server ]; then
   check_url "agent2api" "http://127.0.0.1:8403/health"
   check_url "agent2api-ui" "http://127.0.0.1:8403/"
+fi
+if provider_enabled deepseek; then
+  check_url "deepseek-api" "http://127.0.0.1:8405/healthz"
+  check_url "deepseek-ready" "http://127.0.0.1:8405/readyz"
+  check_url "deepseek-ui" "http://127.0.0.1:8405/admin"
 fi
 echo
 

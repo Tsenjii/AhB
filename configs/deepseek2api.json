@@ -1,0 +1,39 @@
+{
+  "keys": [
+    "__AIHUB_SERVER_KEY__"
+  ],
+  "api_keys": [
+    {
+      "key": "__AIHUB_SERVER_KEY__",
+      "name": "AhB Local Hub",
+      "remark": "Local loopback use only"
+    }
+  ],
+  "accounts": [],
+  "responses": {
+    "store_ttl_seconds": 900
+  },
+  "current_input_file": {
+    "enabled": true,
+    "min_chars": 0
+  },
+  "thinking_injection": {
+    "enabled": true,
+    "prompt": ""
+  },
+  "embeddings": {
+    "provider": "deterministic"
+  },
+  "admin": {
+    "jwt_expire_hours": 24
+  },
+  "runtime": {
+    "account_max_inflight": 2,
+    "account_max_queue": 0,
+    "global_max_inflight": 0,
+    "token_refresh_interval_hours": 6
+  },
+  "auto_delete": {
+    "mode": "none"
+  }
+}

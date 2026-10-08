@@ -6,7 +6,7 @@ cd "$ROOT"
 
 is_ahb_exe() {
   case "$1" in
-    "$ROOT/bin/hubd"|"$ROOT/bin/opencode2api"|"$ROOT/bin/freebuff2api"|"$ROOT/bin/agent2api-server") return 0 ;;
+    "$ROOT/bin/hubd"|"$ROOT/bin/opencode2api"|"$ROOT/bin/freebuff2api"|"$ROOT/bin/agent2api-server"|"$ROOT/bin/deepseek2api") return 0 ;;
     *) return 1 ;;
   esac
 }

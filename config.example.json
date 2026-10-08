@@ -68,6 +68,33 @@
       "models_path": "/v1/models",
       "max_restarts": 3,
       "startup_timeout_seconds": 60
+    },
+    {
+      "id": "deepseek",
+      "display_name": "DeepSeek Web",
+      "description": "Optional: DeepSeek Web multi-account gateway via Deepseek2API",
+      "enabled": false,
+      "kind": "sidecar",
+      "base_url": "http://127.0.0.1:8405",
+      "ui_url": "http://127.0.0.1:8405/admin",
+      "docs_url": "https://github.com/zengtao227/Deepseek2API",
+      "binary": "./bin/deepseek2api",
+      "work_dir": "./data/deepseek2api",
+      "env": {
+        "PORT": "8405",
+        "Deepseek2API_CONFIG_PATH": "config.json",
+        "Deepseek2API_STATIC_ADMIN_DIR": "static/admin",
+        "Deepseek2API_ADMIN_KEY": "__AIHUB_DEEPSEEK_ADMIN_KEY__",
+        "GODEBUG": "netdns=cgo",
+        "NO_PROXY": "127.0.0.1,localhost"
+      },
+      "headers": {
+        "Authorization": "Bearer __AIHUB_SERVER_KEY__"
+      },
+      "health_path": "/healthz",
+      "models_path": "/v1/models",
+      "max_restarts": 3,
+      "startup_timeout_seconds": 60
     }
   ],
   "routes": [],
@@ -79,7 +106,8 @@
       "providers": [
         "opencode",
         "agent2api",
-        "freebuff"
+        "freebuff",
+        "deepseek"
       ]
     }
   }

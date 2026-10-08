@@ -63,3 +63,7 @@ echo "  http://127.0.0.1:8402/ui"
 echo
 echo "Agent2API UI:"
 echo "  http://127.0.0.1:8403/"
+
+echo "Optional DeepSeek2API provider:"
+echo "  cd $DEST && ./scripts/enable-deepseek2api.sh"
+echo "  UI: http://127.0.0.1:8405/admin"

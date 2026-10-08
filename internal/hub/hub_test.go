@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -295,4 +297,31 @@ func TestBalancedPickerPrefersPrimaryOnTie(t *testing.T) {
 		t.Fatalf("picked %#v, want primary a", picked)
 	}
 	picked.load.release()
+}
+
+
+func TestInspectDeepSeekAccountsCountsConfiguredCredentials(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.json")
+	raw := []byte(`{
+		"accounts":[
+			{"email":"one@example.com","password":"secret"},
+			{"mobile":"+886900000000","token":"token"},
+			{"email":"missing@example.com"},
+			{"password":"no-identifier"}
+		]
+	}`)
+	if err := os.WriteFile(path, raw, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	got, err := inspectDeepSeekAccounts(config.ProviderConfig{
+		ID: "deepseek", WorkDir: dir,
+		Env: map[string]string{"Deepseek2API_CONFIG_PATH":"config.json"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !got.Known || got.Total != 4 || got.Usable != 2 {
+		t.Fatalf("probe = %#v", got)
+	}
 }

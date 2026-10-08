@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -92,6 +94,9 @@ func (h *Hub) fetchProviderAccounts(parent context.Context, cfg config.ProviderC
 		}
 		return accountProbe{Known: true, Total: len(envelope.Data.Accounts), Usable: usable}, nil
 
+	case "deepseek":
+		return inspectDeepSeekAccounts(cfg)
+
 	case "freebuff":
 		var payload struct {
 			OK       bool `json:"ok"`
@@ -149,4 +154,43 @@ func (h *Hub) getProviderJSON(ctx context.Context, cfg config.ProviderConfig, pa
 		return fmt.Errorf("decode %s: %w", path, err)
 	}
 	return nil
+}
+
+
+func inspectDeepSeekAccounts(cfg config.ProviderConfig) (accountProbe, error) {
+	configPath := strings.TrimSpace(cfg.Env["Deepseek2API_CONFIG_PATH"])
+	if configPath == "" {
+		configPath = "config.json"
+	}
+	if !filepath.IsAbs(configPath) {
+		base := strings.TrimSpace(cfg.WorkDir)
+		if base == "" {
+			base = "."
+		}
+		configPath = filepath.Join(base, configPath)
+	}
+	raw, err := os.ReadFile(configPath)
+	if err != nil {
+		return accountProbe{}, fmt.Errorf("read DeepSeek account config: %w", err)
+	}
+	var doc struct {
+		Accounts []struct {
+			Email    string `json:"email"`
+			Mobile   string `json:"mobile"`
+			Password string `json:"password"`
+			Token    string `json:"token"`
+		} `json:"accounts"`
+	}
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		return accountProbe{}, fmt.Errorf("decode DeepSeek account config: %w", err)
+	}
+	usable := 0
+	for _, account := range doc.Accounts {
+		hasID := strings.TrimSpace(account.Email) != "" || strings.TrimSpace(account.Mobile) != ""
+		hasCredential := strings.TrimSpace(account.Password) != "" || strings.TrimSpace(account.Token) != ""
+		if hasID && hasCredential {
+			usable++
+		}
+	}
+	return accountProbe{Known: true, Total: len(doc.Accounts), Usable: usable}, nil
 }

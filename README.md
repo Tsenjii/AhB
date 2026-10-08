@@ -12,6 +12,7 @@ Default providers:
 Optional provider pack:
 
 - **Agent2API v2.9.5** — adds a mature UI and adapters for personal CodeArts, Qoder, Cline, Trae, Loomy and other supported accounts without reimplementing those protocols in this repo.
+- **DeepSeek2API** — optional DeepSeek Web multi-account sidecar with its original admin UI, OpenAI/Anthropic/Responses compatibility, tool calling and provider-internal account pooling.
 
 The Hub itself stays small. Provider-specific login, account pools, quota logic, proxy settings and diagnostics remain inside the upstream adapters.
 
@@ -27,6 +28,7 @@ Models use explicit provider prefixes:
 opencode/<model>
 freebuff/<model>
 agent2api/<model>
+deepseek/<model>
 ```
 
 Supported proxy endpoints:
@@ -55,6 +57,7 @@ Each healthy provider has a **管理原本 UI** button:
 - OpenCode: `http://127.0.0.1:8404/`
 - FreeBuff: `http://127.0.0.1:8402/ui`
 - Agent2API when installed: `http://127.0.0.1:8403/`
+- DeepSeek2API when enabled: `http://127.0.0.1:8405/admin`
 
 The Hub intentionally does not duplicate the upstream management consoles.
 
@@ -79,6 +82,8 @@ The public ARM64 bundle is rebuilt by GitHub Actions from pinned upstream versio
 - `Freebuff2API`
 - `agent2api-server`
 - Agent2API's original management UI
+- `deepseek2api` (disabled by default)
+- DeepSeek2API's original management UI
 
 ## Termux install from source
 
@@ -103,6 +108,14 @@ Optional Agent2API pack:
 ```
 
 Then restart the Hub.
+
+Optional DeepSeek2API provider (the Android prebuilt already contains it):
+
+```sh
+./scripts/enable-deepseek2api.sh
+```
+
+Its local admin key is generated into `data/deepseek2api/admin-key.txt`. The AhB build applies a loopback-only listen patch to the pinned upstream source so this sidecar does not expose itself to the LAN.
 
 ## Reliability
 

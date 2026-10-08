@@ -103,18 +103,62 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/dist/AhB/data/agent2api"
           cp -R ../ui "$GITHUB_WORKSPACE/dist/AhB/data/agent2api/ui"
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.26.x"
+
+      - name: Build pinned DeepSeek2API for Android ARM64
+        shell: bash
+        run: |
+          set -euo pipefail
+          DS_SHA="7a0925fa9bd83e36838b4d3762c81292feb344c2"
+          rm -rf /tmp/deepseek2api
+          git init /tmp/deepseek2api
+          git -C /tmp/deepseek2api remote add origin https://github.com/zengtao227/Deepseek2API.git
+          git -C /tmp/deepseek2api fetch --depth 1 origin "$DS_SHA"
+          git -C /tmp/deepseek2api checkout --detach FETCH_HEAD
+
+          cd /tmp/deepseek2api
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("cmd/Deepseek2API/main.go")
+          s = p.read_text()
+          old = 'Addr:              "0.0.0.0:" + port,'
+          new = 'Addr:              "127.0.0.1:" + port,'
+          if old not in s:
+              raise SystemExit("expected Deepseek2API listen address not found")
+          p.write_text(s.replace(old, new, 1))
+          PY
+
+          npm ci --prefix webui
+          npm run build --prefix webui
+
+          CC="$ANDROID_TOOLCHAIN/aarch64-linux-android24-clang" \
+            GOOS=android GOARCH=arm64 CGO_ENABLED=1 \
+            go build -trimpath -ldflags="-s -w" \
+            -o "$GITHUB_WORKSPACE/dist/AhB/bin/deepseek2api" ./cmd/Deepseek2API
+
+          mkdir -p "$GITHUB_WORKSPACE/dist/AhB/data/deepseek2api/static"
+          cp -R static/admin "$GITHUB_WORKSPACE/dist/AhB/data/deepseek2api/static/admin"
+          cp LICENSE "$GITHUB_WORKSPACE/dist/AhB/LICENSE.deepseek2api" || true
+
       - name: Assemble Termux bundle
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p dist/AhB/configs dist/AhB/scripts dist/AhB/data/opencode dist/AhB/data/freebuff dist/AhB/logs
+          mkdir -p dist/AhB/configs dist/AhB/scripts dist/AhB/data/opencode dist/AhB/data/freebuff dist/AhB/data/deepseek2api dist/AhB/logs
           cp config.example.json dist/AhB/
-          cp configs/opencode2api.json configs/freebuff2api.json dist/AhB/configs/
+          cp configs/opencode2api.json configs/freebuff2api.json configs/deepseek2api.json dist/AhB/configs/
           cp scripts/prepare-configs.sh scripts/run-termux.sh scripts/start-termux.sh \
              scripts/stop-termux.sh scripts/doctor-termux.sh scripts/smoke.sh \
-             scripts/test-chat.sh scripts/enable-agent2api.sh dist/AhB/scripts/
+             scripts/test-chat.sh scripts/enable-agent2api.sh scripts/enable-deepseek2api.sh dist/AhB/scripts/
           cp configs/opencode2api.json dist/AhB/data/opencode/config.json
           cp configs/freebuff2api.json dist/AhB/data/freebuff/config.json
+          cp configs/deepseek2api.json dist/AhB/data/deepseek2api/config.json
           chmod 700 dist/AhB/bin/*
           chmod +x dist/AhB/scripts/*.sh
           tar -C dist -czf AhB_android_arm64.tar.gz AhB

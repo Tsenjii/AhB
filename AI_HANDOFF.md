@@ -291,3 +291,36 @@ Responses identify routing decisions with:
 The older explicit `route/<id>` cross-model alias feature is retained only as an optional advanced feature and requires `routing.route_aliases_enabled=true`. It is hidden from `/v1/models` and unavailable for requests while disabled.
 
 Provider-internal account routing/failover remains inside mature sidecars such as Agent2API and FreeBuff. AhB only coordinates provider-level behavior when explicitly enabled.
+
+
+## DeepSeek2API optional provider
+
+AhB integrates pinned upstream `zengtao227/Deepseek2API` at commit
+`7a0925fa9bd83e36838b4d3762c81292feb344c2` as an optional sidecar.
+
+AhB-facing identity:
+- provider ID / model prefix: `deepseek/`
+- API: `127.0.0.1:8405`
+- original admin UI: `http://127.0.0.1:8405/admin`
+- binary: `bin/deepseek2api`
+- work dir: `data/deepseek2api`
+- config: `data/deepseek2api/config.json`
+- admin secret: `data/deepseek2api/admin-key.txt`
+- disabled by default; enable with `scripts/enable-deepseek2api.sh`
+
+The upstream source currently binds `0.0.0.0`. AhB's Android build applies a
+single build-time patch to bind it to `127.0.0.1`, preserving AhB V1's
+loopback-only security boundary. Do not remove this patch unless upstream gains
+a supported bind-host setting.
+
+The Android workflow builds the upstream React admin UI ahead of time and ships
+the static output, so Node/npm are not required on the phone. It then builds
+the Go backend for Android ARM64 with the Android NDK and libc DNS.
+
+Hub account telemetry reads only the local DeepSeek config to count configured
+accounts and credentials. It never emits account identifiers, passwords, or
+tokens through `/api/providers`.
+
+LMArena browser/session/Cloudflare-bypass projects are not bundled into AhB.
+If LMArena is supported later, prefer an external localhost bridge integration
+without copying anti-bot or verification-bypass logic into AhB.
