@@ -73,7 +73,7 @@
       "url": "https://github.com/chenyme/grok2api",
       "status": "bundled_unverified",
       "priority": "P0",
-      "notes": "Bundled Grok2API native Go sidecar. User recalls Grok To API as very stable in prior experience (positive reliability signal; not new AhB on-device proof). Prioritize enabling the existing bundled implementation and verifying actual authorized Grok Web/Build account chat, SSE, full structured tool-call continuation, 401/429/503 and restart persistence. Do not conflate upstream positive reputation with an already passed AhB integration test.",
+      "notes": "P0 pinned Go Grok2API v3.1.6, exact upstream HEAD SHA 7c889a960e2638341b4dae9a5c81af0e0f38c87f dated 2026-09-30. Chenyme July 20 Linux.do said Build/Codex/Claude Code relatively stable; latest version fixes quota/leases/empty streams. Negative evidence: GitHub #793 broken tools, #975 429 cooling, #893 Web/Console mismatch, Linux.do 200 empty stream/agent loop. AhB bundles sidecar, off by default. New protected-key enabling and on-device readiness/chat/SSE/full-tool-cycle script; model inference unverified on user's Android. See docs/GROK2API_COMMUNITY_RELIABILITY_2026-10-08.md.",
       "verified_live_android": false,
       "last_reviewed": "2026-10-08"
     },
@@ -534,6 +534,16 @@
       "status": "hold_aggregator",
       "priority": "HOLD",
       "notes": "FastAPI+Next frontend GPT/Grok/Gemini web pools, significant code size and duplicates AhB broad aggregator role; unsafe default admin key if unconfigured.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-08"
+    },
+    {
+      "id": "universal_web_api",
+      "name": "Universal Web API Chromium gateway (ChatGPT/Grok/DeepSeek/Kimi)",
+      "url": "https://github.com/lumingya/universal-web-api",
+      "status": "hold_desktop",
+      "priority": "HOLD",
+      "notes": "Discovered via NodeLoc 2026-08-30. Generic Python FastAPI+DrissionPage+Chromium desktop browser session automation (not a small native phone adapter). Supports OpenAI/Anthropic/SSE and best-effort tool parsing, experimental Responses. Community feedback mixed; Windows fully supported; Android ARM64 availability and reliable multi-turn function schema not proven. Do not replace mature pinned Grok2API with it.",
       "verified_live_android": false,
       "last_reviewed": "2026-10-08"
     }
