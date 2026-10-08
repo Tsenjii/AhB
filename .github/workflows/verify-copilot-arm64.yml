@@ -1,0 +1,38 @@
+name: Verify optional Copilot Android ARM64
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/verify-copilot-arm64.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  copilot-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.26.x"
+      - name: Check out pinned MIT upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none --no-checkout https://github.com/whtsky/copilot2api.git copilot2api
+          git -C copilot2api fetch --depth 1 origin a4aac95d4a8f430f02121f79ea36aeaaa06daea1
+          git -C copilot2api checkout --detach FETCH_HEAD
+          test -f copilot2api/LICENSE
+      - name: Test Linux upstream and cross-compile Android
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd copilot2api
+          go test ./...
+          CGO_ENABLED=0 GOOS=android GOARCH=arm64 \
+            go build -trimpath -ldflags="-s -w" -o ../copilot2api-android-arm64 .
+          test -s ../copilot2api-android-arm64
+          file ../copilot2api-android-arm64
+          sha256sum ../copilot2api-android-arm64
