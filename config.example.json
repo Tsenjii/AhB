@@ -160,6 +160,30 @@
       "health_path": "/v1/models",
       "models_path": "/v1/models",
       "health_interval_seconds": 15
+    },
+    {
+      "id": "copilot",
+      "display_name": "GitHub Copilot (optional)",
+      "description": "Optional lightweight single-account Copilot OAuth gateway. Quota eligibility must be checked separately.",
+      "enabled": false,
+      "kind": "sidecar",
+      "base_url": "http://127.0.0.1:8410",
+      "ui_url": "",
+      "docs_url": "https://github.com/whtsky/copilot2api",
+      "binary": "./bin/copilot2api",
+      "args": [
+        "-host",
+        "127.0.0.1",
+        "-port",
+        "8410",
+        "-token-dir",
+        "."
+      ],
+      "work_dir": "./data/copilot2api",
+      "health_path": "/v1/models",
+      "models_path": "/v1/models",
+      "max_restarts": 3,
+      "startup_timeout_seconds": 90
     }
   ],
   "routes": [],
@@ -175,7 +199,8 @@
         "deepseek",
         "lmarena",
         "grok",
-        "kiro"
+        "kiro",
+        "copilot"
       ]
     }
   }
