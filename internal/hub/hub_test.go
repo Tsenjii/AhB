@@ -192,27 +192,21 @@ func TestFetchProviderAccountsAgent2API(t *testing.T) {
 	if !got.Known || got.Total != 3 || got.Usable != 1 { t.Fatalf("probe = %#v", got) }
 }
 
-func TestFetchProviderAccountsFreeBuffIncludesHealthState(t *testing.T) {
-	past := time.Now().Add(-time.Minute).UTC().Format(time.RFC3339)
-	future := time.Now().Add(time.Minute).UTC().Format(time.RFC3339)
-	mux := http.NewServeMux()
-	mux.HandleFunc("/api/accounts/health", func(w http.ResponseWriter, r *http.Request) {
-		_ = json.NewEncoder(w).Encode(map[string]any{
-			"ok": true,
-			"accounts": []map[string]any{
-				{"circuit_state":"closed"},
-				{"circuit_state":"half_open"},
-				{"circuit_state":"open","cooldown_until":past},
-				{"circuit_state":"open","cooldown_until":future},
-			},
-		})
-	})
-	srv := httptest.NewServer(mux)
-	defer srv.Close()
-	h := New(config.Config{})
-	got, err := h.fetchProviderAccounts(context.Background(), config.ProviderConfig{ID:"freebuff", BaseURL:srv.URL})
-	if err != nil { t.Fatal(err) }
-	if !got.Known || got.Total != 4 || got.Usable != 3 { t.Fatalf("probe = %#v", got) }
+func TestFetchProviderAccountsFreeBuffNodeHealth(t *testing.T) {
+ mux:=http.NewServeMux()
+ mux.HandleFunc("/healthz", func(w http.ResponseWriter,r *http.Request){
+  _=json.NewEncoder(w).Encode(map[string]any{
+   "status":"degraded","accounts":4,"alive_accounts":1,
+   "unknown_accounts":2, "account_details":[]map[string]any{
+    {"token":"PRIVATE_TOKEN_DO_NOT_LEAK"},
+   },
+  })
+ })
+ srv:=httptest.NewServer(mux); defer srv.Close()
+ h:=New(config.Config{})
+ got,err:=h.fetchProviderAccounts(context.Background(),config.ProviderConfig{ID:"freebuff",BaseURL:srv.URL})
+ if err!=nil {t.Fatal(err)}
+ if !got.Known||got.Total!=4||got.Usable!=3 {t.Fatalf("node probe = %#v",got)}
 }
 
 
