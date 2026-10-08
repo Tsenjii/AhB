@@ -598,3 +598,21 @@ Corrections covered by Go tests and CI:
 **Final validation gate:** Confirm the latest relevant Android Actions bundle run succeeded, and check `prebuilt/source-commit.txt` is the intended build's source commit. Only then offer it for optional real-phone trials. Green CI, arm64 cross-build, and fixture simulations do not establish Android login, streaming inference, original WebUI usability, token refresh, or real tool calling. Those must be exercised with the user's accounts and device. Avoid marking untested providers VERIFIED.
 
 No additional provider expansion or aggregator redesign is required at this stage.
+
+
+## Universal External Bridges and UI Workbench — 2026-10-08
+
+Latest scope requested: make LMArena and other mature To-API **connections** simple, keep Android light, and improve the phone UI. This addition is a generic connection layer; **do not confuse a connected, already-running upstream with a bundled or launched upstream implementation**.
+
+- Added `scripts/connect-bridge.sh` with presets `lmarena`, `windsurf`, `qwen`, `kimi`, `gemini`, `claude`, plus arbitrary lowercase custom IDs. Any **existing localhost OpenAI-compatible HTTP service** with `GET /v1/models` (or a documented alternate models path) can be connected without new Hub provider code.
+- The CLI validates loopback-only URL, optional private API key, and a real JSON `data` model list **before saving**. It refuses replacing managed sidecars; keeps backup of the previous config in ignored `data/`; preserves other providers and adds only a namespaced `provider/model` route. It does not spawn upstream software.
+- Added `api_path_prefix` to provider config so e.g. Gemini2API's `/openai/v1/models` and `/openai/v1/chat/completions` work behind normal AhB `/v1` paths without rewriting Gemini2API.
+- UI: embedded, dependency-free mobile dashboard now features polished typography, responsive bridge connection wizard (preset, local URL, custom ID), visible generated one-command Termux setup, navigation anchors and correct HEALTHY count (does not count DEGRADED as healthy). Browser does not ask for account tokens or API keys.
+- Added JSON pass-through `POST /v1/images/generations` and `POST /v1/audio/speech` for sources whose upstream offers them; unsupported upstream operations remain unsupported.
+- Tests: shell connector fixtures (idempotency, local-key retention, sidecar overwrite prevention, non-loopback denial, bad models/connection failure); Go bridge prefix integration test; browser-script syntax validation via `scripts/test-dashboard.sh`; all attached to the CI workflow.
+- Android ARM64 bundling includes the new connector script; **it does not bundle Python/Node/browser third-party bridges**. Existing first-class sidecars remain as before.
+- Docs: [BRIDGES.md](docs/BRIDGES.md) links upstream projects, explains individual dependencies and honest compatibility/verification limits. Example LMArena preset targets an existing local browser bridge on port 5102; this is not proof the browser bridge functions on a phone.
+
+**Important final gate:** after all related source/build script commits, check the most recent green CI, successful Android ARM64 build and public `prebuilt/source-commit.txt` are aligned. Real LMArena browser bridge, third-party credentials, actual inference and tool-calling still require on-device or independently deployed upstream tests. Avoid promising that every known third-party reverse proxy works. Do not automate CAPTCHA, anti-bot bypass or account-farming.
+
+UI-generated command will restart Hub after successful connection; this **interrupts active in-flight requests**. The standalone connector script only saves config and asks for an explicit restart.
