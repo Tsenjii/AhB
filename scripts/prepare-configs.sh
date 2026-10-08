@@ -29,7 +29,9 @@ fi
 # Newly bundled providers are appended from config.example.json without
 # replacing existing provider-specific settings.
 if command -v jq >/dev/null 2>&1 && [ -f config.json ]; then
-  tmp="$(mktemp)"
+  # Keep the old config intact on failure, never stream a partial jq result
+  # back into a file containing real client keys and custom user routes.
+  tmp="$(mktemp "$ROOT/.ahb-config-merge.XXXXXX")"
   if jq --slurpfile example config.example.json '
       reduce $example[0].providers[] as $p (.;
         if any(.providers[]?; .id == $p.id) then . else .providers += [$p] end
@@ -46,10 +48,14 @@ if command -v jq >/dev/null 2>&1 && [ -f config.json ]; then
           else .
           end
         )
-    ' config.json > "$tmp"; then
-    cat "$tmp" > config.json
+    ' config.json > "$tmp" && jq -e '.providers | type == "array"' "$tmp" >/dev/null; then
+    chmod 600 "$tmp"
+    mv -f "$tmp" config.json
+  else
+    rm -f "$tmp"
+    echo "ERROR: AhB provider config migration failed. Original config.json left untouched." >&2
+    exit 1
   fi
-  rm -f "$tmp"
 fi
 make_secret() {
   od -An -N24 -tx1 /dev/urandom | tr -d ' \n'
