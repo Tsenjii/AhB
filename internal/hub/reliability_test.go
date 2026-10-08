@@ -2,12 +2,14 @@ package hub
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/Tsenjii/AhB/internal/config"
 	"github.com/Tsenjii/AhB/internal/provider"
@@ -166,5 +168,35 @@ func TestStreamingStopsAfterClientDisconnect(t *testing.T) {
 	copyStreaming(disconnectedWriter{}, reader)
 	if reader.calls != 1 {
 		t.Fatalf("stream consumed upstream after downstream disconnected: %d reads", reader.calls)
+	}
+}
+
+func TestHubWaitReapsSupervisedWorkers(t *testing.T) {
+	port := freePort(t)
+	cfg := config.Config{
+		Listen: "127.0.0.1:8317",
+		Providers: []config.ProviderConfig{fakeProvider("shutdown", port)},
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	h := New(cfg)
+	h.Start(ctx)
+	waitFor(t, 8*time.Second, func() bool {
+		return h.providers["shutdown"].sup.Snapshot().State == provider.StateHealthy
+	})
+	cancel()
+
+	done := make(chan struct{})
+	go func() {
+		h.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(8 * time.Second):
+		t.Fatal("Hub workers did not stop after context cancellation")
+	}
+	snapshot := h.providers["shutdown"].sup.Snapshot()
+	if snapshot.PID != 0 || snapshot.State != provider.StateStopped {
+		t.Fatalf("Hub returned before provider exited: %#v", snapshot)
 	}
 }
