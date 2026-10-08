@@ -682,3 +682,27 @@ All these are candidate repo claims only; no new runtime has passed device smoke
 - Codex candidate ranking: (a) https://github.com/10/chatgpt-codex-proxy for multi-account/quota-aware function calls; Go 1.26.8, private upstream API fragility, Android device login pending; (b) https://github.com/dvcrn/codex-oauth-proxy for lightweight Go OpenAI API **and separate one-shot MCP**; requires Codex CLI login; (c) https://github.com/MortalImmortality/CodexProxy as lean alternative. No extra Codex binary bundled; first audit rights/permission, pin source and test genuine Android ARM64 auth/chat/SSE/two-turn tools/usage before packaging.
 
 **Preserve existing stable OpenCode:** real-phone test previously established chat, streaming and initial tool-call **emission**; it did NOT establish second-turn tool continuation. Do not replace a working OpenCode route with a browser-based proxy until exhaustive equivalence testing. HTTP 503 from Agent2API exhausted credentials is account usability, not core transport failure. Prefer quota-truth fields and fail-closed rather than imaginary healthy quota.
+
+
+## Grok2API independent community audit and acceptance improvements — 2026-10-08
+
+Canonical findings: **[docs/GROK2API_COMMUNITY_RELIABILITY_2026-10-08.md](docs/GROK2API_COMMUNITY_RELIABILITY_2026-10-08.md)**. Findings were checked against Linux.do July–August firsthand accounts, GitHub Issues #793/#893/#975, upstream release v3.1.6 and NodeLoc community. **Important**: Chenyme publicly paused development in June but resumed in July; calling current repo "dead" based only on the June post is wrong. The source pinned by AhB is currently **upstream v3.1.6** at SHA `7c889a960e2638341b4dae9a5c81af0e0f38c87f`, dated 2026-09-30. Positive evidence for Build/Codex/Claude Code API agent loops; negative evidence for Web/Console sync, 429 cooldowns, legacy 403 and long-loop empty responses. No independent Android Grok account inference has been observed. Do not conflate Grok Web chat entitlement with Grok Build/Console quota or tools.
+
+New code:
+- `scripts/test-grok2api-termux.sh`: private and local-only `/healthz`, `/readyz`, provider component state, authenticated models inventory (requires user-local `data/grok2api/client-key.txt`). An explicit `AIHUB_TEST_MODEL='grok/actual-model'` additionally triggers real Chat, SSE + `[DONE]`, and two-turn structured tool continuation. Without that opt-in it avoids spending user quota. Never paste auth material into bug reports.
+- `scripts/test-grok2api-fixture.sh` mocks success and negative paths (empty-model and no-native-tool), enforced in GitHub CI; this is NOT genuine Grok network authentication.
+- `scripts/enable-grok2api.sh` now preserves an existing client credential on transient HTTP errors like 429/503/connection failure instead of repeatedly creating a new client key. 200 reuses, explicit 401/403 can recreate with valid local admin login. Config is backed up to `data/grok2api/config-before-enable.json` before changing with mode 0600. `scripts/test-enable-grok2api-fixture.sh` checks 503 preservation, 200 reuse and 401 recovery, enforced by CI.
+- Android bundle manifest now includes `scripts/test-grok2api-termux.sh`; **before upgrading the user device, verify CI and Android build publication, the `prebuilt/source-commit.txt` pointer and the new script's presence**. Old real-device OpenCode chat remains validated; Grok is only P0 candidate until authenticated chat/SSE/tools plus longevity checks pass.
+- The source registry now contains **52 candidates**, adding Chromium `lumingya/universal-web-api` found in NodeLoc to HOLD_DESKTOP (generic ChatGPT/Grok/DeepSeek web Chrome automation is not a stable, lightweight Termux substitute for native Grok2API).
+- Grok source configuration `health_path=/readyz` already reports startup readiness rather than mere liveness. **Still do not use `HEALTHY` as proof of account quota**; the upstream readiness contract returns process/component state, not guaranteed model-specific spendability.
+
+Phone test, once included in published prebuilt:
+```sh
+cd ~/AhB
+./scripts/enable-grok2api.sh
+./scripts/stop-termux.sh && ./scripts/start-termux.sh
+./scripts/test-grok2api-termux.sh
+AIHUB_TEST_MODEL='grok/<actually-listed-model>' ./scripts/test-grok2api-termux.sh
+```
+
+Current device credentials were not accessed, changed or imported by GitHub code edits. No CAPTCHA or upstream-access bypass is part of the integration.
