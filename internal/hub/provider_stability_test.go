@@ -67,23 +67,21 @@ func TestModelsProbeIndependentProvidersConcurrently(t *testing.T) {
  }
 }
 
-func TestFreeBuffUnknownBreakerStatesNeverCountAsUsable(t *testing.T){
- srv:=httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
-  _=json.NewEncoder(w).Encode(map[string]any{
-   "ok":true,
-   "accounts":[]map[string]any{
-    {"circuit_state":"closed"},
-    {"circuit_state":"half_open"},
-    {"circuit_state":"open"},
-    {"circuit_state":"unrecognized"},
-    {"circuit_state":""},
-    {},
-   },
+func TestFreeBuffNodeInvalidHealthCountsFailClosed(t *testing.T) {
+ for _,payload:=range []string{
+  `{"accounts":2,"alive_accounts":1,"unknown_accounts":2}`,
+  `{"accounts":1,"alive_accounts":-1,"unknown_accounts":0}`,
+  `{"accounts":-1,"alive_accounts":0,"unknown_accounts":0}`,
+ } {
+  t.Run(payload,func(t *testing.T){
+   srv:=httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
+    if r.URL.Path!="/healthz" {http.NotFound(w,r);return}
+    _,_=w.Write([]byte(payload))
+   }))
+   defer srv.Close()
+   h:=New(config.Config{})
+   got,err:=h.fetchProviderAccounts(context.Background(),config.ProviderConfig{ID:"freebuff",BaseURL:srv.URL})
+   if err==nil||got.Known {t.Fatalf("invalid upstream account numbers accepted: %#v",got)}
   })
- }))
- defer srv.Close()
- h:=New(config.Config{})
- got,err:=h.fetchProviderAccounts(context.Background(),config.ProviderConfig{ID:"freebuff",BaseURL:srv.URL})
- if err!=nil{t.Fatal(err)}
- if !got.Known||got.Total!=6||got.Usable!=2 {t.Fatalf("unrecognized FreeBuff states must fail closed: %#v",got)}
+ }
 }
