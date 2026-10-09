@@ -28,7 +28,12 @@ assert {p["id"] for p in cfg["providers"]} == installed
 for p in cfg["providers"]:
     assert p["kind"]=="sidecar" and p["enabled"] is True
     assert p["start_mode"]=="on_demand"
-assert cfg["resources"]["max_running_sidecars"]==3\nassert cfg["resources"]["idle_stop_seconds"]==900\nlinux=json.loads(Path("configs/profiles/linux-512mb.json").read_text())\nassert {p["id"] for p in linux["providers"]}==installed\nassert linux["resources"]["max_running_sidecars"]==1\nassert linux["resources"]["idle_stop_seconds"]==120
+assert cfg["resources"]["max_running_sidecars"]==3
+assert cfg["resources"]["idle_stop_seconds"]==900
+linux=json.loads(Path("configs/profiles/linux-512mb.json").read_text())
+assert {p["id"] for p in linux["providers"]}==installed
+assert linux["resources"]["max_running_sidecars"]==1
+assert linux["resources"]["idle_stop_seconds"]==120
 assert Path("scripts/login-copilot2api.sh").is_file()
 assert Path("scripts/enable-copilot2api.sh").is_file()
 assert Path("scripts/install-kimiweb-termux.sh").is_file()
