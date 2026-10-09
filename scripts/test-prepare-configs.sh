@@ -27,7 +27,7 @@ jq -e '
   (.providers | map(.id) | unique | length) == (.providers | length)
   and (any(.providers[]; .id == "copilot" and .enabled == false and .env.GODEBUG == "netdns=cgo" and .env.MY_COPILOT_SETTING == "preserved"))
   and (all(.providers[]; .id != "kimiweb" and .id != "lmarena"))
-  and (.resources.max_running_sidecars == 1 and .resources.idle_stop_seconds == 120)
+  and (.resources.max_running_sidecars == 3 and .resources.idle_stop_seconds == 900)
   and (all(.providers[] | select(.kind == "sidecar"); .start_mode == "on_demand"))
   and (any(.providers[]; .id == "grok" and .enabled == true and .start_mode == "on_demand"))
   and (any(.providers[]; .id == "custom-provider" and .headers.Authorization == "Bearer preserved-bridge-secret"))
@@ -112,4 +112,4 @@ printf 'OLD_COOKIE_DO_NOT_CONVERT\n' > "$LEGACY/data/freebuff/tokens.json"
 )
 echo "first-release 3-provider AhB config -> latest 7-provider migration fixture passed"
 
-echo "prepare-configs fixture passed (secret preservation, only installed defaults, lazy 512MB policy, idempotence)"
+echo "prepare-configs fixture passed (secret preservation, only installed defaults, relaxed Android policy, idempotence)"
