@@ -2,7 +2,7 @@
 set -euo pipefail
 # First installation only: never overwrite a user's config or accounts.
 REPO="Tsenjii/AhB"
-BASE="${AHB_LINUX_PREBUILT_BASE:-https://raw.githubusercontent.com/$REPO/prebuilt-linux}"
+BASE="${AHB_LINUX_PREBUILT_BASE:-https://github.com/$REPO/releases/latest/download}"
 [ "$(uname -s)" = Linux ] || { echo "Linux required, not Android Termux" >&2; exit 1; }
 case "$(uname -m)" in
   x86_64|amd64) ARCH="amd64";;
@@ -11,7 +11,7 @@ case "$(uname -m)" in
 esac
 DEST="${AHB_LINUX_INSTALL_DIR:-$HOME/AhB}"
 [ ! -e "$DEST" ] || { echo "Existing install detected at $DEST; refusing to overwrite" >&2; exit 1; }
-for cmd in curl tar sha256sum jq node; do command -v "$cmd" >/dev/null || { echo "Missing $cmd" >&2; exit 1; }; done
+for cmd in curl tar sha256sum jq node python3; do command -v "$cmd" >/dev/null || { echo "Missing $cmd" >&2; exit 1; }; done
 ASSET="AhB_linux_$ARCH.tar.gz"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
