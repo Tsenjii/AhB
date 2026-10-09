@@ -99,7 +99,9 @@ func (h *Hub) acquireOnDemand(ctx context.Context, p *runtimeProvider) (func(),e
  h.clearFinishedDemandLocked(p)
  if p.demand.closing {h.demandMu.Unlock();return nil,errOnDemandBusy}
 
+ coldStarted:=false
  if !p.demand.running {
+  coldStarted=true
   count:=0
   var victim *runtimeProvider
   var oldest time.Time
@@ -159,6 +161,12 @@ func (h *Hub) acquireOnDemand(ctx context.Context, p *runtimeProvider) (func(),e
   snapshot:=p.sup.Snapshot()
   if snapshot.State==provider.StateHealthy ||
    (snapshot.State==provider.StateDegraded && snapshot.PID>0 && snapshot.HealthHTTPStatus>0) {
+   // The background probe is intentionally suspended while asleep; perform
+   // one immediately after cold startup instead of rejecting the first chat
+   // for up to 10 seconds because account readiness has not been refreshed.
+   if accountStatusRequired(p.cfg.ID) && (coldStarted || !p.accounts.snapshot().Known) {
+    h.refreshProviderAccounts(ctx,p)
+   }
    return release,nil
   }
   select{
