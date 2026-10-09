@@ -32,17 +32,49 @@ type freebuffLoginSession struct {
  cancel context.CancelFunc
 }
 
+// Terminal states are immutable: cancellation must never race with an
+// in-flight auth status response and be overwritten by a late success.
 func (s *freebuffLoginSession) set(state, link, detail string) {
  s.mu.Lock()
  defer s.mu.Unlock()
+ if s.state!="starting"&&s.state!="waiting" {return}
  s.state=state
  s.link=link
  s.detail=detail
+}
+func (s *freebuffLoginSession) stop() {
+ s.mu.Lock()
+ defer s.mu.Unlock()
+ if s.state!="starting"&&s.state!="waiting" {return}
+ s.state="cancelled"
+ s.link=""
+ s.detail="已取消這次授權，之前的帳號不受影響。"
+ if s.cancel!=nil{s.cancel()}
+}
+func (s *freebuffLoginSession) commitToken(ctx context.Context,root,token string) {
+ s.mu.Lock()
+ defer s.mu.Unlock()
+ if (s.state!="starting"&&s.state!="waiting")||ctx.Err()!=nil {return}
+ if err:=saveFreebuffToken(root,token);err!=nil{
+  s.state="failed";s.link="";s.detail="無法安全保存帳號到手機；請檢查私人儲存空間。";return
+ }
+ s.state="done"
+ s.link=""
+ s.detail="登入成功！憑證只儲存在手機。若 FreeBuff 正在運作，請在總覽單獨重啟；休眠時下次啟動會自動載入。"
 }
 func (s *freebuffLoginSession) view(accountCount int) map[string]any {
  s.mu.RLock()
  defer s.mu.RUnlock()
  return map[string]any{"state":s.state,"url":s.link,"detail":s.detail,"accounts":accountCount}
+}
+func (s *freebuffLoginSession) viewWithAccounts(root string) map[string]any {
+ // Read account count *while holding the same session lock* that protects
+ // the file-commit operation. "done" and the new account count must become
+ // visible together, even if a status request overlaps the final disk write.
+ s.mu.RLock()
+ defer s.mu.RUnlock()
+ return map[string]any{"state":s.state,"url":s.link,"detail":s.detail,
+  "accounts":countFreebuffCredentials(root)}
 }
 
 func (h *Hub) handleFreebuffLogin(w http.ResponseWriter,r *http.Request) {
@@ -70,14 +102,14 @@ func (h *Hub) handleFreebuffLogin(w http.ResponseWriter,r *http.Request) {
   if h.freebuffLogin==nil{
    writeJSON(w,200,map[string]any{"state":"idle","accounts":count});return
   }
-  writeJSON(w,200,h.freebuffLogin.view(count));return
+  writeJSON(w,200,h.freebuffLogin.viewWithAccounts(root));return
  }
  if action=="cancel" {
-  if h.freebuffLogin!=nil{
-   if h.freebuffLogin.cancel!=nil{h.freebuffLogin.cancel()}
-   h.freebuffLogin.set("cancelled","","已取消這次授權，之前的帳號不受影響。")
+  if h.freebuffLogin==nil{
+   writeJSON(w,200,map[string]any{"state":"idle","accounts":count});return
   }
-  writeJSON(w,200,map[string]any{"state":"cancelled","accounts":count});return
+  h.freebuffLogin.stop()
+  writeJSON(w,200,h.freebuffLogin.viewWithAccounts(root));return
  }
  h.controlMu.Lock()
  pending:=h.controlPending
@@ -89,7 +121,7 @@ func (h *Hub) handleFreebuffLogin(w http.ResponseWriter,r *http.Request) {
  if h.freebuffLogin!=nil{
   snap:=h.freebuffLogin.view(count)
   if snap["state"]=="starting"||snap["state"]=="waiting"{
-   writeJSON(w,200,snap);return
+   writeJSON(w,200,h.freebuffLogin.viewWithAccounts(root));return
   }
  }
  h.demandMu.Lock()
@@ -102,7 +134,7 @@ func (h *Hub) handleFreebuffLogin(w http.ResponseWriter,r *http.Request) {
  session:=&freebuffLoginSession{state:"starting",detail:"正在向 FreeBuff 官方要求授權網址…",cancel:cancel}
  h.freebuffLogin=session
  go h.runFreebuffLogin(ctx,root,session)
- writeJSON(w,http.StatusAccepted,session.view(count))
+ writeJSON(w,http.StatusAccepted,session.viewWithAccounts(root))
 }
 
 // OAuth transport has a private fixed production origin. Tests can point the
@@ -203,10 +235,7 @@ func (h *Hub) runFreebuffLogin(ctx context.Context,root string,session *freebuff
    if len(token)<9||len(token)>16*1024{
     session.set("failed","","授權成功但未取得有效的帳號憑證。");return
    }
-   if err:=saveFreebuffToken(root,token);err!=nil{
-    session.set("failed","","無法安全保存帳號到手機；請檢查私人儲存空間。");return
-   }
-   session.set("done","","登入成功！憑證只儲存在手機。若 FreeBuff 正在運作，請在總覽單獨重啟；休眠時下次啟動會自動載入。")
+   session.commitToken(ctx,root,token)
    return
   case 401:
    invalidReplies=0

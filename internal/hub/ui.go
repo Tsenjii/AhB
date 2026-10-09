@@ -445,7 +445,42 @@ async function loadNativeConsoles(){
    const actions=document.createElement('div');actions.className='console-actions';
    const safeURL=nativeConsoleURL(item.url);
    const visit=document.createElement('a');visit.className='btn';visit.textContent='開啟原生 UI';
-   if(safeURL){visit.href=safeURL;visit.target='_blank';visit.rel='noopener noreferrer'}
+   // Docker/remote clients have their *own* 127.0.0.1, not the container's
+   // private Gateway ports. Never link to a misleading or unrelated service.
+   if(safeURL&&ahbProviderControlAvailable){
+    visit.href=safeURL;visit.target='_blank';visit.rel='noopener noreferrer';
+    // Open the tab while the tap gesture is still active. On-demand
+    // Gateways sleep by default, so opening their native UI must first wake
+    // the process or the browser shows ERR_CONNECTION_REFUSED.
+    visit.addEventListener('click',async event=>{
+     if(!ahbProviderControlAvailable)return;
+     event.preventDefault();
+     const tab=window.open('about:blank','_blank');
+     visit.textContent='準備原生 UI…';
+     try{
+      const status=await getJSON('/api/providers');
+      const provider=(status.providers||[]).find(p=>p.id===item.id);
+      if(!provider||!provider.enabled)throw new Error('這個來源尚未啟用，請先回總覽開啟。');
+      if(!provider.process_alive){
+       if(provider.start_mode!=='on_demand')throw new Error('尚未運作，請先到總覽檢查服務狀態。');
+       consoleStatus.textContent=item.name+' 休眠中，正在按需啟動…';
+       const started=await fetch('/api/control/wake/'+encodeURIComponent(item.id),{
+        method:'POST',credentials:'same-origin',cache:'no-store',
+        headers:{'X-AhB-Control-Token':ahbControlToken,'Content-Type':'application/json'},body:'{}'
+       });
+       if(!started.ok)throw new Error('無法啟動 Gateway：'+(await started.text()).trim().slice(0,130));
+      }
+      // Never navigate to a server-supplied URL; only the allowlisted
+      // loopback native address from this source's console metadata.
+      if(tab&&!tab.closed)tab.location.href=safeURL;
+      else consoleStatus.textContent='瀏覽器阻擋了分頁，服務已啟動，請再次點「開啟原生 UI」。';
+      await refresh();
+     }catch(err){
+      if(tab&&!tab.closed){try{tab.close()}catch(_){}}
+      consoleStatus.textContent=item.name+'：'+err.message;
+     }finally{visit.textContent='開啟原生 UI'}
+    });
+   }
    else{visit.classList.add('disabled');visit.removeAttribute('href')}
    actions.appendChild(visit);
    if(item.mode!=='native'){
@@ -1006,6 +1041,11 @@ func (h *Hub) handleUI(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Referrer-Policy", "no-referrer")
+	// This HTML contains a page-local control nonce and can request private
+	// native-console credentials. Never allow another website to frame it
+	// and trick users into clicking administrative buttons.
+	w.Header().Set("X-Frame-Options", "DENY")
+	w.Header().Set("Content-Security-Policy", "frame-ancestors 'none'")
 	w.WriteHeader(http.StatusOK)
 	html := strings.Replace(dashboardHTML, "__AHB_CONTROL_TOKEN__", h.controlToken, 1)
 	available := "false"
