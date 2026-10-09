@@ -352,7 +352,7 @@ jobs:
           mkdir -p dist/AhB/configs dist/AhB/scripts dist/AhB/data/opencode dist/AhB/data/freebuff dist/AhB/data/deepseek2api dist/AhB/data/grok2api/frontend dist/AhB/data/kiro-go dist/AhB/logs
           cp configs/profiles/linux-512mb.json dist/AhB/config.example.json
           cp configs/opencode2api.json configs/freebuff2api.json configs/deepseek2api.json configs/grok2api.yaml configs/kiro-go.json configs/geminiweb.json dist/AhB/configs/
-          cp scripts/run-linux.sh scripts/start-linux.sh scripts/stop-linux.sh scripts/install-prebuilt-linux.sh scripts/prepare-configs.sh dist/AhB/scripts/
+          cp scripts/run-linux.sh scripts/start-linux.sh scripts/stop-linux.sh scripts/install-prebuilt-linux.sh scripts/upgrade-linux.sh scripts/prepare-configs.sh dist/AhB/scripts/
           mkdir -p dist/AhB/data/geminiweb dist/AhB/data/duckai
           cp configs/geminiweb.json dist/AhB/data/geminiweb/config.json
           cp configs/opencode2api.json dist/AhB/data/opencode/config.json
