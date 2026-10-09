@@ -1,0 +1,205 @@
+package hub
+
+import (
+ "context"
+ "errors"
+ "fmt"
+ "net/http"
+ "strings"
+ "sync"
+ "time"
+
+ "github.com/Tsenjii/AhB/internal/provider"
+)
+
+var errOnDemandBusy = errors.New("512 MB lightweight mode: another provider is active; wait for its request to finish or switch it off")
+var errHubNotStarted = errors.New("AhB runtime is not started")
+
+// The demand manager retains a whole upstream process only while it is useful.
+// Every request holds a lease through its *entire* SSE response. Neither an
+// idle timer nor a second provider request may kill an active response.
+type demandState struct {
+ cancel context.CancelFunc
+ done chan struct{}
+ running bool
+ closing bool
+ users int
+ last time.Time
+}
+
+// demandLifecycle assumes h.demandMu is held unless otherwise documented.
+// It never handles credential data and never modifies Agent2API itself.
+func (h *Hub) onDemand(p *runtimeProvider) bool {
+ return p.cfg.Kind=="sidecar" && p.cfg.StartMode=="on_demand"
+}
+
+func (h *Hub) clearFinishedDemandLocked(p *runtimeProvider) {
+ d:=p.demand
+ if d==nil||!d.running||d.closing||d.done==nil {return}
+ select {
+ case <-d.done:
+  d.running=false
+  d.cancel=nil
+  d.done=nil
+  d.users=0
+ default:
+ }
+}
+
+func (h *Hub) maxDemandSidecars() int {
+ n:=h.cfg.Resources.MaxRunningSidecars
+ if n<=0{return 1}
+ return n
+}
+
+func (h *Hub) demandIdle() time.Duration {
+ n:=h.cfg.Resources.IdleStopSeconds
+ if n<=0 {n=120}
+ return time.Duration(n)*time.Second
+}
+
+func (h *Hub) stopDemand(p *runtimeProvider, done chan struct{}, cancel context.CancelFunc) {
+ cancel()
+ select {
+ case <-done:
+ case <-time.After(6*time.Second):
+  // Never start a second process while the original is still stopping.
+  return
+ }
+ h.demandMu.Lock()
+ if p.demand!=nil && p.demand.done==done {
+  p.demand.running=false
+  p.demand.closing=false
+  p.demand.cancel=nil
+  p.demand.done=nil
+  p.demand.users=0
+ }
+ h.demandMu.Unlock()
+}
+
+func (h *Hub) acquireOnDemand(ctx context.Context, p *runtimeProvider) (func(),error) {
+ noop:=func(){}
+ if !h.onDemand(p) {return noop,nil}
+ if err:=ctx.Err();err!=nil{return nil,err}
+
+ h.demandMu.Lock()
+ if h.demandContext==nil || h.demandContext.Err()!=nil {
+  h.demandMu.Unlock();return nil,errHubNotStarted
+ }
+ if p.demand==nil {p.demand=&demandState{}}
+ h.clearFinishedDemandLocked(p)
+ if p.demand.closing {h.demandMu.Unlock();return nil,errOnDemandBusy}
+
+ if !p.demand.running {
+  count:=0
+  var victim *runtimeProvider
+  var oldest time.Time
+  for _,other:=range h.providers {
+   if !h.onDemand(other) || other.demand==nil {continue}
+   h.clearFinishedDemandLocked(other)
+   d:=other.demand
+   if !d.running {continue}
+   count++
+   if !d.closing && d.users==0 && (victim==nil||d.last.Before(oldest)){
+    victim=other
+    oldest=d.last
+   }
+  }
+  if count>=h.maxDemandSidecars(){
+   if victim==nil {h.demandMu.Unlock();return nil,errOnDemandBusy}
+   d:=victim.demand
+   d.closing=true
+   done,cancel:=d.done,d.cancel
+   h.demandMu.Unlock()
+   h.stopDemand(victim,done,cancel)
+   // Re-check in the next lock acquisition, never exceed resource ceiling.
+   return h.acquireOnDemand(ctx,p)
+  }
+  runCtx,cancel:=context.WithCancel(h.demandContext)
+  done:=make(chan struct{})
+  p.demand=&demandState{cancel:cancel,done:done,running:true,last:time.Now()}
+  h.runWG.Add(1)
+  go func(){
+   defer h.runWG.Done()
+   p.sup.Run(runCtx)
+   close(done)
+  }()
+ }
+ d:=p.demand
+ d.users++
+ done:=d.done
+ h.demandMu.Unlock()
+
+ var once sync.Once
+ release:=func(){once.Do(func(){
+  h.demandMu.Lock()
+  if p.demand!=nil && p.demand.done==done && p.demand.users>0 {
+   p.demand.users--
+   p.demand.last=time.Now()
+  }
+  h.demandMu.Unlock()
+ })}
+
+ deadline:=time.NewTimer(time.Duration(p.cfg.StartupTimeoutSeconds)*time.Second)
+ if p.cfg.StartupTimeoutSeconds<=0 {deadline.Reset(30*time.Second)}
+ defer deadline.Stop()
+ ticker:=time.NewTicker(200*time.Millisecond)
+ defer ticker.Stop()
+ for{
+  snapshot:=p.sup.Snapshot()
+  if snapshot.State==provider.StateHealthy ||
+   (snapshot.State==provider.StateDegraded && snapshot.PID>0 && snapshot.HealthHTTPStatus>0) {
+   return release,nil
+  }
+  select{
+  case <-ctx.Done():
+   release();return nil,ctx.Err()
+  case <-h.demandContext.Done():
+   release();return nil,errHubNotStarted
+  case <-done:
+   release();return nil,fmt.Errorf("provider %s stopped before becoming ready",p.cfg.ID)
+  case <-deadline.C:
+   release();return nil,fmt.Errorf("provider %s startup timed out",p.cfg.ID)
+  case <-ticker.C:
+  }
+ }
+}
+
+func (h *Hub) reapDemand(ctx context.Context) {
+ ticker:=time.NewTicker(10*time.Second)
+ defer ticker.Stop()
+ for{
+  select{
+  case <-ctx.Done():return
+  case <-ticker.C:
+   var victims []struct{p *runtimeProvider;done chan struct{};cancel context.CancelFunc}
+   h.demandMu.Lock()
+   for _,p:=range h.providers {
+    if !h.onDemand(p)||p.demand==nil {continue}
+    h.clearFinishedDemandLocked(p)
+    d:=p.demand
+    if d.running && !d.closing && d.users==0 && time.Since(d.last)>=h.demandIdle(){
+     d.closing=true
+     victims=append(victims,struct{p *runtimeProvider;done chan struct{};cancel context.CancelFunc}{p,d.done,d.cancel})
+    }
+   }
+   h.demandMu.Unlock()
+   for _,v:=range victims {h.stopDemand(v.p,v.done,v.cancel)}
+  }
+ }
+}
+
+func (h *Hub) wakeProvider(w http.ResponseWriter,r *http.Request) {
+ if r.Method!=http.MethodPost {w.Header().Set("Allow","POST");http.Error(w,"POST required",http.StatusMethodNotAllowed);return}
+ if !h.authorizeLocalControl(w,r) {return}
+ id:=strings.TrimPrefix(r.URL.Path,"/api/control/wake/")
+ if id==""||strings.Contains(id,"/"){http.NotFound(w,r);return}
+ p:=h.providers[id]
+ if p==nil||!p.cfg.Enabled||!h.onDemand(p) {http.Error(w,"Provider unavailable or not on demand",http.StatusConflict);return}
+ ctx,cancel:=context.WithTimeout(r.Context(),time.Duration(p.cfg.StartupTimeoutSeconds+3)*time.Second)
+ defer cancel()
+ release,err:=h.acquireOnDemand(ctx,p)
+ if err!=nil {http.Error(w,"Unable to start provider: "+err.Error(),http.StatusServiceUnavailable);return}
+ release()
+ writeJSON(w,http.StatusOK,map[string]string{"status":"started","id":id,"message":"Provider running. It may require account login before model access."})
+}
