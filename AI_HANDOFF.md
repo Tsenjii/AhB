@@ -1,3 +1,14 @@
+## Latest published dual-platform baseline — 2026-10-09 (supersedes historical snapshots below)
+
+- **Main SHA:** `5841235cde0465fc29bec06fc584d4526d971c47`. [CI success](https://github.com/Tsenjii/AhB/actions/runs/37921364712), [Android ARM64 success](https://github.com/Tsenjii/AhB/actions/runs/37921364600), [Linux AMD64/ARM64 success](https://github.com/Tsenjii/AhB/actions/runs/37921364637). Published Android `prebuilt/source-commit.txt` points to the same SHA; native Linux [release is published](https://github.com/Tsenjii/AhB/releases/tag/linux-5841235cde04).
+- **Nine bundled native gateways:** OpenCode2API, yutian81 FreeBuff Node, Agent2API v2.9.8, DeepSeek2API, Grok2API, Kiro-Go, Copilot2API, Gemini Web2API Go, Duck.ai Go. The optional Kimi installer and preset-only LMArena/Windsurf/Qwen/Gemini API bridges are **not** bundled native implementations.
+- **Two editions:** Android ARM64: max 3 on-demand resident sidecars, idle 900 s. Linux native AMD64/ARM64 (512 MiB profile): max 1, idle 120 s. RAM UI reports system/cgroup values and approximate processes' RSS; neither process cap is a hard memory limit.
+- **New FreeBuff:** old Rust v0.10.3 Cookie relay was replaced. Android requires **new authorized CLI/Bearer device-code login** via `freebuff-login-termux.sh`; there is no legacy `8402/ui`. Old cookies/databases remain untouched in data and backups.
+- **Critical acceptance boundary:** GitHub build/published package != installed phone upgrade != real account/model chat, SSE and two-turn tools. Real 512 MiB OOM/peak-RSS, phone lifecycle, and new integrations' quota usability remain unverified. Keep the known phone backup `~/AhB.backup-20261008-194847`.
+- **Next AI:** use [current short handoff](docs/NEXT_AI_HANDOFF.md), [README](README.md), and [VPS guide](docs/DEPLOY_VPS_512MB.md). Chronological records below intentionally retain superseded statements; do not repeat older "seven gateways", Rust Web Cookie UI or prebuilt SHA as present state.
+
+---
+
 ## 2026-10-09 FreeBuff replacement gate
 
 - User explicitly requested replace existing legacy FreeBuff2API Rust v0.10.3 with the most recently updated candidate (yutian81/freebuff2api), **not** add a parallel duplicative provider. The previous Rust Web Cookie path returned 409 `chat_moved` upstream and outward 502 across three tested models. Old cookie health 1/1 did not equal usable quota.
