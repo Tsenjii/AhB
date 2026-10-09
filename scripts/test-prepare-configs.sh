@@ -29,6 +29,8 @@ jq -e '
   and (all(.providers[]; .id != "kimiweb" and .id != "lmarena"))
   and (.resources.max_running_sidecars == 3 and .resources.idle_stop_seconds == 900)
   and (all(.providers[] | select(.kind == "sidecar"); .start_mode == "on_demand"))
+  and (any(.providers[]; .id == "geminiweb" and .enabled == true and .env.API_KEY != "__AIHUB_SERVER_KEY__"))
+  and (any(.providers[]; .id == "duckai" and .enabled == true and .env.Authorization != "__AIHUB_SERVER_KEY__"))
   and (any(.providers[]; .id == "grok" and .enabled == true and .start_mode == "on_demand"))
   and (any(.providers[]; .id == "custom-provider" and .headers.Authorization == "Bearer preserved-bridge-secret"))
   and (any(.providers[]; .id == "opencode" and .headers.Authorization == "Bearer preserved-user-secret" and .env.CUSTOM == "preserved" and .env.GODEBUG == "netdns=cgo"))
@@ -110,6 +112,6 @@ printf 'OLD_COOKIE_DO_NOT_CONVERT\n' > "$LEGACY/data/freebuff/tokens.json"
   bash scripts/prepare-configs.sh
   sha256sum -c "$TMP/legacy-config-hash" >/dev/null
 )
-echo "first-release 3-provider AhB config -> latest 7-provider migration fixture passed"
+echo "first-release 3-provider AhB config -> latest 9-provider migration fixture passed"
 
 echo "prepare-configs fixture passed (secret preservation, only installed defaults, relaxed Android policy, idempotence)"
