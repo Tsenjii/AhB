@@ -157,6 +157,11 @@ func (h *Hub) usableFallbackProviders(ctx context.Context, primary, model string
 }
 
 func (h *Hub) handleSameModelFallback(w http.ResponseWriter, r *http.Request, raw []byte, primary, model string) {
+	if p:=h.providers[primary];p!=nil && p.cfg.Enabled && h.onDemand(p) {
+		release,err:=h.acquireOnDemand(r.Context(),p)
+		if err!=nil {writeError(w,http.StatusServiceUnavailable,"provider_start_unavailable",err.Error());return}
+		defer release()
+	}
 	mode := strings.ToLower(strings.TrimSpace(h.cfg.Routing.SameModelFallback.Mode))
 	if mode == "" || mode == "balanced" || mode == "parallel" {
 		h.handleSameModelBalanced(w, r, raw, primary, model)
@@ -340,18 +345,26 @@ func (h *Hub) handleRouteProxy(w http.ResponseWriter, r *http.Request, raw []byt
 			failures = append(failures, target+": provider disabled")
 			continue
 		}
+		release, startErr := h.acquireOnDemand(r.Context(), p)
+		if startErr != nil {
+			failures = append(failures, target+": startup unavailable")
+			continue
+		}
 		if !providerUsableForRouting(providerID, p.cfg.Kind, p.snapshot(), p.accounts.snapshot()) {
+			release()
 			failures = append(failures, target+": provider unavailable")
 			continue
 		}
 		rewritten, err := rewriteModelTo(raw, upstreamModel)
 		if err != nil {
+			release()
 			writeError(w, http.StatusBadRequest, "invalid_model", err.Error())
 			return
 		}
 		resp, err := h.doProviderRequest(r, p.cfg, rewritten)
 		attempted = true
 		if err != nil {
+			release()
 			failures = append(failures, target+": transport error")
 			continue
 		}
@@ -362,10 +375,12 @@ func (h *Hub) handleRouteProxy(w http.ResponseWriter, r *http.Request, raw []byt
 			w.WriteHeader(resp.StatusCode)
 			copyStreaming(w, resp.Body)
 			_ = resp.Body.Close()
+			release()
 			return
 		}
 		body, readErr := io.ReadAll(io.LimitReader(resp.Body, maxRouteErrorBody))
 		_ = resp.Body.Close()
+		release()
 		if readErr == nil {
 			last = &bufferedRouteResponse{status: resp.StatusCode, header: resp.Header.Clone(), body: body, provider: providerID}
 		}
