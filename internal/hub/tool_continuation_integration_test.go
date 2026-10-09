@@ -53,7 +53,7 @@ func TestHubPreservesNativeToolCallAndToolResultAcrossTwoTurns(t *testing.T){
   Listen:"127.0.0.1:8317",
   Providers:[]config.ProviderConfig{{ID:"opencode",DisplayName:"OpenCode",Enabled:true,Kind:"external",BaseURL:upstream.URL}},
  })
- h.providers["opencode"].external.set(sidecar.Snapshot{ID:"opencode",State:provider.StateHealthy,HealthHTTPStatus:200})
+ h.providers["opencode"].external.set(sidecar.Snapshot{ID:"opencode",State:provider.StateHealthy,HealthHTTPStatus:200,HealthBody:[]byte(`{"keys":{"anonymous":true,"total":0}}`)})
  first:=[]byte(`{"model":"opencode/meta/muse","messages":[{"role":"user","content":"Use get_time"}],"tools":[{"type":"function","function":{"name":"get_time","parameters":{"type":"object"}}}]}`)
  serve:=func(body []byte) (map[string]any,int){
   t.Helper()
