@@ -182,6 +182,7 @@ func (h *Hub) Handler() http.Handler {
 	mux.HandleFunc("/api/control/restart", h.handleControlRestart)
 	mux.HandleFunc("/api/control/update", h.handleControlUpdate)
 	mux.HandleFunc("/api/control/provider/", h.handleControlProvider)
+	mux.HandleFunc("/api/control/resources", h.handleControlResources)
 	mux.HandleFunc("/api/control/login/copilot", h.handleCopilotLogin)
 	mux.HandleFunc("/api/control/wake/", h.wakeProvider)
 	mux.HandleFunc("/v1/models", h.handleModels)
@@ -217,9 +218,25 @@ func (h *Hub) handleRuntime(w http.ResponseWriter, _ *http.Request) {
  stats:=collectRuntimeStats()
  stats.MaxRunningSidecars=h.maxDemandSidecars()
  stats.IdleStopSeconds=int(h.demandIdle().Seconds())
+ stats.AhBRSSBytes=stats.ProcessRSS
+ // Include native child sidecars; the number is an approximate RSS sum
+ // (shared pages can be double counted), not system-wide RAM usage.
+ for _,p:=range h.providers {
+  if p.cfg.Enabled&&p.sup!=nil {
+   rss:=p.snapshot().RSSBytes
+   if rss>0 {stats.SidecarRSSBytes+=rss}
+  }
+ }
+ stats.AhBRSSBytes+=stats.SidecarRSSBytes
+ mem:=effectiveMemorySnapshot()
+ stats.SystemTotalBytes=mem.total
+ stats.SystemUsedBytes=mem.used
+ stats.SystemAvailableBytes=mem.available
+ stats.SystemMemorySource=mem.source
  h.demandMu.Lock()
  for _,p:=range h.providers {if h.onDemand(p)&&p.demand!=nil&&p.demand.running {stats.RunningOnDemand++}}
  h.demandMu.Unlock()
+ w.Header().Set("Cache-Control","no-store")
  writeJSON(w,http.StatusOK,stats)
 }
 
