@@ -76,6 +76,10 @@ class CommandRunnerTests(unittest.TestCase):
         con.close()
         return status, raw
 
+    def test_00_default_or_injected_port(self):
+        import os
+        self.assertEqual(runner.PORT, int(os.environ.get("PORT") or "5000"))
+
     def test_01_locked_mode(self):
         runner.SECRET = ""
         self.assertEqual(json.loads(self.request("GET", "/healthz")[1])["status"], "setup_required")
