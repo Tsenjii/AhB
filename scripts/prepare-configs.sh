@@ -44,11 +44,11 @@ if command -v jq >/dev/null 2>&1 && [ -f config.json ]; then
       # Preserve any manually attached bridge and any installed legacy Kimi.
       | ([.routes[]?.targets[]? | split("/")[0]]) as $routeRefs
       | .providers |= map(select(
-          not(
+          ((
             (.id == "lmarena" and (.enabled == false) and .base_url == "http://127.0.0.1:5102" and ($routeRefs | index("lmarena")) == null)
             or
             (.id == "kimiweb" and ($kimiInstalled | not) and (.enabled == false) and ($routeRefs | index("kimiweb")) == null)
-          )
+          ) | not)
         ))
       # Existing user-selected on/off flags stay untouched. Newly installed
       # providers are enabled but sleep until used; avoid seven runtimes at boot.
