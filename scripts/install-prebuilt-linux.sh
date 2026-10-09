@@ -2,6 +2,16 @@
 set -euo pipefail
 # First installation only: never overwrite a user's config or accounts.
 REPO="Tsenjii/AhB"
+[ "$(uname -s)" = Linux ] || { echo "Linux required, not Android Termux" >&2; exit 1; }
+case "$(uname -m)" in
+  x86_64|amd64) ARCH="amd64";;
+  aarch64|arm64) ARCH="arm64";;
+  *) echo "Unsupported Linux CPU architecture" >&2; exit 1;;
+esac
+DEST="${AHB_LINUX_INSTALL_DIR:-$HOME/AhB}"
+[ ! -e "$DEST" ] || { echo "Existing install detected at $DEST; refusing to overwrite" >&2; exit 1; }
+for cmd in curl tar sha256sum jq node python3; do command -v "$cmd" >/dev/null || { echo "Missing $cmd" >&2; exit 1; }; done
+ASSET="AhB_linux_$ARCH.tar.gz"
 # Select the latest *Linux* release, never the repository-wide "latest"
 # release (which can be an Android or unrelated edition in the future).
 BASE="${AHB_LINUX_PREBUILT_BASE:-}"
@@ -9,7 +19,7 @@ LINUX_TAG="${AHB_LINUX_RELEASE_TAG:-}"
 if [ -z "$BASE" ]; then
   if [ -z "$LINUX_TAG" ]; then
     release_json="$(curl -fsSL --retry 3 -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$REPO/releases?per_page=100")"
-    LINUX_TAG="$(jq -r --arg arch "AhB_linux_$(case "$(uname -m)" in x86_64|amd64) echo amd64;; aarch64|arm64) echo arm64;; *) echo unsupported;; esac).tar.gz" '
+    LINUX_TAG="$(jq -r --arg arch "$ASSET" '
       [.[] | select(.draft == false and .prerelease == false)
       | select(.tag_name | test("^linux-[0-9a-f]{12}$"))
       | select(any(.assets[]?; .name == $arch))]
@@ -22,16 +32,6 @@ if [ -z "$BASE" ]; then
   fi
   BASE="https://github.com/$REPO/releases/download/$LINUX_TAG"
 fi
-[ "$(uname -s)" = Linux ] || { echo "Linux required, not Android Termux" >&2; exit 1; }
-case "$(uname -m)" in
-  x86_64|amd64) ARCH="amd64";;
-  aarch64|arm64) ARCH="arm64";;
-  *) echo "Unsupported Linux CPU architecture" >&2; exit 1;;
-esac
-DEST="${AHB_LINUX_INSTALL_DIR:-$HOME/AhB}"
-[ ! -e "$DEST" ] || { echo "Existing install detected at $DEST; refusing to overwrite" >&2; exit 1; }
-for cmd in curl tar sha256sum jq node python3; do command -v "$cmd" >/dev/null || { echo "Missing $cmd" >&2; exit 1; }; done
-ASSET="AhB_linux_$ARCH.tar.gz"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 curl -fsSL --retry 3 "$BASE/$ASSET" -o "$TMP/$ASSET"
