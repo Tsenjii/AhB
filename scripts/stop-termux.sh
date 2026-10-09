@@ -48,6 +48,16 @@ collect_ahb_pids() {
   done
 }
 
+# A terminated child can remain a zombie until its parent reaps it. A
+# zombie cannot write databases or hold listening sockets; don't fail safe
+# upgrades just because kill -0 temporarily still reports such a PID.
+pid_still_running() {
+  local state
+  kill -0 "$1" 2>/dev/null || return 1
+  state="$(awk '{print $3}' "/proc/$1/stat" 2>/dev/null || true)"
+  case "$state" in Z|X) return 1 ;; *) return 0 ;; esac
+}
+
 pids="$(collect_ahb_pids | sort -nu | tr '\n' ' ')"
 if [ -n "${pids// /}" ]; then
   echo "Stopping AhB-owned processes: $pids"
@@ -55,7 +65,7 @@ if [ -n "${pids// /}" ]; then
   for _ in 1 2 3 4 5 6 7 8 9 10; do
     remaining=""
     for pid in $pids; do
-      if kill -0 "$pid" 2>/dev/null; then
+      if pid_still_running "$pid"; then
         remaining="$remaining $pid"
       fi
     done
@@ -64,7 +74,7 @@ if [ -n "${pids// /}" ]; then
   done
   remaining=""
   for pid in $pids; do
-    if kill -0 "$pid" 2>/dev/null; then
+    if pid_still_running "$pid"; then
       remaining="$remaining $pid"
     fi
   done
