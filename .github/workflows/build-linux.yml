@@ -70,7 +70,7 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Package pinned Node.js FreeBuff gateway (Linux runtime)
+      - name: Package pinned Node.js FreeBuff gateway (native Node.js)
         shell: bash
         run: |
           set -euo pipefail
@@ -148,12 +148,12 @@ jobs:
       - name: Build pinned Agent2API headless for native Linux
         shell: bash
         env:
-                    CARGO_PROFILE_RELEASE_LTO: "false"
+          CARGO_PROFILE_RELEASE_LTO: "false"
           CARGO_PROFILE_RELEASE_CODEGEN_UNITS: "8"
           CARGO_BUILD_JOBS: "2"
         run: |
           set -euo pipefail
-          # Pinned Agent2API v2.9.8 upstream source (2026-10-08); built as Android headless.
+          # Pinned Agent2API v2.9.8 upstream source (2026-10-08); built as native Linux headless.
           AGENT_SHA="f82308a9549ee4760f27e393058c3482056ec514"
           git init /tmp/agent2api
           git -C /tmp/agent2api remote add origin https://github.com/aimod-cc/agent2api.git
