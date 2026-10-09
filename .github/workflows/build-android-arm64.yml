@@ -59,6 +59,8 @@ jobs:
           mkdir -p dist/AhB/bin
           GOOS=android GOARCH=arm64 CGO_ENABLED=0 \
             go build -trimpath -ldflags="-s -w" -o dist/AhB/bin/hubd ./cmd/hubd
+          # Immutable package identity for dashboard-side, checksum-protected upgrades.
+          printf '%s\\n' "$GITHUB_SHA" > dist/AhB/.build-commit
 
       - name: Build pinned OpenCode gateway for Android ARM64
         shell: bash
