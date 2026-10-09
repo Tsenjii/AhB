@@ -17,6 +17,29 @@ running. Existing user-selected providers and already-installed Kimi data are
 preserved by migration. No credentials, database or user-specific custom routes
 are removed in the course of cleanup.
 
+## UI resource controls and RAM measurement
+
+The dashboard **Advanced / Resources** tab now provides an authenticated
+`max_running_sidecars` selector (**1..16**) and `idle_stop_seconds`
+(**30..86400 seconds**). Saving them writes `config.json` atomically,
+validates the full configuration, preserves unknown fields and credentials,
+and restarts only AhB. If the restart cannot be scheduled, the original file
+is restored. In-flight requests can be interrupted by this requested restart.
+
+The RAM panel differentiates:
+- **Host**: `/proc/meminfo` MemTotal and MemAvailable, including reclaimable
+  cached pages rather than counting MemFree as the only available RAM.
+- **cgroup v2**: `memory.max` and `memory.current` when the container limit
+  is tighter than host RAM; this includes unrelated processes and cache.
+- **AhB RSS**: Hub process RSS plus the known child gateway process RSS,
+  which may double-count shared memory pages.
+
+For a 512 MiB VPS start at **one** active gateway and **120 seconds** idle.
+For Android Termux default to **three** and **900 seconds** idle. These are
+preferences adjustable from the local authenticated UI; neither is a hard
+operating-system memory cap. RAM telemetry refreshes every five seconds
+without fetching every provider's models.
+
 ## Low RAM mode
 
 On a **fresh** installation all nine bundled entries default to
