@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -168,7 +169,7 @@ func (c Config) Validate() error {
 
 		if p.ProxyURL != "" {
 			if p.Kind != "sidecar" { return fmt.Errorf("provider %q: outbound proxy is supported only on managed sidecars",id) }
-			if err := validateProxyURL(p.ProxyURL); err != nil {return fmt.Errorf("provider %q: %w", id,err)}
+			if err := ValidateProxyURL(p.ProxyURL); err != nil {return fmt.Errorf("provider %q: %w", id,err)}
 		}
 		if p.StartMode != "" && p.StartMode != "always" && p.StartMode != "on_demand" {
 			return fmt.Errorf("provider %q: start_mode must be always or on_demand", id)
@@ -302,7 +303,7 @@ func validateListen(addr string, allowLAN bool) error {
 	}
 	return nil
 }
-func validateProxyURL(raw string) error {
+func ValidateProxyURL(raw string) error {
  u,err:=url.Parse(raw)
  if err!=nil||u.Host==""||(u.Scheme!="http"&&u.Scheme!="https"&&u.Scheme!="socks5"){
   return fmt.Errorf("proxy_url must be http, https or socks5 URL with host")
@@ -312,8 +313,8 @@ func validateProxyURL(raw string) error {
  }
  if u.Hostname()=="" {return fmt.Errorf("proxy_url host is required")}
  if u.Port()!="" {
-  var port int
-  if n,err:=fmt.Sscanf(u.Port(),"%d",&port);err!=nil||n!=1||port<1||port>65535 {
+  port,err:=strconv.Atoi(u.Port())
+  if err!=nil||port<1||port>65535 {
    return fmt.Errorf("proxy_url port must be 1..65535")
   }
  }
