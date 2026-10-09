@@ -5,6 +5,10 @@ import (
 	"errors"
 	"flag"
 	"log"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"strconv"
 	"net"
 	"net/http"
 	"os"
@@ -42,6 +46,7 @@ func main() {
 	defer cancel()
 
 	h := hub.New(cfg)
+	configureTermuxRestart(h)
 	h.Start(ctx)
 
 	server := &http.Server{
@@ -80,4 +85,41 @@ func main() {
 	if serveErr != nil {
 		log.Fatalf("server: %v", serveErr)
 	}
+}
+
+ // configureTermuxRestart exposes a one-click restart only from an AhB
+ // Android prebuilt running at its own bin/hubd path. Nothing else is
+ // restarted, and the browser cannot supply executable names or arguments.
+func configureTermuxRestart(h *hub.Hub) {
+	if runtime.GOOS != "android" {
+		return
+	}
+	exe, err := os.Executable()
+	if err != nil || filepath.Base(exe) != "hubd" {
+		return
+	}
+	root := filepath.Clean(filepath.Join(filepath.Dir(exe), ".."))
+	script := filepath.Join(root, "scripts", "start-termux.sh")
+	if fi, err := os.Stat(script); err != nil || fi.IsDir() {
+		return
+	}
+	h.SetRestartHandler(func() error {
+		logPath := filepath.Join(root, "logs", "ui-restart.log")
+		out, err := os.OpenFile(logPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
+		if err != nil {
+			return err
+		}
+		defer out.Close()
+		cmd := exec.Command("bash", script, "--restart-from-pid", strconv.Itoa(os.Getpid()))
+		cmd.Dir = root
+		cmd.Stdin = nil
+		cmd.Stdout = out
+		cmd.Stderr = out
+		cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
+		if err := cmd.Start(); err != nil {
+			return err
+		}
+		// The child continues after hubd has gracefully shut down its sidecars.
+		return cmd.Process.Release()
+	})
 }
