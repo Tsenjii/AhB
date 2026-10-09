@@ -2,6 +2,9 @@ package hub
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/subtle"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -27,6 +30,8 @@ type Hub struct {
 	client    *http.Client
 	balance   fallbackBalancer
 	runWG     sync.WaitGroup
+	controlToken string
+	restartFn func() error
 }
 
 type runtimeProvider struct {
@@ -94,6 +99,11 @@ func New(cfg config.Config) *Hub {
 		providers: make(map[string]*runtimeProvider),
 		client:    &http.Client{Transport: transport},
 	}
+	// Ephemeral page-bound CSRF token. Never persist or log the token.
+	var nonce [32]byte
+	if _, err := rand.Read(nonce[:]); err == nil {
+		h.controlToken = hex.EncodeToString(nonce[:])
+	}
 	for _, p := range cfg.Providers {
 		rp := &runtimeProvider{cfg: p}
 		if p.Enabled {
@@ -148,6 +158,7 @@ func (h *Hub) Handler() http.Handler {
 	mux.HandleFunc("/healthz", h.handleHealth)
 	mux.HandleFunc("/api/providers", h.handleProviders)
 	mux.HandleFunc("/api/runtime", h.handleRuntime)
+	mux.HandleFunc("/api/control/restart", h.handleControlRestart)
 	mux.HandleFunc("/v1/models", h.handleModels)
 	mux.HandleFunc("/v1/chat/completions", h.handleProxy)
 	mux.HandleFunc("/v1/completions", h.handleProxy)
@@ -788,5 +799,62 @@ func writeError(w http.ResponseWriter, status int, kind, message string) {
 func requestLogMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		next.ServeHTTP(w, r)
+	})
+}
+ // SetRestartHandler installs the local Android/Termux restart hook before
+ // the server starts. In tests and on non-Termux systems it remains disabled.
+func (h *Hub) SetRestartHandler(fn func() error) {
+	h.restartFn = fn
+}
+
+func (h *Hub) authorizeLocalControl(w http.ResponseWriter, r *http.Request) bool {
+	// Local-only management: never permit controls from a LAN-exposed Hub.
+	if h.cfg.AllowLAN || h.controlToken == "" || h.restartFn == nil {
+		http.Error(w, "Local Termux controls unavailable", http.StatusForbidden)
+		return false
+	}
+	listenHost, _, err := net.SplitHostPort(h.cfg.Listen)
+	if err != nil || !(listenHost == "localhost" || (net.ParseIP(listenHost) != nil && net.ParseIP(listenHost).IsLoopback())) {
+		http.Error(w, "Local controls require a loopback listener", http.StatusForbidden)
+		return false
+	}
+	host, _, err := net.SplitHostPort(r.Host)
+	if err != nil || !(host == "localhost" || (net.ParseIP(host) != nil && net.ParseIP(host).IsLoopback())) {
+		http.Error(w, "Local controls require a loopback host", http.StatusForbidden)
+		return false
+	}
+	remoteHost, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil || net.ParseIP(remoteHost) == nil || !net.ParseIP(remoteHost).IsLoopback() {
+		http.Error(w, "Local controls require a loopback client", http.StatusForbidden)
+		return false
+	}
+	// An Origin check plus an unguessable, page-local header protects against
+	// a hostile website submitting blind POSTs to the localhost API.
+	if r.Header.Get("Origin") != "http://"+r.Host ||
+		subtle.ConstantTimeCompare([]byte(r.Header.Get("X-AhB-Control-Token")), []byte(h.controlToken)) != 1 {
+		http.Error(w, "Invalid local UI authorization", http.StatusForbidden)
+		return false
+	}
+	return true
+}
+
+func (h *Hub) handleControlRestart(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
+	if r.Method != http.MethodPost {
+		w.Header().Set("Allow", "POST")
+		http.Error(w, "POST required", http.StatusMethodNotAllowed)
+		return
+	}
+	if !h.authorizeLocalControl(w, r) {
+		return
+	}
+	if err := h.restartFn(); err != nil {
+		// Do not expose filesystem paths or any internal details to the UI.
+		http.Error(w, "Restart could not be scheduled; original AhB remains running", http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusAccepted, map[string]string{
+		"status": "scheduled",
+		"message": "AhB will shut down cleanly and restart; the Termux app remains open.",
 	})
 }
