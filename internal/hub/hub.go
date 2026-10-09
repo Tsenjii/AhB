@@ -32,6 +32,7 @@ type Hub struct {
 	runWG     sync.WaitGroup
 	controlToken string
 	restartFn func() error
+	updateFn func() error
 	controlConfigPath string
 	controlMu sync.Mutex
 	controlPending bool
@@ -162,6 +163,7 @@ func (h *Hub) Handler() http.Handler {
 	mux.HandleFunc("/api/providers", h.handleProviders)
 	mux.HandleFunc("/api/runtime", h.handleRuntime)
 	mux.HandleFunc("/api/control/restart", h.handleControlRestart)
+	mux.HandleFunc("/api/control/update", h.handleControlUpdate)
 	mux.HandleFunc("/api/control/provider/", h.handleControlProvider)
 	mux.HandleFunc("/v1/models", h.handleModels)
 	mux.HandleFunc("/v1/chat/completions", h.handleProxy)
@@ -805,7 +807,40 @@ func requestLogMiddleware(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
- // SetRestartHandler installs the local Android/Termux restart hook before
+ // SetUpdateHandler enables the fixed bundled prebuilt updater only on Android.
+func (h *Hub) SetUpdateHandler(fn func() error) {
+ h.updateFn = fn
+}
+
+func (h *Hub) handleControlUpdate(w http.ResponseWriter, r *http.Request) {
+ w.Header().Set("Cache-Control", "no-store")
+ if r.Method != http.MethodPost {
+  w.Header().Set("Allow", "POST")
+  http.Error(w, "POST required", http.StatusMethodNotAllowed)
+  return
+ }
+ if !h.authorizeLocalControl(w,r){return}
+ h.controlMu.Lock()
+ defer h.controlMu.Unlock()
+ if h.controlPending {
+  http.Error(w, "Another AhB operation is pending", http.StatusConflict)
+  return
+ }
+ if h.updateFn == nil {
+  http.Error(w, "Automatic upgrades unavailable", http.StatusForbidden)
+  return
+ }
+ if err:=h.updateFn(); err!=nil {
+  http.Error(w, "Could not launch AhB updater; original service is unchanged", http.StatusInternalServerError)
+  return
+ }
+ h.controlPending=true
+ writeJSON(w,http.StatusAccepted,map[string]string{
+  "status":"scheduled","message":"Checking published Android package; upgrades keep backups and start AhB again.",
+ })
+}
+
+// SetRestartHandler installs the local Android/Termux restart hook before
  // the server starts. In tests and on non-Termux systems it remains disabled.
 func (h *Hub) SetRestartHandler(fn func() error) {
 	h.restartFn = fn
