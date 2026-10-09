@@ -2,14 +2,14 @@
 
 ## What is actually bundled
 
-Android ARM64 base package contains **seven** real provider processes: OpenCode
+Android ARM64 base package contains **nine** real provider processes: OpenCode
 (Go), FreeBuff (Node 22), Agent2API (Rust), DeepSeek (Go), Grok (Go), Kiro
-(Go), and Copilot (Go). The AhB Hub is a separate Go process.
+(Go), Copilot (Go), Gemini Web (Go), and Duck.ai (Go). The AhB Hub is a separate Go process.
 
 LMArena is an **external** third-party bridge and is not installed by the
 bundle. Kimi Web is **not bundled**; the legacy Python installer remains only
 for existing users until a reliable replacement is validated. Windsurf, Qwen,
-Gemini, Claude and any other imported local gateways must be installed and
+Claude and any other imported local gateways must be installed and
 run independently; no such gateway is silently bundled.
 
 The default `config.example.json` no longer pretends uninstalled bridges are
@@ -19,7 +19,7 @@ are removed in the course of cleanup.
 
 ## Low RAM mode
 
-On a **fresh** installation all seven bundled entries default to
+On a **fresh** installation all nine bundled entries default to
 `enabled=true` but `start_mode=on_demand`: "enabled" means *permitted to
 start*, not *seven simultaneous running background services*.
 
