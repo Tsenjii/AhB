@@ -1,24 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 cd "$ROOT"
-
-mkdir -p logs data/opencode data/freebuff
-
-if [ ! -x ./bin/hubd ]; then
-  echo "bin/hubd not found"
-  exit 1
-fi
-
-if [ ! -f config.json ]; then
-  cp config.example.json config.json
-fi
-if [ ! -f data/opencode/config.json ]; then
-  cp configs/opencode2api.json data/opencode/config.json
-fi
-if [ ! -f data/freebuff/config.json ]; then
-  cp configs/freebuff2api.json data/freebuff/config.json
-fi
-
+[ "$(uname -s)" = Linux ] || { echo "Linux required" >&2; exit 1; }
+[ -x ./bin/hubd ] || { echo "Missing native Linux hubd; install the Linux release bundle" >&2; exit 1; }
+command -v jq >/dev/null || { echo "Missing jq (apt install jq)" >&2; exit 1; }
+command -v node >/dev/null || { echo "Missing Node.js runtime for bundled FreeBuff" >&2; exit 1; }
+umask 077
+bash ./scripts/prepare-configs.sh
 exec ./bin/hubd -config ./config.json
