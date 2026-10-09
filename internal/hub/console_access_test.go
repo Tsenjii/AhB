@@ -99,3 +99,15 @@ func TestConsoleAccessRejectsCrossOriginAndUnsafeFilesystem(t *testing.T){
   t.Fatalf("symlinked admin config unexpectedly accepted: %d",rec.Code)
  }
 }
+
+func TestLocalAdminDashboardRefusesCrossOriginFraming(t *testing.T){
+ h,_:=adminFixture(t)
+ rec:=httptest.NewRecorder()
+ req:=httptest.NewRequest(http.MethodGet,"http://127.0.0.1:8317/ui",nil)
+ h.Handler().ServeHTTP(rec,req)
+ if rec.Code!=200 {t.Fatalf("dashboard status: %d",rec.Code)}
+ if rec.Header().Get("X-Frame-Options")!="DENY" ||
+  !strings.Contains(rec.Header().Get("Content-Security-Policy"),"frame-ancestors 'none'") {
+  t.Fatal("private credential-access UI is vulnerable to iframe clickjacking")
+ }
+}
