@@ -59,7 +59,7 @@
     {
       "id": "agent2api",
       "display_name": "Agent2API",
-      "description": "WorkBuddy CN/Intl / KukuAI / CodeArts / Qoder / Cline / Trae / Loomy and more",
+      "description": "Optional: WorkBuddy CN/Intl / KukuAI / CodeArts / Qoder / Cline / Trae / Loomy and more",
       "enabled": true,
       "kind": "sidecar",
       "base_url": "http://127.0.0.1:8403",
@@ -83,7 +83,7 @@
     {
       "id": "deepseek",
       "display_name": "DeepSeek Web",
-      "description": "DeepSeek Web multi-account gateway via Deepseek2API",
+      "description": "Optional: DeepSeek Web multi-account gateway via Deepseek2API",
       "enabled": true,
       "kind": "sidecar",
       "base_url": "http://127.0.0.1:8405",
@@ -111,7 +111,7 @@
     {
       "id": "grok",
       "display_name": "Grok",
-      "description": "Grok Build / Web / Console multi-account gateway via Grok2API",
+      "description": "Optional: Grok Build / Web / Console multi-account gateway via Grok2API",
       "enabled": true,
       "kind": "sidecar",
       "base_url": "http://127.0.0.1:8407",
@@ -140,7 +140,7 @@
     {
       "id": "kiro",
       "display_name": "Kiro",
-      "description": "Kiro multi-account gateway via Kiro-Go",
+      "description": "Optional: Kiro multi-account gateway via Kiro-Go",
       "enabled": true,
       "kind": "sidecar",
       "base_url": "http://127.0.0.1:8408",
@@ -189,6 +189,61 @@
       "max_restarts": 3,
       "startup_timeout_seconds": 90,
       "start_mode": "on_demand"
+    },
+    {
+      "id": "geminiweb",
+      "display_name": "Gemini Web",
+      "description": "Gemini Web Go bridge (cookie pool; anonymous free-tier chat; unofficial)",
+      "enabled": true,
+      "kind": "sidecar",
+      "start_mode": "on_demand",
+      "base_url": "http://127.0.0.1:8413",
+      "ui_url": "http://127.0.0.1:8413/admin",
+      "docs_url": "https://github.com/zexadev/gemini-web2api-go",
+      "binary": "./bin/gemini-web2api-go",
+      "args": [
+        "--port",
+        "8413",
+        "--config",
+        "config.json"
+      ],
+      "work_dir": "./data/geminiweb",
+      "env": {
+        "API_KEY": "__AIHUB_SERVER_KEY__",
+        "ADMIN_TOKEN": "__AIHUB_SERVER_KEY__"
+      },
+      "headers": {
+        "Authorization": "Bearer __AIHUB_SERVER_KEY__"
+      },
+      "health_path": "/",
+      "models_path": "/v1/models",
+      "max_restarts": 3,
+      "startup_timeout_seconds": 60
+    },
+    {
+      "id": "duckai",
+      "display_name": "DuckDuckGo AI",
+      "description": "Duck.ai Go bridge (anonymous chat, multimodal endpoints; unofficial)",
+      "enabled": true,
+      "kind": "sidecar",
+      "start_mode": "on_demand",
+      "base_url": "http://127.0.0.1:8414",
+      "ui_url": "",
+      "docs_url": "https://github.com/aurora-develop/duck2api",
+      "binary": "./bin/duck2api",
+      "work_dir": "./data/duckai",
+      "env": {
+        "SERVER_HOST": "127.0.0.1",
+        "SERVER_PORT": "8414",
+        "Authorization": "__AIHUB_SERVER_KEY__"
+      },
+      "headers": {
+        "Authorization": "Bearer __AIHUB_SERVER_KEY__"
+      },
+      "health_path": "/ping",
+      "models_path": "/v1/models",
+      "max_restarts": 3,
+      "startup_timeout_seconds": 60
     }
   ],
   "routes": [],
