@@ -98,8 +98,7 @@ func (h *Hub) handleControlProvider(w http.ResponseWriter, r *http.Request) {
   // finish an authorized device flow before turning this source on.
   if *input.Enabled && id == "copilot" {
    root := filepath.Dir(path)
-   creds := filepath.Join(root,"data","copilot2api","credentials.json")
-   if cred, e := os.Stat(creds); e != nil || cred.Size()==0 {
+   if !copilotHasLocalCredentials(root) {
     http.Error(w,"Copilot: finish GitHub device authorization first",409);return
    }
   }
