@@ -51,15 +51,15 @@ if command -v jq >/dev/null 2>&1 && [ -f config.json ]; then
           ) | not)
         ))
       # Existing user-selected on/off flags stay untouched. Newly installed
-      # providers are enabled but sleep until used; avoid seven runtimes at boot.
+      # providers are enabled but sleep until used, respecting this bundle\x27s profile.
       | .providers |= map(
           if (.id as $id | ["opencode","freebuff","agent2api","deepseek","grok","kiro","copilot"] | index($id)) != null
           then .start_mode = (.start_mode // "on_demand")
           else . end
         )
       | .resources = ((.resources // {}) + {
-          "max_running_sidecars": ((.resources.max_running_sidecars // 1)),
-          "idle_stop_seconds": ((.resources.idle_stop_seconds // 120))
+          "max_running_sidecars": ((.resources.max_running_sidecars // $example[0].resources.max_running_sidecars // 3)),
+          "idle_stop_seconds": ((.resources.idle_stop_seconds // $example[0].resources.idle_stop_seconds // 900))
         })
       | (.providers[] | select(.id == "opencode") | .env) =
           (((.providers[] | select(.id == "opencode") | .env) // {}) + {"GODEBUG":"netdns=cgo"})
