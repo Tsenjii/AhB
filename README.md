@@ -43,7 +43,7 @@ environment and Node.js for FreeBuff. See
 [512 MB VPS guide](docs/DEPLOY_VPS_512MB.md) and
 [technical constraints](docs/512MB-DEPLOYMENT.md).
 
-**Release status (2026-10-09):** main source `570ef0e7af7eceb06bf428f71a5d76259782acb8` passed source CI and Android ARM64/native Linux AMD64/ARM64 builds. The Android `prebuilt/source-commit.txt` matches this SHA, and the Linux release is [published](https://github.com/Tsenjii/AhB/releases/tag/linux-570ef0e7af7e). **This confirms packages, not a successful upgrade on the user's phone or a real 512 MiB VPS OOM/inference test.** Preserve account data and backups; do not install Android packages on Linux.
+**Release status (2026-10-10):** main source `0f48b1165b468658e34ea273f3a9b02ed147b2af` passed full CI/race and Android ARM64/native Linux AMD64/ARM64 bundle builds; the Android `prebuilt/source-commit.txt` matches this SHA and the checksum-verified [native Linux release](https://github.com/Tsenjii/AhB/releases/tag/linux-0f48b1165b46) is published. Android upgrades still require user action; packaging success is not evidence of real account quota, WebUI SSO, or live OAuth on the phone.
 
 ## Unified API
 
@@ -133,7 +133,7 @@ cd ~/AhB
 
 This reports all nine bundled sources (OpenCode, FreeBuff, Agent2API, DeepSeek Web, Grok, Kiro, GitHub Copilot, Gemini Web and Duck.ai), plus separately the optional Kimi Web, including enabled status, process health, ready/account-count layers, model count and recent upstream HTTP code. It **never** reads or prints individual account details/tokens and does **not** spend inference quota. Unknown states remain UNKNOWN; HTTP 200 is not evidence of completed streaming/tools or actual available balance. See [provider stability rollout](docs/PROVIDER_STABILITY_2026-10-09.md).
 
-**FreeBuff on Android:** the current Node.js gateway has no old Rust `/ui` account manager. Run `./scripts/check-freebuff-login.sh` for metadata-only readiness; if there are no authorized CLI/Bearer accounts, use `./scripts/freebuff-login-termux.sh` and follow the device-code login. Older Web Cookie files remain backed up but cannot be reused as Node CLI credentials. See [FreeBuff Android login guide](docs/FREEBUFF_ANDROID_LOGIN.md).
+**FreeBuff on Android:** the Node.js gateway has no old Rust `/ui` account manager. Instead open AhB Dashboard → **帳號與登入 → FreeBuff** and click **以 Google 登入 FreeBuff** to launch its existing official Codebuff CLI browser authorization; after approval, AhB saves only the authorized token to the private credential directory and offers **重新載入 FreeBuff 帳號**. A manual fallback remains `./scripts/freebuff-login-termux.sh`. Old Web Cookies cannot be reused as new CLI credentials. See [FreeBuff guide](docs/FREEBUFF_ANDROID_LOGIN.md) and [Android final acceptance](docs/ANDROID_FINAL_ACCEPTANCE.md).
 
 ## Fastest Android install
 
@@ -161,7 +161,7 @@ The upgrade first verifies the downloaded archive, then preserves `config.json`,
 
 Start the upgraded Hub with `cd ~/AhB && ./scripts/run-termux.sh`. In a second Termux session, run `./scripts/doctor-termux.sh` and `./scripts/smoke.sh`. New optional providers still require setup and real-device account/inference tests; a green CI build does not prove those paths work on Android.
 
-**Release gate verified 2026-10-09:** Android ARM64 `prebuilt/source-commit.txt` equals `5841235cde0465fc29bec06fc584d4526d971c47`; [Android build](https://github.com/Tsenjii/AhB/actions/runs/37921364600) and [source CI](https://github.com/Tsenjii/AhB/actions/runs/37921364712) both succeeded. This is **not** proof the user's installed phone version has changed or every provider account can infer. The [2026-10-08 inventory](docs/CURRENT_FEATURES_AND_PLATFORMS_2026-10-08.md) is historical and does not describe the new nine-gateway release.
+**Release gate verified 2026-10-10:** Android ARM64 `prebuilt/source-commit.txt` matches `0f48b1165b468658e34ea273f3a9b02ed147b2af` ([Android build](https://github.com/Tsenjii/AhB/actions/runs/37973222819)), native Linux AMD64/ARM64 build and release succeeded ([Linux build](https://github.com/Tsenjii/AhB/actions/runs/37973222867)), and [source CI](https://github.com/Tsenjii/AhB/actions/runs/37973223002) passed. This is not a phone installation or real credential/SSO/streaming entitlement test. For the one-time Android update see [final acceptance](docs/ANDROID_FINAL_ACCEPTANCE.md).
 
 The public ARM64 bundle is rebuilt by GitHub Actions from pinned upstream versions and currently contains:
 
