@@ -75,7 +75,10 @@ export PATH="$TMP/shims:$PATH"
 export AIHUB_PREBUILT_BASE="file://$TMP/assets"
 export AIHUB_INSTALL_DIR="$OLD"
 export AIHUB_TEST_STOP_MARKER="$TMP/stopped.marker"
-bash "$ROOT/scripts/upgrade-prebuilt-termux.sh" > "$TMP/output.txt"
+if ! bash "$ROOT/scripts/upgrade-prebuilt-termux.sh" > "$TMP/output.txt" 2>&1; then
+  cat "$TMP/output.txt" >&2
+  exit 1
+fi
 
 test -e "$AIHUB_TEST_STOP_MARKER"
 test "$(cat "$OLD/data/opencode/account.txt")" = "secret account state"
