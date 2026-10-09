@@ -41,5 +41,18 @@ assert Path("scripts/enable-kimiweb-termux.sh").is_file()
 workflow=Path(".github/workflows/build-android-arm64.yml").read_text()
 for name in ("copilot2api","enable-copilot2api.sh","login-copilot2api.sh","install-kimiweb-termux.sh","enable-kimiweb-termux.sh"):
     assert name in workflow, name
-print("registry and optional source wiring verified",len(ids),"candidates")
+for path in (".github/workflows/build-android-arm64.yml",".github/workflows/build-linux.yml"):
+    build=Path(path).read_text()
+    for binary in ("gemini-web2api-go", "duck2api"):
+        assert binary in build, (path,binary)
+assert Path("configs/geminiweb.json").is_file()
+for config in (cfg,linux):
+    gemini=next(x for x in config["providers"] if x["id"]=="geminiweb")
+    duck=next(x for x in config["providers"] if x["id"]=="duckai")
+    assert gemini["base_url"]=="http://127.0.0.1:8413"
+    assert gemini["env"]["API_KEY"]=="__AIHUB_SERVER_KEY__"
+    assert duck["base_url"]=="http://127.0.0.1:8414"
+    assert duck["env"]["SERVER_HOST"]=="127.0.0.1"
+    assert duck["env"]["Authorization"]=="__AIHUB_SERVER_KEY__"
+print("registry and native Android/Linux provider wiring verified",len(ids),"candidates")
 PY
