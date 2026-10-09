@@ -13,6 +13,7 @@ cat > "$TMP/AhB/config.json" <<'JSON'
   "allow_lan":false,
   "providers":[
     {"id":"opencode","enabled":true,"kind":"sidecar","headers":{"Authorization":"Bearer preserved-user-secret"},"env":{"CUSTOM":"preserved"}},
+    {"id":"copilot","enabled":false,"kind":"sidecar","base_url":"http://127.0.0.1:8410","binary":"./bin/copilot2api","env":{"MY_COPILOT_SETTING":"preserved"}},
     {"id":"custom-provider","enabled":false,"kind":"external","base_url":"http://127.0.0.1:9001","headers":{"Authorization":"Bearer preserved-bridge-secret"}}
   ],
   "routing":{"same_model_fallback":{"enabled":false,"providers":["opencode"]}},
@@ -24,7 +25,7 @@ cd "$TMP/AhB"
 bash scripts/prepare-configs.sh
 jq -e '
   (.providers | map(.id) | unique | length) == (.providers | length)
-  and (any(.providers[]; .id == "copilot" and .enabled == false and .env.GODEBUG == "netdns=cgo"))
+  and (any(.providers[]; .id == "copilot" and .enabled == false and .env.GODEBUG == "netdns=cgo" and .env.MY_COPILOT_SETTING == "preserved"))
   and (any(.providers[]; .id == "kimiweb" and .enabled == false))
   and (any(.providers[]; .id == "grok" and .enabled == false))
   and (any(.providers[]; .id == "custom-provider" and .headers.Authorization == "Bearer preserved-bridge-secret"))
