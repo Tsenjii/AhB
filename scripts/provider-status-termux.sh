@@ -2,7 +2,7 @@
 set -euo pipefail
 umask 077
 
-# Read-only inventory for seven bundled providers, plus optional Kimi Web.
+# Read-only inventory for nine bundled providers, plus optional Kimi Web.
 # Never prints credentials, model prompts, provider errors or token fields.
 BASE="${AIHUB_BASE:-http://127.0.0.1:8317}"
 case "$BASE" in
@@ -31,7 +31,7 @@ if ! curl -fsS --max-time 30 -o "$tmp/models" "$BASE/v1/models" 2>/dev/null ||
 fi
 
 printf '%-11s %-8s %-10s %-9s %-10s %-8s %-10s\n' "SOURCE" "ENABLED" "PROCESS" "READY" "ACCOUNTS" "MODELS" "LAST_HTTP"
-for id in opencode freebuff agent2api deepseek grok kiro copilot kimiweb; do
+for id in opencode freebuff agent2api deepseek grok kiro copilot geminiweb duckai kimiweb; do
   status="$(jq -cr --arg id "$id" '.providers[] | select(.id == $id)' "$tmp/providers")"
   if [ -z "$status" ]; then
     printf '%-11s %-8s %-10s %-9s %-10s %-8s %-10s\n' "$id" "-" "MISSING" "-" "-" "-" "-"
