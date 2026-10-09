@@ -15,6 +15,9 @@ type runtimeStats struct {
 	Goroutines  int    `json:"goroutines"`
 	HeapBytes   uint64 `json:"heap_bytes"`
 	ProcessRSS  int64  `json:"process_rss_bytes,omitempty"`
+	MaxRunningSidecars int `json:"max_running_sidecars,omitempty"`
+	IdleStopSeconds int `json:"idle_stop_seconds,omitempty"`
+	RunningOnDemand int `json:"running_on_demand"`
 }
 
 func collectRuntimeStats() runtimeStats {
