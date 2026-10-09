@@ -17,6 +17,14 @@ type Config struct {
 	Providers []ProviderConfig `json:"providers"`
 	Routing   RoutingConfig    `json:"routing,omitempty"`
 	Routes    []RouteConfig    `json:"routes,omitempty"`
+	Resources ResourceConfig `json:"resources,omitempty"`
+}
+
+// ResourceConfig limits optional on-demand sidecars on small Termux hosts.
+// Existing configs with no resources/start_mode keep their original always-on behavior.
+type ResourceConfig struct {
+	MaxRunningSidecars int `json:"max_running_sidecars,omitempty"`
+	IdleStopSeconds int `json:"idle_stop_seconds,omitempty"`
 }
 
 type RoutingConfig struct {
@@ -40,6 +48,7 @@ type ProviderConfig struct {
 	DisplayName           string            `json:"display_name,omitempty"`
 	Description           string            `json:"description,omitempty"`
 	Enabled               bool              `json:"enabled"`
+	StartMode string `json:"start_mode,omitempty"`
 	Kind                  string            `json:"kind"`
 	BaseURL               string            `json:"base_url"`
 	UIURL                 string            `json:"ui_url,omitempty"`
@@ -112,6 +121,8 @@ func Load(path string) (Config, error) {
 			p.WorkDir = filepath.Join(root, p.WorkDir)
 		}
 	}
+	if cfg.Resources.MaxRunningSidecars == 0 { cfg.Resources.MaxRunningSidecars = 1 }
+	if cfg.Resources.IdleStopSeconds == 0 { cfg.Resources.IdleStopSeconds = 120 }
 	if err := cfg.Validate(); err != nil {
 		return Config{}, err
 	}
@@ -122,6 +133,8 @@ func (c Config) Validate() error {
 	if err := validateListen(c.Listen, c.AllowLAN); err != nil {
 		return err
 	}
+	if c.Resources.MaxRunningSidecars < 0 || c.Resources.MaxRunningSidecars > 16 {return fmt.Errorf("max_running_sidecars must be between 1 and 16")}
+	if c.Resources.IdleStopSeconds < 0 || c.Resources.IdleStopSeconds > 86400 {return fmt.Errorf("idle_stop_seconds must be between 30 and 86400")}
 	seen := map[string]struct{}{}
 	for _, p := range c.Providers {
 		id := strings.TrimSpace(p.ID)
@@ -150,6 +163,12 @@ func (c Config) Validate() error {
 			}
 		}
 
+		if p.StartMode != "" && p.StartMode != "always" && p.StartMode != "on_demand" {
+			return fmt.Errorf("provider %q: start_mode must be always or on_demand", id)
+		}
+		if p.Kind == "external" && p.StartMode == "on_demand" {
+			return fmt.Errorf("provider %q: external connections cannot be started on demand", id)
+		}
 		if !p.Enabled {
 			continue
 		}
