@@ -29,6 +29,13 @@ mkdir -p data
 printf 'ready\n' > data/migration-tested.txt
 EOF
 chmod +x "$NEW/scripts/prepare-configs.sh"
+# Simulate a real released bundle: all published AhB archives include the
+# stop helper, even when the old installation was a three-provider release.
+cat > "$NEW/scripts/stop-termux.sh" <<'EOF'
+#!/usr/bin/env bash
+exit 0
+EOF
+chmod +x "$NEW/scripts/stop-termux.sh"
 printf '{"providers":[{"id":"new"}]}\n' > "$NEW/config.example.json"
 
 for path in data/freebuff/gateway data/agent2api/ui data/deepseek2api/static/admin data/grok2api/frontend/dist data/kiro-go/web; do
