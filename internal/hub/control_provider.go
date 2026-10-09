@@ -17,6 +17,11 @@ import (
 // The original file remains untouched on malformed config or failed validation.
 func (h *Hub) SetControlConfigPath(path string) {
  h.controlConfigPath = path
+ // Persist only non-secret model metadata next to the caller's private
+ // config/data tree. The cache is not part of the upstream credentials.
+ if root, err := filepath.Abs(filepath.Dir(path)); err == nil {
+  h.modelCache.load(filepath.Join(root, "data", "hub-model-catalog.json"), h.providers)
+ }
 }
 
 func atomicControlConfig(path string, raw []byte) error {
