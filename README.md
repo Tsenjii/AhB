@@ -164,9 +164,9 @@ The public ARM64 bundle is rebuilt by GitHub Actions from pinned upstream versio
 - `freebuff2api` (Node.js launcher; gateway sources under `data/freebuff/gateway/`)
 - `agent2api-server`
 - Agent2API's original management UI
-- `deepseek2api` (disabled by default)
+- `deepseek2api` (configured on demand; authenticated inference not yet verified)
 - DeepSeek2API's original management UI
-- `grok2api` (disabled by default)
+- `grok2api` (configured on demand; authenticated inference not yet verified)
 - Grok2API's original management UI
 - `kiro-go` and its original management UI
 - `copilot2api` (requires authorized account login)
@@ -256,7 +256,7 @@ The bridge must itself be installed, running, and legitimately usable. The prese
 ### Optional Grok2API provider
 
 The Android prebuilt contains the pinned Grok2API backend and its original Web
-UI, but the provider is disabled until it is initialized:
+UI. Its account/admin setup is not complete until it is initialized:
 
 ```sh
 ./scripts/enable-grok2api.sh
@@ -271,7 +271,7 @@ process lifecycle control to hubd.
 ### Optional Kiro-Go provider
 
 The Android bundle also contains a pinned Kiro-Go binary and its original Web
-admin. It stays disabled until requested:
+admin. Complete its account initialization before attempting real inference:
 
 ```sh
 ./scripts/enable-kiro-go.sh
@@ -298,7 +298,7 @@ cd ~/AhB
 ./scripts/stop-termux.sh && ./scripts/start-termux.sh
 ```
 
-The Kimi Web native admin is `http://127.0.0.1:8412/admin`. Its password is stored privately in `data/kimiweb/admin-password.txt`. The `kimiweb/` managed adapter is separate from the original `kimi/` connection preset. Avoid adding duplicate account sources or auto-starting every service; optional providers are disabled by default. See [curated installation and optimization plan](docs/TO_API_INSTALL_AND_OPTIMIZATION_PLAN.md).
+The Kimi Web native admin is `http://127.0.0.1:8412/admin`. Its password is stored privately in `data/kimiweb/admin-password.txt`. The `kimiweb/` managed adapter is separate from the original `kimi/` connection preset. Avoid adding duplicate account sources or auto-starting every service; unconfigured sources are not usable for inference until authorized; on-demand services stay asleep when idle. See [curated installation and optimization plan](docs/TO_API_INSTALL_AND_OPTIMIZATION_PLAN.md).
 
 **Source status is distinct from usage entitlement:** a HEALTHY process, two configured credentials or a listed model do not prove quota availability. In the user's Android smoke test Agent2API returned HTTP 503 from two exhausted accounts. Treat provider quota and real inference as separate checks.
 
