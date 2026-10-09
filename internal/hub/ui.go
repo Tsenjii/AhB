@@ -72,6 +72,12 @@ h2{font-size:13px;margin:0;font-weight:680}
 .layer b{color:#c9d0d8;font-weight:620}
 .provider-actions{display:flex;gap:6px;justify-content:flex-end}
 .provider-error{font-size:10px;color:#e69ca2;margin-top:8px;line-height:1.45}
+.provider-recovery-note{font-size:11px;color:var(--warn);margin-top:9px}
+.proxy-config{margin-top:9px;border-top:1px solid var(--line2);padding-top:8px;color:var(--muted);font-size:11px}
+.proxy-config summary{cursor:pointer;min-height:36px;display:flex;align-items:center;gap:8px}
+.proxy-input-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:8px}
+.proxy-input-row input{flex:1;min-width:180px;background:#111419;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:11px;font-size:13px}
+.proxy-help{font-size:10px;color:var(--subtle);line-height:1.5;margin-top:6px}
 .search{width:min(310px,48vw);background:#111419;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12px;outline:none}
 .search:focus{border-color:#535d69}
 .table-wrap{border:1px solid var(--line);border-radius:10px;overflow:auto;background:var(--panel)}
@@ -229,7 +235,7 @@ th,td{font-size:12px}
    <div class="field"><label for="maxResident">同時最多常駐幾個轉接器？</label><input id="maxResident" type="number" min="1" max="16" step="1" inputmode="numeric" value="1"></div>
    <div class="field"><label for="idleTimeout">閒置多久自動關閉？（秒）</label><input id="idleTimeout" type="number" min="30" max="86400" step="1" inputmode="numeric" value="120"></div>
    <div class="command-actions"><button type="button" id="saveResourceSettings" disabled>儲存資源設定</button></div>
-   <div class="command-help">儲存後只重啟 AhB 自己的服務；不會刪除帳號或登入。正在進行的推理請求可能中斷。此數量不包含 AhB 主程式。</div>
+   <div class="command-help">儲存後只重啟 AhB 自己的服務；不會刪除帳號或登入。正在進行的推理請求可能中斷。此數量不包含 AhB 主程式。若只有某個 Gateway 發生 503，先檢查登入與額度，再用首頁的「單獨重啟」，不必重啟整個 AhB。</div>
   </div>
  </div>
 </section>
@@ -498,6 +504,48 @@ document.getElementById('providers').addEventListener('change',e=>{
  if(input)toggleProvider(input.dataset.providerToggle,input.checked);
 });
 document.getElementById('providers').addEventListener('click',async e=>{
+ const recover=e.target.closest('button[data-provider-recover]');
+ if(recover){
+  const id=recover.dataset.providerRecover;
+  if(!confirm('只重新啟動 '+id+'？進行中的推論不會被中斷。503 可能是額度或登入問題，重啟不保證修好。'))return;
+  recover.disabled=true;recover.textContent='重啟中…';
+  try{
+   const res=await fetch('/api/control/recover/'+encodeURIComponent(id),{
+    method:'POST',credentials:'same-origin',cache:'no-store',
+    headers:{'X-AhB-Control-Token':ahbControlToken,'Content-Type':'application/json'},body:'{}'
+   });
+   if(!res.ok)throw new Error((await res.text()).trim().slice(0,170)||'HTTP '+res.status);
+   const doc=await res.json();
+   controlNotice(id+' 已重啟'+(doc.ready?'，健康檢查通過。':'，但帳號或健康狀態仍待驗證。')+' 不會自動重送之前的請求。');
+  }catch(error){controlNotice(id+' 無法安全重啟：'+error.message)}
+  await refresh();return;
+ }
+ const proxyButton=e.target.closest('button[data-provider-proxy]');
+ if(proxyButton){
+  const id=proxyButton.dataset.providerProxy;
+  const area=proxyButton.closest('details');
+  const input=area&&area.querySelector('input[data-provider-proxy-url]');
+  if(!input)return;
+  const proxy=input.value.trim();
+  if(proxy&&!(proxy.startsWith('http://')||proxy.startsWith('https://')||proxy.startsWith('socks5://'))){
+   controlNotice('Proxy URL 只接受 http://、https:// 或 socks5://，且不能包含帳密。');return
+  }
+  if(!confirm((proxy?'設定':'清除')+' '+id+' 的程序出站 Proxy？這會重啟整個 AhB，請先結束推論。帳號級 Proxy 應優先使用來源原生介面。'))return;
+  proxyButton.disabled=true;
+  try{
+   const res=await fetch('/api/control/proxy/'+encodeURIComponent(id),{
+    method:'POST',credentials:'same-origin',cache:'no-store',
+    headers:{'X-AhB-Control-Token':ahbControlToken,'Content-Type':'application/json'},
+    body:JSON.stringify({proxy_url:proxy})
+   });
+   if(!res.ok)throw new Error((await res.text()).trim().slice(0,160)||'HTTP '+res.status);
+   const doc=await res.json();
+   if(doc.status==='unchanged'){controlNotice('出站 Proxy 設定沒有變更。');await refresh();return}
+   controlNotice(id+' Proxy 政策已儲存，正在重新啟動 AhB。');
+   setTimeout(()=>location.reload(),8500);
+  }catch(err){proxyButton.disabled=false;controlNotice('儲存 Proxy 失敗：'+err.message)}
+  return;
+ }
  const button=e.target.closest('button[data-provider-wake]');
  if(!button)return;
  const id=button.dataset.providerWake;
@@ -618,7 +666,10 @@ async function refresh(){
     '<div class="provider-actions">'+
       '<label class="ui-toggle"><input type="checkbox" data-provider-toggle="'+esc(x.id)+'" '+(x.enabled?'checked ':'')+(!ahbProviderControlAvailable?'disabled ':'')+' aria-label="'+esc(x.display_name||x.id)+' 啟用或停用"><span>'+(x.enabled?'已開啟':'已關閉')+'</span></label>'+
       (enabled&&x.start_mode==='on_demand'&&!x.process_alive?'<button type="button" class="btn" data-provider-wake="'+esc(x.id)+'" '+(!ahbProviderControlAvailable?'disabled':'')+'>啟動並載入模型</button>':'')+
+      (enabled&&x.start_mode==='on_demand'&&x.process_alive?'<button type="button" class="btn" data-provider-recover="'+esc(x.id)+'" '+(!ahbProviderControlAvailable?'disabled':'')+'>單獨重啟</button>':'')+
       actionLink(x.ui_url,'管理原本 UI',true,enabled&&manageable)+actionLink(x.docs_url,'上游文件',false,true)+'</div>'+
+      ((x.last_request_http_status===503||x.last_request_http_status===502)?'<div class="provider-recovery-note">最近回應 '+esc(x.last_request_http_status)+'：先確認登入與額度，程序卡住時再嘗試單獨重啟（不自動重送）。</div>':'')+
+      (x.kind==='sidecar'?'<details class="proxy-config"><summary>程序出站 Proxy · '+(x.proxy_configured?'已設定':'未設定')+'</summary><div class="proxy-input-row"><input type="url" data-provider-proxy-url placeholder="http://127.0.0.1:7890（留白清除）" spellcheck="false" autocomplete="off" aria-label="'+esc(x.id)+' 出站 Proxy URL"><button type="button" class="btn" data-provider-proxy="'+esc(x.id)+'" '+(!ahbProviderControlAvailable?'disabled':'')+'>儲存 Proxy</button></div><div class="proxy-help">只作用於該 Gateway 的 HTTP_PROXY / HTTPS_PROXY 等程序環境變數，可能受上游實作影響；Agent2API 等來源的帳號代理池仍由原生管理介面負責。儲存會重新啟動 AhB。</div></details>':'')+
    '</div></article>';
   }).join('');
   if(m.x_provider_warnings&&Object.keys(m.x_provider_warnings).length){

@@ -51,6 +51,7 @@ type runtimeProvider struct {
 	lastRequest requestResultState
 	load     providerLoad
 	demand *demandState
+	lastRecovery time.Time // guarded by demandMu; cooldown for explicit local recovery
 }
 
 func (p *runtimeProvider) hasRuntime() bool {
@@ -90,6 +91,7 @@ type providerView struct {
 	LastRequestStatus int         `json:"last_request_http_status,omitempty"`
 	LastRequestAt string          `json:"last_request_at,omitempty"`
 	LastRequestTransportError bool `json:"last_request_transport_error,omitempty"`
+	ProxyConfigured bool `json:"proxy_configured"`
 }
 
 func New(cfg config.Config) *Hub {
@@ -187,6 +189,8 @@ func (h *Hub) Handler() http.Handler {
 	mux.HandleFunc("/api/control/resources", h.handleControlResources)
 	mux.HandleFunc("/api/control/login/copilot", h.handleCopilotLogin)
 	mux.HandleFunc("/api/control/wake/", h.wakeProvider)
+	mux.HandleFunc("/api/control/recover/", h.handleControlRecover)
+	mux.HandleFunc("/api/control/proxy/", h.handleControlProxy)
 	mux.HandleFunc("/v1/models", h.handleModels)
 	mux.HandleFunc("/v1/chat/completions", h.handleProxy)
 	mux.HandleFunc("/v1/completions", h.handleProxy)
@@ -258,6 +262,7 @@ func (h *Hub) providerViews() []providerView {
 			Enabled:     p.cfg.Enabled,
 			Kind:        p.cfg.Kind,
 			StartMode: p.cfg.StartMode,
+			ProxyConfigured: p.cfg.ProxyURL != "",
 			UIURL:       p.cfg.UIURL,
 			DocsURL:     p.cfg.DocsURL,
 			State:       provider.StateDisabled,
