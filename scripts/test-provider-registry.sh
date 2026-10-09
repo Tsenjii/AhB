@@ -22,8 +22,8 @@ for c in src["candidates"]:
 for p in cfg["providers"]:
     assert p["id"] in ids, f"config provider missing in source registry: {p['id']}"
 # Android installs expose ONLY adapters actually compiled into the
-# Android bundle, with all seven enabled but resident only on demand.
-installed={"opencode","freebuff","agent2api","deepseek","grok","kiro","copilot"}
+# Android bundle, with all nine enabled but resident only on demand.
+installed={"opencode","freebuff","agent2api","deepseek","grok","kiro","copilot","geminiweb","duckai"}
 assert {p["id"] for p in cfg["providers"]} == installed
 for p in cfg["providers"]:
     assert p["kind"]=="sidecar" and p["enabled"] is True
