@@ -6,11 +6,13 @@ This page describes provider **integration**, not proof of live account or infer
 |---|---|---|---|---|
 | `opencode/` | [opencode2api v1.3.7](https://github.com/jasonxu114514/opencode2api) | yes | enabled | `127.0.0.1:8404/` |
 | `freebuff/` | [yutian81/freebuff2api](https://github.com/yutian81/freebuff2api) pinned e0d8c9d (Node >=20) | yes | enabled; requires fresh CLI/Bearer login | no management UI; `scripts/freebuff-login-termux.sh` |
-| `agent2api/` | [Agent2API v2.9.7](https://github.com/aimod-cc/agent2api) | yes | enabled by prebuilt installer when complete | `127.0.0.1:8403/` |
-| `deepseek/` | [Deepseek2API](https://github.com/zengtao227/Deepseek2API) pinned source | yes | disabled | `127.0.0.1:8405/admin` |
-| `grok/` | [Grok2API v3.1.6](https://github.com/chenyme/grok2api/releases/tag/v3.1.6), pinned to 2026-09-30 upstream SHA | yes | disabled; **P0 to test** | `127.0.0.1:8407/` |
-| `kiro/` | [Kiro-Go](https://github.com/Quorinex/Kiro-Go) pinned source | yes | disabled | `127.0.0.1:8408/admin` |
-| `copilot/` | [copilot2api pinned](https://github.com/whtsky/copilot2api) | **Go ARM64 binary included in successfully published prebuilt 91c8da4; login/inference not device-verified** | disabled; use `login-copilot2api.sh` then `enable-copilot2api.sh` | no native web admin UI; OAuth in Termux |
+| `agent2api/` | [Agent2API v2.9.8 pinned source](https://github.com/aimod-cc/agent2api) | yes | enabled by prebuilt installer when complete | `127.0.0.1:8403/` |
+| `deepseek/` | [Deepseek2API](https://github.com/zengtao227/Deepseek2API) pinned source | yes | configured enabled/on demand; real account inference unverified | `127.0.0.1:8405/admin` |
+| `grok/` | [Grok2API v3.1.6](https://github.com/chenyme/grok2api/releases/tag/v3.1.6), pinned to 2026-09-30 upstream SHA | yes | configured enabled/on demand; **P0 to test account readiness** | `127.0.0.1:8407/` |
+| `kiro/` | [Kiro-Go](https://github.com/Quorinex/Kiro-Go) pinned source | yes | configured enabled/on demand; real account inference unverified | `127.0.0.1:8408/admin` |
+| `copilot/` | [copilot2api pinned](https://github.com/whtsky/copilot2api) | yes; no verified account-backed phone inference | configured enabled, authorized OAuth required | device login via AhB dashboard |
+| `geminiweb/` | [zexadev/gemini-web2api-go](https://github.com/zexadev/gemini-web2api-go) | yes, native Go ARM64 | on demand; account auth/inference unverified | upstream-dependent |
+| `duckai/` | [aurora-develop/Duck2api](https://github.com/aurora-develop/Duck2api) | yes, native Go ARM64 | on demand; live inference unverified | upstream-dependent |
 | `kimiweb/` | [chopper1026/kimi2api pinned](https://github.com/chopper1026/kimi2api) | **installer scripts only** (Python/React not bundled) | disabled; use `install-kimiweb-termux.sh` then `enable-kimiweb-termux.sh` | `127.0.0.1:8412/admin` |
 | `lmarena/` | separate user-supplied localhost bridge | **no bridge bundled** | disabled external slot | depends on bridge |
 
@@ -24,7 +26,7 @@ Android upgrade installs Termux Node.js. The next step is explicit user-initiate
 
 ## Agent2API release pin
 
-The next Android build pins the **released v2.9.7** source SHA 3618f6413610ca04b72991987c0b6589dc2fe54b (Trae SOLO and WorkBuddy international daily tasks). Upstream main has newer 2.9.8-labelled changes, not yet a published release at review. Those should be assessed separately, not pulled silently. Previously published AhB prebuilt 91c8da4 remains on v2.9.6 until a new Android build succeeds and prebuilt/source-commit.txt points to its new source SHA.
+The published Android dual release at source `5841235cde0465fc29bec06fc584d4526d971c47` pins upstream Agent2API v2.9.8 source `f82308a9549ee4760f27e393058c3482056ec514`, built headless with the original UI. It is packaged, but real account quota and full Android tool continuation for this release remain unverified. The historical v2.9.6/v2.9.7 notes apply to older archives only.
 
 ## What the upstream management UIs own
 
@@ -46,7 +48,7 @@ Agent2API v2.9.7 manages `workbuddy` (domestic) and `workbuddy-intl` (internatio
 
 For actual versions, use the pinned commits in [the Android workflow](../.github/workflows/build-android-arm64.yml), not floating upstream branches.
 
-**Account/Quota caveat:** process HEALTHY and a credential count (e.g. Agent2API 2/2) do not prove adequate quota; the real phone test saw HTTP 503 from Agent2API with both credentialed accounts exhausted. The optional Copilot Go binary is now in published ARM64 prebuilt 91c8da4; Kimi Web still ships only installer scripts. Neither has passed authenticated Android inference tests. See [the living source registry](TO_API_REGISTRY.json) and [installation/optimization plan](TO_API_INSTALL_AND_OPTIMIZATION_PLAN.md).
+**Account/Quota caveat:** process HEALTHY and a credential count (e.g. Agent2API 2/2) do not prove adequate quota; the real phone test saw HTTP 503 from Agent2API with both credentialed accounts exhausted. The published dual-platform release also includes Copilot, Gemini Web and Duck.ai binaries; Kimi Web still ships only optional installer scripts. Neither has passed authenticated Android inference tests. See [the living source registry](TO_API_REGISTRY.json) and [installation/optimization plan](TO_API_INSTALL_AND_OPTIMIZATION_PLAN.md).
 
 
 ## Grok2API community audit and on-device acceptance

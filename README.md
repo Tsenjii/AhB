@@ -5,13 +5,13 @@ A lightweight Android/Termux AI gateway that supervises mature provider adapters
 ## Two editions, one shared codebase
 
 AhB is maintained as **two separate native distributions**. Both build
-the same Go Hub and seven pinned upstream gateways. Agent2API remains
+the same Go Hub and nine pinned upstream gateways. Agent2API remains
 **unmodified**.
 
 | Policy | Android Termux | Native Linux VPS |
 | --- | --- | --- |
 | Platform | Android ARM64 | Linux AMD64 / ARM64 |
-| Default providers | Seven bundled, all enabled | Seven bundled, all enabled |
+| Default providers | Nine bundled, configured enabled; started on demand | Nine bundled, configured enabled; started on demand |
 | Startup | On demand | On demand |
 | Maximum resident on-demand providers | **3** | **1** |
 | Idle cleanup | **900 seconds** | **120 seconds** |
@@ -28,7 +28,7 @@ Gemini Web2API (Go), DuckDuckGo AI2API (Go).
 Each requires its own legitimate account/authorization and may have
 different quota and model capabilities.
 
-**Not bundled:** Kimi Web, LMArena, Windsurf, Qwen, Gemini or any other
+**Not bundled:** Kimi Web, LMArena, Windsurf, standalone Gemini API bridges or any other
 generic local connector; those are not installed services. Existing Kimi
 data and custom bridges are not discarded by migration. The historical
 Termux Python Kimi installer remains for old installations only.
@@ -39,9 +39,7 @@ environment and Node.js for FreeBuff. See
 [512 MB VPS guide](docs/DEPLOY_VPS_512MB.md) and
 [technical constraints](docs/512MB-DEPLOYMENT.md).
 
-**Development status:** the dual-edition change is under review; do not
-replace a working phone install or VPS before both native builds and
-device-level tests pass.
+**Release status (2026-10-09):** main source `5841235cde0465fc29bec06fc584d4526d971c47` passed source CI, Android ARM64 and Linux AMD64/ARM64 bundle builds. The Android `prebuilt/source-commit.txt` matches this exact SHA, and the independent Linux release is [published](https://github.com/Tsenjii/AhB/releases/tag/linux-5841235cde04). **This confirms packages, not a successful upgrade on the user's phone or a real 512 MiB VPS OOM/inference test.** Preserve account data and backups; do not install Android packages on Linux.
 
 ## Unified API
 
@@ -127,9 +125,9 @@ cd ~/AhB
 ./scripts/provider-status-termux.sh
 ```
 
-This reports OpenCode, FreeBuff, Agent2API, DeepSeek Web, Grok, Kiro, GitHub Copilot and separately the optional Kimi Web, including enabled status, process health, ready/account-count layers, model count and recent upstream HTTP code. It **never** reads or prints individual account details/tokens and does **not** spend inference quota. Unknown states remain UNKNOWN; HTTP 200 is not evidence of completed streaming/tools or actual available balance. See [provider stability rollout](docs/PROVIDER_STABILITY_2026-10-09.md).
+This reports all nine bundled sources (OpenCode, FreeBuff, Agent2API, DeepSeek Web, Grok, Kiro, GitHub Copilot, Gemini Web and Duck.ai), plus separately the optional Kimi Web, including enabled status, process health, ready/account-count layers, model count and recent upstream HTTP code. It **never** reads or prints individual account details/tokens and does **not** spend inference quota. Unknown states remain UNKNOWN; HTTP 200 is not evidence of completed streaming/tools or actual available balance. See [provider stability rollout](docs/PROVIDER_STABILITY_2026-10-09.md).
 
-**FreeBuff on Android:** the bundled Rust gateway needs no extra runtime to launch, but the desktop one-click login does not work natively inside Termux: upstream Windows embed uses WebView2, and desktop Chrome/Edge web login requires an extension on the same computer as the gateway. Use the upstream http://127.0.0.1:8402/ui Accounts import workflow on your phone instead of expecting a desktop extension to control Android localhost. After importing, run ./scripts/check-freebuff-login.sh (metadata only, prints no credentials). See [FreeBuff Android login guide](docs/FREEBUFF_ANDROID_LOGIN.md).
+**FreeBuff on Android:** the current Node.js gateway has no old Rust `/ui` account manager. Run `./scripts/check-freebuff-login.sh` for metadata-only readiness; if there are no authorized CLI/Bearer accounts, use `./scripts/freebuff-login-termux.sh` and follow the device-code login. Older Web Cookie files remain backed up but cannot be reused as Node CLI credentials. See [FreeBuff Android login guide](docs/FREEBUFF_ANDROID_LOGIN.md).
 
 ## Fastest Android install
 
@@ -157,21 +155,23 @@ The upgrade first verifies the downloaded archive, then preserves `config.json`,
 
 Start the upgraded Hub with `cd ~/AhB && ./scripts/run-termux.sh`. In a second Termux session, run `./scripts/doctor-termux.sh` and `./scripts/smoke.sh`. New optional providers still require setup and real-device account/inference tests; a green CI build does not prove those paths work on Android.
 
-**Release verified 2026-10-08:** Android ARM64 prebuilt source commit `91c8da481d455d3df6ef888b18a8e3001b2eb83c` built successfully. This does **not** mean the user has upgraded their existing phone or authenticated newly bundled providers. The latest inventory and evidence levels are in [Current Features and Platforms](docs/CURRENT_FEATURES_AND_PLATFORMS_2026-10-08.md).
+**Release gate verified 2026-10-09:** Android ARM64 `prebuilt/source-commit.txt` equals `5841235cde0465fc29bec06fc584d4526d971c47`; [Android build](https://github.com/Tsenjii/AhB/actions/runs/37921364600) and [source CI](https://github.com/Tsenjii/AhB/actions/runs/37921364712) both succeeded. This is **not** proof the user's installed phone version has changed or every provider account can infer. The [2026-10-08 inventory](docs/CURRENT_FEATURES_AND_PLATFORMS_2026-10-08.md) is historical and does not describe the new nine-gateway release.
 
 The public ARM64 bundle is rebuilt by GitHub Actions from pinned upstream versions and currently contains:
 
 - `hubd`
 - `opencode2api`
-- `Freebuff2API`
+- `freebuff2api` (Node.js launcher; gateway sources under `data/freebuff/gateway/`)
 - `agent2api-server`
 - Agent2API's original management UI
-- `deepseek2api` (disabled by default)
+- `deepseek2api` (configured on demand; authenticated inference not yet verified)
 - DeepSeek2API's original management UI
-- `grok2api` (disabled by default)
+- `grok2api` (configured on demand; authenticated inference not yet verified)
 - Grok2API's original management UI
-- `kiro-go` (disabled by default)
-- Kiro-Go's original management UI
+- `kiro-go` and its original management UI
+- `copilot2api` (requires authorized account login)
+- `gemini-web2api-go` (Gemini Web route)
+- `duck2api` (Duck.ai route)
 
 ## Termux install from source
 
@@ -256,7 +256,7 @@ The bridge must itself be installed, running, and legitimately usable. The prese
 ### Optional Grok2API provider
 
 The Android prebuilt contains the pinned Grok2API backend and its original Web
-UI, but the provider is disabled until it is initialized:
+UI. Its account/admin setup is not complete until it is initialized:
 
 ```sh
 ./scripts/enable-grok2api.sh
@@ -271,7 +271,7 @@ process lifecycle control to hubd.
 ### Optional Kiro-Go provider
 
 The Android bundle also contains a pinned Kiro-Go binary and its original Web
-admin. It stays disabled until requested:
+admin. Complete its account initialization before attempting real inference:
 
 ```sh
 ./scripts/enable-kiro-go.sh
@@ -298,7 +298,7 @@ cd ~/AhB
 ./scripts/stop-termux.sh && ./scripts/start-termux.sh
 ```
 
-The Kimi Web native admin is `http://127.0.0.1:8412/admin`. Its password is stored privately in `data/kimiweb/admin-password.txt`. The `kimiweb/` managed adapter is separate from the original `kimi/` connection preset. Avoid adding duplicate account sources or auto-starting every service; optional providers are disabled by default. See [curated installation and optimization plan](docs/TO_API_INSTALL_AND_OPTIMIZATION_PLAN.md).
+The Kimi Web native admin is `http://127.0.0.1:8412/admin`. Its password is stored privately in `data/kimiweb/admin-password.txt`. The `kimiweb/` managed adapter is separate from the original `kimi/` connection preset. Avoid adding duplicate account sources or auto-starting every service; unconfigured sources are not usable for inference until authorized; on-demand services stay asleep when idle. See [curated installation and optimization plan](docs/TO_API_INSTALL_AND_OPTIMIZATION_PLAN.md).
 
 **Source status is distinct from usage entitlement:** a HEALTHY process, two configured credentials or a listed model do not prove quota availability. In the user's Android smoke test Agent2API returned HTTP 503 from two exhausted accounts. Treat provider quota and real inference as separate checks.
 

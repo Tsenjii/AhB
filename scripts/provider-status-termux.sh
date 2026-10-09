@@ -2,7 +2,7 @@
 set -euo pipefail
 umask 077
 
-# Read-only inventory for seven bundled providers, plus optional Kimi Web.
+# Read-only inventory for nine bundled providers, plus optional Kimi Web.
 # Never prints credentials, model prompts, provider errors or token fields.
 BASE="${AIHUB_BASE:-http://127.0.0.1:8317}"
 case "$BASE" in
@@ -31,7 +31,7 @@ if ! curl -fsS --max-time 30 -o "$tmp/models" "$BASE/v1/models" 2>/dev/null ||
 fi
 
 printf '%-11s %-8s %-10s %-9s %-10s %-8s %-10s\n' "SOURCE" "ENABLED" "PROCESS" "READY" "ACCOUNTS" "MODELS" "LAST_HTTP"
-for id in opencode freebuff agent2api deepseek grok kiro copilot kimiweb; do
+for id in opencode freebuff agent2api deepseek grok kiro copilot geminiweb duckai kimiweb; do
   status="$(jq -cr --arg id "$id" '.providers[] | select(.id == $id)' "$tmp/providers")"
   if [ -z "$status" ]; then
     printf '%-11s %-8s %-10s %-9s %-10s %-8s %-10s\n' "$id" "-" "MISSING" "-" "-" "-" "-"
@@ -44,7 +44,14 @@ for id in opencode freebuff agent2api deepseek grok kiro copilot kimiweb; do
   last="$(jq -r 'if .last_request_transport_error then "NETWORK" elif (.last_request_http_status // 0) > 0 then (.last_request_http_status|tostring) else "NOT_TESTED" end' <<< "$status")"
   count="UNKNOWN"
   if [ "$models_known" = true ]; then
-    count="$(jq -r --arg id "$id" '[.data[] | select(.x_provider == $id)] | length' "$tmp/models")"
+    # Model discovery deliberately skips sleeping on-demand processes. Zero
+    # advertised entries while asleep is NOT evidence the models were removed.
+    sleeping="$(jq -r '(.start_mode == "on_demand") and (.process_alive != true)' <<< "$status")"
+    if [ "$enabled" = "YES" ] && [ "$sleeping" = "true" ]; then
+      count="SLEEP"
+    else
+      count="$(jq -r --arg id "$id" '[.data[] | select(.x_provider == $id)] | length' "$tmp/models")"
+    fi
   fi
   printf '%-11s %-8s %-10s %-9s %-10s %-8s %-10s\n' "$id" "$enabled" "$state" "$ready" "$accounts" "$count" "$last"
 done

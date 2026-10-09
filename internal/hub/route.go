@@ -118,56 +118,44 @@ func (h *Hub) fallbackProviderIDs(primary string) []string {
 	return out
 }
 
-// usableFallbackProviders only considers an alternate if its live model
-// catalog advertises the exact upstream ID. Sending a nominally equal ID to
-// an unrelated service is not a valid same-model fallback. The originally
-// requested provider remains eligible without an extra model-list round trip.
-func (h *Hub) usableFallbackProviders(ctx context.Context, primary, model string) []*runtimeProvider {
-	ids := h.fallbackProviderIDs(primary)
-	out := make([]*runtimeProvider, 0, len(ids))
-	for _, id := range ids {
-		p, ok := h.providers[id]
-		if !ok || !p.cfg.Enabled || !p.hasRuntime() {
-			continue
-		}
-		if !providerUsableForRouting(id, p.cfg.Kind, p.snapshot(), p.accounts.snapshot()) {
-			continue
-		}
-		if id != primary {
-			probeCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
-			models, err := h.fetchModels(probeCtx, p.cfg)
-			cancel()
-			if err != nil {
-				continue // Fail closed: unverified model identity must not route.
-			}
-			found := false
-			for _, entry := range models {
-				if upstream, _ := entry["x_upstream_id"].(string); upstream == model {
-					found = true
-					break
-				}
-			}
-			if !found {
-				continue
-			}
-		}
-		out = append(out, p)
-	}
-	return out
+// Only configured providers are candidates. Sleeping alternatives are
+// awakened and verified when selected, never rejected just for being asleep.
+func (h *Hub) fallbackCandidates(primary string) []*runtimeProvider {
+    out:=make([]*runtimeProvider,0)
+    for _,id:=range h.fallbackProviderIDs(primary) {
+        if p,ok:=h.providers[id];ok && p.cfg.Enabled && p.hasRuntime(){out=append(out,p)}
+    }
+    return out
 }
 
-func (h *Hub) handleSameModelFallback(w http.ResponseWriter, r *http.Request, raw []byte, primary, model string) {
-	if p:=h.providers[primary];p!=nil && p.cfg.Enabled && h.onDemand(p) {
-		release,err:=h.acquireOnDemand(r.Context(),p)
-		if err!=nil {writeError(w,http.StatusServiceUnavailable,"provider_start_unavailable",err.Error());return}
-		defer release()
-	}
-	mode := strings.ToLower(strings.TrimSpace(h.cfg.Routing.SameModelFallback.Mode))
-	if mode == "" || mode == "balanced" || mode == "parallel" {
-		h.handleSameModelBalanced(w, r, raw, primary, model)
-		return
-	}
-	h.handleSameModelSequential(w, r, raw, primary, model)
+// Hold the on-demand lease while discovering the exact model and throughout
+// the eventual response stream. Release before attempting a different source.
+func (h *Hub) prepareFallback(ctx context.Context,p *runtimeProvider,primary,model string)(func(),bool){
+    release,err:=h.acquireOnDemand(ctx,p)
+    if err!=nil{return nil,false}
+    if !providerUsableForRouting(p.cfg.ID,p.cfg.Kind,p.snapshot(),p.accounts.snapshot()){
+        release();return nil,false
+    }
+    if p.cfg.ID!=primary {
+        probeCtx,cancel:=context.WithTimeout(ctx,3*time.Second)
+        models,err:=h.fetchModels(probeCtx,p.cfg)
+        cancel()
+        if err!=nil{release();return nil,false}
+        found:=false
+        for _,entry:=range models {
+            if upstream,_:=entry["x_upstream_id"].(string);upstream==model{found=true;break}
+        }
+        if !found{release();return nil,false}
+    }
+    return release,true
+}
+
+func (h *Hub) handleSameModelFallback(w http.ResponseWriter,r *http.Request,raw []byte,primary,model string){
+    mode:=strings.ToLower(strings.TrimSpace(h.cfg.Routing.SameModelFallback.Mode))
+    if mode==""||mode=="balanced"||mode=="parallel"{
+        h.handleSameModelBalanced(w,r,raw,primary,model);return
+    }
+    h.handleSameModelSequential(w,r,raw,primary,model)
 }
 
 func (h *Hub) handleSameModelSequential(w http.ResponseWriter, r *http.Request, raw []byte, primary, model string) {
@@ -176,7 +164,7 @@ func (h *Hub) handleSameModelSequential(w http.ResponseWriter, r *http.Request, 
 		writeError(w, http.StatusBadRequest, "invalid_model", err.Error())
 		return
 	}
-	providers := h.usableFallbackProviders(r.Context(), primary, model)
+	providers := h.fallbackCandidates(primary)
 	if len(providers) == 0 {
 		writeError(w, http.StatusServiceUnavailable, "provider_unavailable", "no usable provider for same-model fallback")
 		return
@@ -186,22 +174,30 @@ func (h *Hub) handleSameModelSequential(w http.ResponseWriter, r *http.Request, 
 	var last *bufferedRouteResponse
 	attempts := 0
 	for _, p := range providers {
+		release,ready:=h.prepareFallback(r.Context(),p,primary,model)
+		if !ready {
+			failures=append(failures,p.cfg.ID+": unavailable or model not advertised")
+			continue
+		}
 		p.load.acquire()
 		attempts++
 		resp, reqErr := h.doProviderRequest(r, p.cfg, rewritten)
 		if reqErr != nil {
 			p.load.release()
+			release()
 			failures = append(failures, p.cfg.ID+": transport error")
 			continue
 		}
 		if !routeRetryableStatus(resp.StatusCode) {
 			h.writeFallbackResponse(w, resp, primary, p.cfg.ID, "same-model-sequential", attempts)
 			p.load.release()
+			release()
 			return
 		}
 		body, readErr := io.ReadAll(io.LimitReader(resp.Body, maxRouteErrorBody))
 		_ = resp.Body.Close()
 		p.load.release()
+		release()
 		if readErr == nil {
 			last = &bufferedRouteResponse{status: resp.StatusCode, header: resp.Header.Clone(), body: body, provider: p.cfg.ID}
 		}
@@ -245,7 +241,7 @@ func (h *Hub) handleSameModelBalanced(w http.ResponseWriter, r *http.Request, ra
 		writeError(w, http.StatusBadRequest, "invalid_model", err.Error())
 		return
 	}
-	providers := h.usableFallbackProviders(r.Context(), primary, model)
+	providers := h.fallbackCandidates(primary)
 	if len(providers) == 0 {
 		writeError(w, http.StatusServiceUnavailable, "provider_unavailable", "no usable provider for same-model balanced routing")
 		return
@@ -262,23 +258,32 @@ func (h *Hub) handleSameModelBalanced(w http.ResponseWriter, r *http.Request, ra
 			break
 		}
 		attempted[p.cfg.ID] = struct{}{}
+		release,ready:=h.prepareFallback(r.Context(),p,primary,model)
+		if !ready {
+			p.load.release()
+			failures=append(failures,p.cfg.ID+": unavailable or model not advertised")
+			continue
+		}
 		attempts++
 
 		resp, reqErr := h.doProviderRequest(r, p.cfg, rewritten)
 		if reqErr != nil {
 			p.load.release()
+			release()
 			failures = append(failures, p.cfg.ID+": transport error")
 			continue
 		}
 		if !routeRetryableStatus(resp.StatusCode) {
 			h.writeFallbackResponse(w, resp, primary, p.cfg.ID, "same-model-balanced", attempts)
 			p.load.release()
+			release()
 			return
 		}
 
 		body, readErr := io.ReadAll(io.LimitReader(resp.Body, maxRouteErrorBody))
 		_ = resp.Body.Close()
 		p.load.release()
+		release()
 		if readErr == nil {
 			last = &bufferedRouteResponse{status: resp.StatusCode, header: resp.Header.Clone(), body: body, provider: p.cfg.ID}
 		}
