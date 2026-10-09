@@ -22,7 +22,7 @@ func TestCopilotDeviceLoginIsLocalAndOnlyExposesDeviceCode(t *testing.T) {
   "echo 'Please visit: https://github.com/login/device'\n" +
   "echo 'Enter code: TEST-1234'\n" +
   "sleep 1\n" +
-  "printf '%s\\n' '{\"GitHubToken\":\"TOP_SECRET_FOR_TEST\"}' > \"$dir/credentials.json\"\n" +
+  "printf '%s\\n' '{\"github_token\":\"TOP_SECRET_FOR_TEST\"}' > \"$dir/credentials.json\"\n" +
   "sleep 3\n"
  if err:=os.WriteFile(filepath.Join(bin,"copilot2api"),[]byte(script),0700);err!=nil{t.Fatal(err)}
  cfg:=filepath.Join(root,"config.json")
