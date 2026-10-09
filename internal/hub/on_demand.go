@@ -86,6 +86,39 @@ func (h *Hub) stopDemand(p *runtimeProvider, done chan struct{}, cancel context.
  }
 }
 
+// leaseRunningDemand protects a model-list probe against idle reap / capacity
+// eviction without waking a sleeping sidecar. A plain /v1/models request must
+// never use acquireOnDemand, which would consume 512 MiB capacity on polling.
+func (h *Hub) leaseRunningDemand(p *runtimeProvider) (func(), bool) {
+ if !h.onDemand(p) { return func(){}, true }
+ h.demandMu.Lock()
+ d:=p.demand
+ if d==nil || !d.running || d.closing || d.done==nil {
+  h.demandMu.Unlock()
+  return nil,false
+ }
+ select {
+ case <-d.done:
+  h.demandMu.Unlock()
+  return nil,false
+ default:
+ }
+ d.users++
+ done:=d.done
+ h.demandMu.Unlock()
+ var once sync.Once
+ return func(){
+  once.Do(func(){
+   h.demandMu.Lock()
+   if p.demand!=nil && p.demand.done==done && p.demand.users>0 {
+    p.demand.users--
+    p.demand.last=time.Now()
+   }
+   h.demandMu.Unlock()
+  })
+ },true
+}
+
 func (h *Hub) acquireOnDemand(ctx context.Context, p *runtimeProvider) (func(),error) {
  noop:=func(){}
  if !h.onDemand(p) {return noop,nil}

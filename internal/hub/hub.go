@@ -511,6 +511,14 @@ func (h *Hub) handleModels(w http.ResponseWriter, r *http.Request) {
 		probes.Add(1)
 		go func(id string, p *runtimeProvider) {
 			defer probes.Done()
+			// An already-running on-demand sidecar must stay resident while
+			// its model list is requested. This lease cannot start a sleeper.
+			release, leased := h.leaseRunningDemand(p)
+			if !leased {
+				results <- modelFetchResult{id: id, err: fmt.Errorf("provider stopped before model discovery")}
+				return
+			}
+			defer release()
 			select {
 			case slots <- struct{}{}:
 				defer func() { <-slots }()
