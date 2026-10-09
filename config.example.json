@@ -188,6 +188,9 @@
         "."
       ],
       "work_dir": "./data/copilot2api",
+      "env": {
+        "GODEBUG": "netdns=cgo"
+      },
       "health_path": "/v1/models",
       "models_path": "/v1/models",
       "max_restarts": 3,
