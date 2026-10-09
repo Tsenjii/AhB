@@ -17,6 +17,18 @@ if [ -L "$DEST" ]; then
   echo "Refusing to upgrade a symlinked install directory: $DEST"
   exit 1
 fi
+# Very old/non-AhB layouts must never be snapshotted while services may still
+# be writing account databases. The legacy stop helper was present even in
+# AhB's earliest public ARM64 installer; unknown layouts fail closed.
+if [ ! -f "$DEST/scripts/stop-termux.sh" ] || [ ! -r "$DEST/scripts/stop-termux.sh" ]; then
+  echo "Cannot safely upgrade: missing readable $DEST/scripts/stop-termux.sh" >&2
+  echo "Old installation left untouched. Check whether this is an older assistant-new project rather than AhB." >&2
+  exit 1
+fi
+if ! bash -n "$DEST/scripts/stop-termux.sh"; then
+  echo "Cannot safely upgrade: invalid legacy stop script; old installation left untouched." >&2
+  exit 1
+fi
 case "$(uname -m)" in
   aarch64|arm64) ;;
   *) echo "Android ARM64 prebuilt required; detected $(uname -m)"; exit 1 ;;
@@ -77,9 +89,9 @@ if [ -e "$BACKUP" ]; then
 fi
 
 echo "Stopping AhB before taking a consistent account/database snapshot..."
-if [ -x "$DEST/scripts/stop-termux.sh" ]; then
-  "$DEST/scripts/stop-termux.sh"
-fi
+# Invoke with bash so even very old installs with missing executable bit
+# are cleanly stopped before account databases are copied.
+bash "$DEST/scripts/stop-termux.sh"
 
 # Only after the sidecars stop is it safe to copy on-disk account databases.
 # The full original install is retained unchanged for rollback.
