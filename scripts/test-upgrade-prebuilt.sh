@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 set -euo pipefail
-set -x # temporary CI diagnostic for fixture-only values
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TMP="$(mktemp -d)"
@@ -125,6 +124,9 @@ mv "$OLD/scripts/stop-termux.sh.temporarily-missing" "$OLD/scripts/stop-termux.s
 
 # Regression: a legacy stop script can exit 0 while a foreground hub remains
 # alive (no PID file). The upgrader must abort before copying live accounts.
+# Preserve the checked backup under a different name so another attempt in
+# the same CI clock second does not trip duplicate-backup-name protection.
+mv "${backups[0]}" "${backups[0]}.verified-previous-backup"
 LIVE_PORT=18819
 jq --arg listen "127.0.0.1:$LIVE_PORT" '.listen=$listen' "$OLD/config.json" > "$TMP/live-config.json"
 mv "$TMP/live-config.json" "$OLD/config.json"
@@ -146,7 +148,10 @@ if bash "$ROOT/scripts/upgrade-prebuilt-termux.sh" > "$TMP/live-rejected.txt" 2>
   echo "expected the upgrade to refuse a live foreground listener" >&2
   exit 1
 fi
-grep -q "listeners still active" "$TMP/live-rejected.txt"
+if ! grep -q "listeners still active" "$TMP/live-rejected.txt"; then
+  cat "$TMP/live-rejected.txt" >&2
+  exit 1
+fi
 test "$(cat "$OLD/data/opencode/account.txt")" = "secret account state"
 test "$(jq -r '.listen' "$OLD/config.json")" = "127.0.0.1:$LIVE_PORT"
 kill "$live_pid" 2>/dev/null || true
