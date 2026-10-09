@@ -32,6 +32,9 @@ type Hub struct {
 	runWG     sync.WaitGroup
 	controlToken string
 	restartFn func() error
+	controlConfigPath string
+	controlMu sync.Mutex
+	controlPending bool
 }
 
 type runtimeProvider struct {
@@ -159,6 +162,7 @@ func (h *Hub) Handler() http.Handler {
 	mux.HandleFunc("/api/providers", h.handleProviders)
 	mux.HandleFunc("/api/runtime", h.handleRuntime)
 	mux.HandleFunc("/api/control/restart", h.handleControlRestart)
+	mux.HandleFunc("/api/control/provider/", h.handleControlProvider)
 	mux.HandleFunc("/v1/models", h.handleModels)
 	mux.HandleFunc("/v1/chat/completions", h.handleProxy)
 	mux.HandleFunc("/v1/completions", h.handleProxy)
@@ -848,11 +852,18 @@ func (h *Hub) handleControlRestart(w http.ResponseWriter, r *http.Request) {
 	if !h.authorizeLocalControl(w, r) {
 		return
 	}
+	h.controlMu.Lock()
+	defer h.controlMu.Unlock()
+	if h.controlPending {
+		http.Error(w, "Restart already scheduled", http.StatusConflict)
+		return
+	}
 	if err := h.restartFn(); err != nil {
 		// Do not expose filesystem paths or any internal details to the UI.
 		http.Error(w, "Restart could not be scheduled; original AhB remains running", http.StatusInternalServerError)
 		return
 	}
+	h.controlPending = true
 	writeJSON(w, http.StatusAccepted, map[string]string{
 		"status": "scheduled",
 		"message": "AhB will shut down cleanly and restart; the Termux app remains open.",
