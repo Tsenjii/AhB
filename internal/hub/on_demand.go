@@ -140,8 +140,9 @@ func (h *Hub) acquireOnDemand(ctx context.Context, p *runtimeProvider) (func(),e
   h.demandMu.Unlock()
  })}
 
- deadline:=time.NewTimer(time.Duration(p.cfg.StartupTimeoutSeconds)*time.Second)
- if p.cfg.StartupTimeoutSeconds<=0 {deadline.Reset(30*time.Second)}
+ startupSeconds:=p.cfg.StartupTimeoutSeconds
+ if startupSeconds<=0 {startupSeconds=30}
+ deadline:=time.NewTimer(time.Duration(startupSeconds)*time.Second)
  defer deadline.Stop()
  ticker:=time.NewTicker(200*time.Millisecond)
  defer ticker.Stop()
