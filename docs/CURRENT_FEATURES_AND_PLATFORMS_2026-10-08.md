@@ -1,4 +1,6 @@
-> **Historical 2026-10-08 snapshot (not the current release).** As of 2026-10-09, source `5841235` produced successful Android and Linux packages with nine bundled gateways, FreeBuff Node/CLI in place of Rust Web Cookies, and a new Linux 512 MiB profile. Read [current 2026-10-09 handoff](NEXT_AI_HANDOFF.md) instead of using the table below as live packaging truth.\n\n# AhB features, platforms and deployment-state inventory
+> **Historical 2026-10-08 snapshot (not the current release).** As of 2026-10-09, source `5841235` produced successful Android and Linux packages with nine bundled gateways, FreeBuff Node/CLI in place of Rust Web Cookies, and a new Linux 512 MiB profile. Read [current 2026-10-09 handoff](NEXT_AI_HANDOFF.md) instead of using the table below as live packaging truth.
+
+# AhB features, platforms and deployment-state inventory
 
 **Snapshot checked 2026-10-08 Asia/Taipei.** This is the consolidated entry point for the **next AI's independent code audit**, *not* a substitute for checking HEAD again. Commit at snapshot: `947f26c9dec44e5daae16cf8b9ab422c2358b2ff` (docs only after published app code). Published `prebuilt/source-commit.txt`: `91c8da481d455d3df6ef888b18a8e3001b2eb83c`. [Android bundle success](https://github.com/Tsenjii/AhB/actions/runs/37792105281); [build-source CI success](https://github.com/Tsenjii/AhB/actions/runs/37792105269). **User has not upgraded their existing Android install**. Never call new runtime features phone-verified until user installs and tests them.
 
