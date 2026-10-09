@@ -48,6 +48,7 @@ func main() {
 	h := hub.New(cfg)
 	h.SetControlConfigPath(*configPath)
 	configureTermuxRestart(h)
+	configureTermuxUpdater(h)
 	h.Start(ctx)
 
 	server := &http.Server{
@@ -123,4 +124,29 @@ func configureTermuxRestart(h *hub.Hub) {
 		// The child continues after hubd has gracefully shut down its sidecars.
 		return cmd.Process.Release()
 	})
+}
+
+ // The full Android prebuilt is an indivisible tested unit. The web button
+ // cannot install arbitrary upstream binaries or accept user-supplied commands.
+func configureTermuxUpdater(h *hub.Hub) {
+ if runtime.GOOS != "android" {return}
+ exe, err := os.Executable()
+ if err!=nil || filepath.Base(exe)!="hubd" {return}
+ root:=filepath.Clean(filepath.Join(filepath.Dir(exe),".."))
+ script:=filepath.Join(root,"scripts","update-from-dashboard-termux.sh")
+ if fi,e:=os.Stat(script);e!=nil || fi.IsDir(){return}
+ h.SetUpdateHandler(func()error{
+  path:=filepath.Join(root,"logs","ui-update.log")
+  out,err:=os.OpenFile(path,os.O_CREATE|os.O_APPEND|os.O_WRONLY,0600)
+  if err!=nil{return err}
+  defer out.Close()
+  cmd:=exec.Command("bash",script,strconv.Itoa(os.Getpid()))
+  cmd.Dir=root
+  cmd.Stdin=nil
+  cmd.Stdout=out
+  cmd.Stderr=out
+  cmd.SysProcAttr=&syscall.SysProcAttr{Setsid:true}
+  if err:=cmd.Start();err!=nil{return err}
+  return cmd.Process.Release()
+ })
 }
