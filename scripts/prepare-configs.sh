@@ -32,10 +32,35 @@ if command -v jq >/dev/null 2>&1 && [ -f config.json ]; then
   # Keep the old config intact on failure, never stream a partial jq result
   # back into a file containing real client keys and custom user routes.
   tmp="$(mktemp "$ROOT/.ahb-config-merge.XXXXXX")"
-  if jq --slurpfile example config.example.json '
+  kimi_installed=false
+  if [ -x "$ROOT/data/kimiweb/venv/bin/python" ] && [ -f "$ROOT/data/kimiweb/source/run.py" ]; then
+    kimi_installed=true
+  fi
+  if jq --slurpfile example config.example.json --argjson kimiInstalled "$kimi_installed" '
       reduce $example[0].providers[] as $p (.;
         if any(.providers[]?; .id == $p.id) then . else .providers += [$p] end
       )
+      # Only real bundled ARM64 adapters belong to the stock install.
+      # Preserve any manually attached bridge and any installed legacy Kimi.
+      | ([.routes[]?.targets[]? | split("/")[0]]) as $routeRefs
+      | .providers |= map(select(
+          not(
+            (.id == "lmarena" and (.enabled == false) and .base_url == "http://127.0.0.1:5102" and ($routeRefs | index("lmarena")) == null)
+            or
+            (.id == "kimiweb" and ($kimiInstalled | not) and (.enabled == false) and ($routeRefs | index("kimiweb")) == null)
+          )
+        ))
+      # Existing user-selected on/off flags stay untouched. Newly installed
+      # providers are enabled but sleep until used; avoid seven runtimes at boot.
+      | .providers |= map(
+          if (.id as $id | ["opencode","freebuff","agent2api","deepseek","grok","kiro","copilot"] | index($id)) != null
+          then .start_mode = (.start_mode // "on_demand")
+          else . end
+        )
+      | .resources = ((.resources // {}) + {
+          "max_running_sidecars": ((.resources.max_running_sidecars // 1)),
+          "idle_stop_seconds": ((.resources.idle_stop_seconds // 120))
+        })
       | (.providers[] | select(.id == "opencode") | .env) =
           (((.providers[] | select(.id == "opencode") | .env) // {}) + {"GODEBUG":"netdns=cgo"})
       | (.providers[] | select(.id == "grok") | .env) =
@@ -58,8 +83,9 @@ if command -v jq >/dev/null 2>&1 && [ -f config.json ]; then
             | .headers = ((.headers // {}) + {"Authorization":"Bearer __AIHUB_SERVER_KEY__"})
           else . end
         )
+      | (.providers | map(.id)) as $validIDs
       | .routing.same_model_fallback.providers =
-          (.routing.same_model_fallback.providers // [])
+          ((.routing.same_model_fallback.providers // []) | map(select(. as $id | $validIDs | index($id))))
       | reduce ($example[0].routing.same_model_fallback.providers // [])[] as $id (.;
           if (.routing.same_model_fallback.providers | index($id)) == null
           then .routing.same_model_fallback.providers += [$id]
