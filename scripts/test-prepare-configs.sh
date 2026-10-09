@@ -89,7 +89,7 @@ printf 'OLD_COOKIE_DO_NOT_CONVERT\n' > "$LEGACY/data/freebuff/tokens.json"
   cd "$LEGACY"
   bash scripts/prepare-configs.sh
   jq -e '
-    (.routing.same_model_fallback.enabled == false)
+    ((.routing.same_model_fallback.enabled // false) == false)
     and (any(.providers[]; .id == "opencode" and .enabled == true
       and .headers.Authorization == "Bearer FIRST_RELEASE_SECRET"))
     and (any(.providers[]; .id == "freebuff" and .enabled == true
