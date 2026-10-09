@@ -159,6 +159,15 @@ th,td{font-size:12px}
  .quick-title{font-size:18px}
 }
 @media(max-width:390px){.fieldrow{grid-template-columns:1fr}}
+.anchor-nav{display:flex;gap:7px;overflow-x:auto;padding:5px 0 7px;scrollbar-width:none}
+.anchor-nav button{white-space:nowrap;flex-shrink:0;background:transparent;border:1px solid transparent;color:var(--muted);padding:9px 12px;border-radius:9px;font-size:12px}
+.anchor-nav button.selected{color:var(--text);background:var(--panel2);border-color:var(--line);font-weight:700}
+.ahb-tab-hidden{display:none!important}
+.ui-toggle{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:88px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12px;cursor:pointer;color:var(--text);background:var(--panel2)}
+.ui-toggle input{accent-color:var(--ok);width:17px;height:17px;margin:0;cursor:pointer}
+.ui-toggle:has(input:disabled){cursor:not-allowed;opacity:.45}
+.quick-note{padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:var(--panel);font-size:12px;line-height:1.7;color:var(--muted)}
+@media(max-width:650px){.providers{grid-template-columns:1fr}.provider-actions{flex-wrap:wrap}.overview{grid-template-columns:1fr}.summary{max-width:none}main{padding:15px 12px 34px}}
 </style>
 </head>
 <body>
@@ -170,9 +179,13 @@ th,td{font-size:12px}
  </div>
  <div style="display:flex;gap:8px;align-items:center"><button id="restartAhB" type="button" disabled title="只重新啟動 AhB，不會關閉 Termux">重新啟動 AhB</button><button id="refresh">重新整理</button></div>
 </header>
-<nav class="anchor-nav" aria-label="頁面捷徑" style="margin-top:15px">
- <a href="#diagnostics">狀態檢查</a><a href="#freebuffLogin">FreeBuff 登入</a><a href="#optional">選裝來源</a><a href="#connect">連接來源</a><a href="#providersSection">服務狀態</a><a href="#modelsSection">模型目錄</a>
+<nav class="anchor-nav" aria-label="AhB 分頁" id="ahbTabs">
+ <button type="button" data-tab="home" class="selected" aria-current="page">總覽</button>
+ <button type="button" data-tab="accounts">帳號與登入</button>
+ <button type="button" data-tab="bridges">連接來源</button>
+ <button type="button" data-tab="advanced">進階與診斷</button>
 </nav>
+<div id="controlInfo" role="status" aria-live="polite" style="display:none;margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);font-size:12px"></div>
 
 <div class="overview">
  <div>
@@ -195,7 +208,7 @@ th,td{font-size:12px}
     <div>
       <div class="eyebrow">Built-in providers</div>
       <div class="quick-title">先看程序、帳號，再挑模型做實測。</div>
-      <p>支援 OpenCode、FreeBuff、Agent2API、DeepSeek、Grok、Kiro、Copilot；實驗性 Kimi Web 另外列出。預設關閉的來源不會被自動啟動。</p>
+      <p>直接用首頁的平台開關啟用或停用來源。關閉後 AhB 會正常停止該服務，節省手機資源；啟用不代表帳號已登入或有額度。</p>
     </div>
     <div class="command-panel">
       <div class="eyebrow">Termux diagnostic</div>
@@ -303,6 +316,7 @@ th,td{font-size:12px}
 // Ephemeral, loopback-only control. Never save this token to storage.
 const ahbControlToken="__AHB_CONTROL_TOKEN__";
 const ahbRestartAvailable=__AHB_RESTART_AVAILABLE__;
+const ahbProviderControlAvailable=__AHB_PROVIDER_CONTROL_AVAILABLE__;
 const restartAhBButton=document.getElementById('restartAhB');
 restartAhBButton.disabled=!ahbRestartAvailable;
 restartAhBButton.title=ahbRestartAvailable?'重新啟動 AhB 後端及其受控服務，不會關閉 Termux':'僅限本機 Android Termux 預編譯版提供此操作';
@@ -328,6 +342,56 @@ restartAhBButton.addEventListener('click',async()=>{
   alert(e.message+'。原本的 AhB 不會被強制停止。');
  }
 });
+// The dashboard starts with only the essential service cards and model list.
+const tabSections={
+ home:['providersSection','modelsSection'],
+ accounts:['freebuffLogin','optional'],
+ bridges:['connect'],
+ advanced:['diagnostics']
+};
+function switchTab(name){
+ const active=tabSections[name]||tabSections.home;
+ for(const id of ['providersSection','modelsSection','freebuffLogin','optional','connect','diagnostics']){
+  const e=document.getElementById(id);
+  if(e)e.classList.toggle('ahb-tab-hidden',!active.includes(id));
+ }
+ document.querySelectorAll('#ahbTabs button').forEach(b=>{
+  const selected=b.dataset.tab===name;
+  b.classList.toggle('selected',selected);
+  if(selected)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');
+ });
+}
+document.getElementById('ahbTabs').addEventListener('click',e=>{
+ const b=e.target.closest('button[data-tab]');
+ if(b)switchTab(b.dataset.tab);
+});
+function controlNotice(message){
+ const el=document.getElementById('controlInfo');
+ el.textContent=message;el.style.display='block';
+ window.scrollTo({top:0,behavior:'smooth'});
+}
+async function toggleProvider(id,enabled){
+ if(!ahbProviderControlAvailable)return;
+ if(!confirm((enabled?'啟用 ':'停用 ')+id+'？AhB 將重新啟動自己的服務，目前進行中的 API 請求會中斷。')){refresh();return}
+ controlNotice('正在儲存 '+id+' 設定…');
+ try{
+  const r=await fetch('/api/control/provider/'+encodeURIComponent(id),{
+   method:'POST',cache:'no-store',credentials:'same-origin',
+   headers:{'X-AhB-Control-Token':ahbControlToken,'Content-Type':'application/json'},
+   body:JSON.stringify({enabled})
+  });
+  if(!r.ok){const error=await r.text();throw new Error(error.trim().slice(0,180)||'HTTP '+r.status)}
+  const data=await r.json();
+  if(data.status==='unchanged'){controlNotice('設定沒有變更');await refresh();return}
+  controlNotice('已儲存 '+id+' 設定，正在重啟 AhB。Termux 不會關閉，帳號資料會保留。');
+  setTimeout(()=>location.reload(),8500);
+ }catch(e){controlNotice('未完成：'+e.message);refresh()}
+}
+document.getElementById('providers').addEventListener('change',e=>{
+ const input=e.target.closest('input[data-provider-toggle]');
+ if(input)toggleProvider(input.dataset.providerToggle,input.checked);
+});
+switchTab('home');
 const fmtBytes=n=>!n?'—':n<1048576?(n/1024).toFixed(1)+' KiB':(n/1048576).toFixed(1)+' MiB';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let lastModels=[];
@@ -341,7 +405,7 @@ function accountLabel(x){
 function lastRequestLabel(x){
  if(!x.last_request_at)return 'NOT TESTED';
  if(x.last_request_transport_error)return 'NETWORK ERROR';
- return x.last_request_http_status?'HTTP '+x.last_request_http_status:'UNKNOWN';
+ return x.last_request_http_status===503?'HTTP 503 · 上游失敗／額度待查':(x.last_request_http_status?'HTTP '+x.last_request_http_status:'UNKNOWN');
 }
 function renderModels(){
  const q=(document.getElementById('search').value||'').trim().toLowerCase();
@@ -383,7 +447,9 @@ async function refresh(){
      '<div class="layers"><span class="layer">Process <b>'+esc(x.kind==='external'?'N/A':(x.process_alive?'YES':'NO'))+'</b></span><span class="layer">Ready <b>'+esc(x.provider_ready?'YES':'NO')+'</b></span><span class="layer">Credentials <b>'+esc(accountLabel(x))+'</b></span><span class="layer" title="最近一次 API 上游回覆 HTTP 狀態；200 不保證串流完整或有可用額度">Last API <b>'+esc(lastRequestLabel(x))+'</b></span></div>'+
      (x.last_error?'<div class="provider-error">'+esc(x.last_error)+'</div>':'')+'</div>'+
     '<div class="metrics"><div class="metric"><b>'+esc(counts[x.id]||0)+'</b><span>Models</span></div><div class="metric"><b>'+esc(fmtBytes(x.rss_bytes))+'</b><span>RSS</span></div><div class="metric"><b>'+esc(x.restarts||0)+'</b><span>Restarts</span></div></div>'+
-    '<div class="provider-actions">'+actionLink(x.ui_url,'管理原本 UI',true,enabled&&manageable)+actionLink(x.docs_url,'上游文件',false,true)+'</div>'+
+    '<div class="provider-actions">'+
+      '<label class="ui-toggle"><input type="checkbox" data-provider-toggle="'+esc(x.id)+'" '+(x.enabled?'checked ':'')+(!ahbProviderControlAvailable?'disabled ':'')+' aria-label="'+esc(x.display_name||x.id)+' 啟用或停用"><span>'+(x.enabled?'已開啟':'已關閉')+'</span></label>'+
+      actionLink(x.ui_url,'管理原本 UI',true,enabled&&manageable)+actionLink(x.docs_url,'上游文件',false,true)+'</div>'+
    '</div></article>';
   }).join('');
   if(m.x_provider_warnings&&Object.keys(m.x_provider_warnings).length){
@@ -459,5 +525,6 @@ func (h *Hub) handleUI(w http.ResponseWriter, _ *http.Request) {
 		available = "true"
 	}
 	html = strings.Replace(html, "__AHB_RESTART_AVAILABLE__", available, 1)
+	html = strings.Replace(html, "__AHB_PROVIDER_CONTROL_AVAILABLE__", available, 1)
 	_, _ = w.Write([]byte(html))
 }
