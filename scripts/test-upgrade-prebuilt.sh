@@ -29,6 +29,13 @@ mkdir -p data
 printf 'ready\n' > data/migration-tested.txt
 EOF
 chmod +x "$NEW/scripts/prepare-configs.sh"
+# Simulate a real released bundle: all published AhB archives include the
+# stop helper, even when the old installation was a three-provider release.
+cat > "$NEW/scripts/stop-termux.sh" <<'EOF'
+#!/usr/bin/env bash
+exit 0
+EOF
+chmod +x "$NEW/scripts/stop-termux.sh"
 printf '{"providers":[{"id":"new"}]}\n' > "$NEW/config.example.json"
 
 for path in data/freebuff/gateway data/agent2api/ui data/deepseek2api/static/admin data/grok2api/frontend/dist data/kiro-go/web; do
@@ -95,4 +102,21 @@ if bash "$ROOT/scripts/upgrade-prebuilt-termux.sh" > "$TMP/failed.txt" 2>&1; the
 fi
 test ! -e "$AIHUB_TEST_STOP_MARKER"
 test "$(cat "$OLD/data/opencode/account.txt")" = "secret account state"
+# A pre-AhB or damaged install with no stop helper must abort safely,
+# rather than copying account DBs from possibly still-running processes.
+(
+  cd "$TMP/assets"
+  sha256sum AhB_android_arm64.tar.gz > AhB_android_arm64.tar.gz.sha256
+)
+mv "$OLD/scripts/stop-termux.sh" "$OLD/scripts/stop-termux.sh.temporarily-missing"
+rm -f "$AIHUB_TEST_STOP_MARKER"
+if bash "$ROOT/scripts/upgrade-prebuilt-termux.sh" > "$TMP/missing-stop.txt" 2>&1; then
+  echo "expected unrecognized old layout to fail before replacing original data" >&2
+  exit 1
+fi
+test ! -e "$AIHUB_TEST_STOP_MARKER"
+test -f "$OLD/config.json"
+test "$(cat "$OLD/data/opencode/account.txt")" = "secret account state"
+mv "$OLD/scripts/stop-termux.sh.temporarily-missing" "$OLD/scripts/stop-termux.sh"
+
 echo "upgrade-prebuilt fixture tests passed"
