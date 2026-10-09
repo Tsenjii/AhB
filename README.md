@@ -43,7 +43,7 @@ environment and Node.js for FreeBuff. See
 [512 MB VPS guide](docs/DEPLOY_VPS_512MB.md) and
 [technical constraints](docs/512MB-DEPLOYMENT.md).
 
-**Release status (2026-10-09):** main source `5b3d0e8f08efe4ba21a0bb783d1d76b3ef8776d5` passed source CI and Android ARM64/native Linux AMD64/ARM64 builds. The Android `prebuilt/source-commit.txt` matches this SHA, and the Linux release is [published](https://github.com/Tsenjii/AhB/releases/tag/linux-5b3d0e8f08ef). **This confirms packages, not a successful upgrade on the user's phone or a real 512 MiB VPS OOM/inference test.** Preserve account data and backups; do not install Android packages on Linux.
+**Release status (2026-10-09):** main source `570ef0e7af7eceb06bf428f71a5d76259782acb8` passed source CI and Android ARM64/native Linux AMD64/ARM64 builds. The Android `prebuilt/source-commit.txt` matches this SHA, and the Linux release is [published](https://github.com/Tsenjii/AhB/releases/tag/linux-570ef0e7af7e). **This confirms packages, not a successful upgrade on the user's phone or a real 512 MiB VPS OOM/inference test.** Preserve account data and backups; do not install Android packages on Linux.
 
 ## Unified API
 
