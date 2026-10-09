@@ -24,7 +24,7 @@ cd "$TMP/AhB"
 bash scripts/prepare-configs.sh
 jq -e '
   (.providers | map(.id) | unique | length) == (.providers | length)
-  and (any(.providers[]; .id == "copilot" and .enabled == false))
+  and (any(.providers[]; .id == "copilot" and .enabled == false and .env.GODEBUG == "netdns=cgo"))
   and (any(.providers[]; .id == "kimiweb" and .enabled == false))
   and (any(.providers[]; .id == "grok" and .enabled == false))
   and (any(.providers[]; .id == "custom-provider" and .headers.Authorization == "Bearer preserved-bridge-secret"))
