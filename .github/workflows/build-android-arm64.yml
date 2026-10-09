@@ -194,8 +194,12 @@ jobs:
           git -C /tmp/copilot2api fetch --depth 1 origin "$COPILOT_SHA"
           git -C /tmp/copilot2api checkout --detach FETCH_HEAD
           cd /tmp/copilot2api
-          CGO_ENABLED=0 GOOS=android GOARCH=arm64 \
-            go build -trimpath -ldflags="-s -w" \
+          # Android/Termux has no traditional /etc/resolv.conf. Pure-Go DNS
+          # can fall back to [::1]:53 and break GitHub Device Flow OAuth.
+          # Use Android bionic getaddrinfo via NDK cgo (same as Grok/Kiro).
+          CC="$ANDROID_TOOLCHAIN/aarch64-linux-android24-clang" \
+            GOOS=android GOARCH=arm64 CGO_ENABLED=1 \
+            go build -tags=netcgo -trimpath -ldflags="-s -w" \
             -o "$GITHUB_WORKSPACE/dist/AhB/bin/copilot2api" .
           cp LICENSE "$GITHUB_WORKSPACE/dist/AhB/LICENSE.copilot2api"
 

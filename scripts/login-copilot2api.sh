@@ -20,4 +20,6 @@ echo "GitHub Copilot: authorize your own eligible account using the on-screen Gi
 echo "The login token remains in AhB/data/copilot2api/ and is not committed or sent to the Hub UI."
 echo "When authentication succeeds and the local HTTP server starts, press Ctrl+C."
 echo
-exec "$ROOT/bin/copilot2api" -host 127.0.0.1 -port 8411 -token-dir "$ROOT/data/copilot2api"
+# Native Android libc DNS avoids the unusable [::1]:53 fallback seen in
+# pure-Go Android binaries. A cgo-enabled prebuilt is also required.
+GODEBUG=netdns=cgo exec "$ROOT/bin/copilot2api" -host 127.0.0.1 -port 8411 -token-dir "$ROOT/data/copilot2api"
