@@ -78,6 +78,15 @@ h2{font-size:13px;margin:0;font-weight:680}
 .proxy-input-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:8px}
 .proxy-input-row input{flex:1;min-width:180px;background:#111419;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:11px;font-size:13px}
 .proxy-help{font-size:10px;color:var(--subtle);line-height:1.5;margin-top:6px}
+.console-row{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;border-bottom:1px solid var(--line2);padding:12px 14px}
+.console-row:last-child{border-bottom:none}
+.console-detail{flex:1;min-width:190px}
+.console-title{font-size:13px;font-weight:670;margin-bottom:4px}
+.console-help{font-size:11px;color:var(--muted);line-height:1.5}
+.console-actions{display:flex;gap:7px;flex-wrap:wrap}
+.console-actions .btn{min-height:42px}
+@media(max-width:580px){.console-row{align-items:stretch;flex-direction:column}.console-actions{display:grid;grid-template-columns:1fr 1fr}.console-actions .btn{text-align:center;display:grid;place-items:center}}
+
 .search{width:min(310px,48vw);background:#111419;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12px;outline:none}
 .search:focus{border-color:#535d69}
 .table-wrap{border:1px solid var(--line);border-radius:10px;overflow:auto;background:var(--panel)}
@@ -291,6 +300,27 @@ th,td{font-size:12px}
   </div>
 </section>
 
+<section id="adminConsoles">
+  <div class="section-head"><div class="section-title"><h2>原生控制台登入</h2><span class="count">本機密碼集中管理</span></div></div>
+  <div class="quick-connect">
+   <div>
+    <div class="eyebrow">Native admin access</div>
+    <div class="quick-title">不用再去 Termux 找每一個管理密碼</div>
+    <p>進入各 Gateway 原本的管理頁面前，點「複製管理密碼」即可取得該來源目前的本機設定。只有你主動按下複製時才讀取；不修改管理員、上游 OAuth、帳號資料或 API 額度。</p>
+    <p>這不是替上游強制登入的通行證。如果上游有自己的登入流程（例如 Agent2API），仍使用它原本的驗證。</p>
+   </div>
+   <div class="command-panel">
+    <div class="eyebrow">Local credential vault</div>
+    <div id="adminConsoleNotice" role="status" aria-live="polite" class="command-help">正在確認本機管理資料…</div>
+    <button type="button" class="btn" id="reloadAdminConsoles" disabled>重新檢查本機登入資料</button>
+   </div>
+  </div>
+  <div class="providers" id="adminConsoleRows" style="margin-top:10px">
+   <div class="console-row muted">正在載入控制台清單…</div>
+  </div>
+  <p class="command-help">密碼複製後會暫時留在 Android 剪貼簿，請不要轉貼到聊天或截圖中。Grok 初始密碼在上游修改後可能不再有效。所有管理頁預設只在手機 localhost 開啟。</p>
+ </section>
+
 <section id="optional">
  <div class="section-head"><div class="section-title"><h2>選裝來源</h2><span class="count">Install locally, opt in</span></div></div>
  <div class="quick-connect">
@@ -376,6 +406,77 @@ const ahbUpdateAvailable=__AHB_UPDATE_AVAILABLE__;
 // The official FreeBuff CLI OAuth link is one-time data. Only the link (never
 // a Bearer token) is sent to the browser; private credential files stay on
 // the Android device and are never rendered or logged by this dashboard.
+// Local-only read-on-click access to original upstream console passwords.
+// No credential appears in the HTML source or the status inventory.
+const consoleRows=document.getElementById('adminConsoleRows');
+const consoleStatus=document.getElementById('adminConsoleNotice');
+const consoleRefreshButton=document.getElementById('reloadAdminConsoles');
+consoleRefreshButton.disabled=!ahbProviderControlAvailable;
+async function nativeConsoleRequest(action,provider){
+ const payload={action};if(provider)payload.provider=provider;
+ const res=await fetch('/api/control/console-access',{
+  method:'POST',credentials:'same-origin',cache:'no-store',
+  headers:{'X-AhB-Control-Token':ahbControlToken,'Content-Type':'application/json'},
+  body:JSON.stringify(payload)
+ });
+ if(!res.ok)throw new Error('HTTP '+res.status+': '+(await res.text()).trim().slice(0,120));
+ return res.json();
+}
+function nativeConsoleURL(raw){
+ try{
+  const u=new URL(raw);
+  return u.protocol==='http:'&&u.hostname==='127.0.0.1'?u.href:'';
+ }catch(_){return ''}
+}
+async function loadNativeConsoles(){
+ consoleStatus.textContent='正在確認每個 Gateway 的本機管理方式…';
+ consoleRows.replaceChildren();
+ try{
+  const doc=await nativeConsoleRequest('list');
+  for(const item of doc.consoles||[]){
+   const row=document.createElement('div');row.className='console-row';
+   const detail=document.createElement('div');detail.className='console-detail';
+   const title=document.createElement('div');title.className='console-title';title.textContent=item.name;
+   const helper=document.createElement('div');helper.className='console-help';
+   const mode=item.mode==='username_password'||item.mode==='bootstrap_password'?'帳號／密碼':
+    (item.mode==='admin_password'?'管理密碼':(item.mode==='admin_token'?'管理 Token':'原生驗證'));
+   helper.textContent=mode+(item.username?' · 帳號 '+item.username:'')+' · '+(item.help||'');
+   detail.append(title,helper);
+   const actions=document.createElement('div');actions.className='console-actions';
+   const safeURL=nativeConsoleURL(item.url);
+   const visit=document.createElement('a');visit.className='btn';visit.textContent='開啟原生 UI';
+   if(safeURL){visit.href=safeURL;visit.target='_blank';visit.rel='noopener noreferrer'}
+   else{visit.classList.add('disabled');visit.removeAttribute('href')}
+   actions.appendChild(visit);
+   if(item.mode!=='native'){
+    const copy=document.createElement('button');copy.className='btn';
+    copy.type='button';copy.textContent=item.local_available?'複製管理密碼':'尚未設定';
+    copy.disabled=!ahbProviderControlAvailable||!item.local_available;
+    copy.addEventListener('click',async()=>{
+     copy.disabled=true;copy.textContent='複製中…';
+     try{
+      const data=await nativeConsoleRequest('copy',item.id);
+      if(!data.secret||!await copyText(data.secret))throw new Error('複製失敗，請確認瀏覽器允許剪貼簿');
+      consoleStatus.textContent=item.name+' 管理憑證已複製到剪貼簿。請只貼入該來源的本機登入頁；不要貼到聊天。';
+     }catch(err){consoleStatus.textContent=item.name+'：'+err.message}
+     finally{copy.disabled=false;copy.textContent='複製管理密碼'}
+    });
+    actions.appendChild(copy);
+   }
+   row.append(detail,actions);consoleRows.appendChild(row);
+  }
+  consoleStatus.textContent='已載入原生控制台入口。只有主動按下「複製管理密碼」才會讀取憑證。';
+ }catch(err){
+  const notice=document.createElement('div');notice.className='console-row muted';
+  notice.textContent='本機控制台狀態無法取得：'+err.message;
+  consoleRows.appendChild(notice);
+  consoleStatus.textContent='只有使用本機 AhB Dashboard 才能讀取管理資料。';
+ }
+}
+consoleRefreshButton.addEventListener('click',loadNativeConsoles);
+if(ahbProviderControlAvailable)loadNativeConsoles();
+else consoleStatus.textContent='只有 localhost 受控 Dashboard 才能查看原生管理憑證。';
+
 const freebuffStart=document.getElementById('startFreebuffLogin');
 const freebuffCancel=document.getElementById('cancelFreebuffLogin');
 const freebuffFeedback=document.getElementById('freebuffLoginFeedback');
@@ -575,13 +676,13 @@ updateAhBButton.addEventListener('click',async()=>{
 // The dashboard starts with only the essential service cards and model list.
 const tabSections={
  home:['providersSection','modelsSection'],
- accounts:['freebuffLogin','optional'],
+ accounts:['adminConsoles','freebuffLogin','optional'],
  bridges:['connect'],
  advanced:['resourceSettings','diagnostics']
 };
 function switchTab(name){
  const active=tabSections[name]||tabSections.home;
- for(const id of ['providersSection','modelsSection','freebuffLogin','optional','connect','resourceSettings','diagnostics']){
+ for(const id of ['providersSection','modelsSection','adminConsoles','freebuffLogin','optional','connect','resourceSettings','diagnostics']){
   const e=document.getElementById(id);
   if(e)e.classList.toggle('ahb-tab-hidden',!active.includes(id));
  }
