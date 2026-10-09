@@ -343,3 +343,61 @@ func TestFetchProviderAccountsKiroStats(t *testing.T) {
 	if err != nil { t.Fatal(err) }
 	if !got.Known || got.Total != 4 || got.Usable != 3 { t.Fatalf("probe = %#v", got) }
 }
+
+func TestLocalRestartControlRejectsCrossSiteAndRemoteClients(t *testing.T) {
+	h := New(config.Config{Listen:"127.0.0.1:8317"})
+	called := 0
+	h.SetRestartHandler(func() error { called++; return nil })
+
+	makeRequest := func(origin, token, remote string) int {
+		req := httptest.NewRequest(http.MethodPost, "http://127.0.0.1:8317/api/control/restart", strings.NewReader("{}"))
+		req.RemoteAddr = remote
+		req.Header.Set("Origin", origin)
+		req.Header.Set("X-AhB-Control-Token", token)
+		rec := httptest.NewRecorder()
+		h.Handler().ServeHTTP(rec, req)
+		return rec.Code
+	}
+	if code := makeRequest("https://evil.example", h.controlToken, "127.0.0.1:1000"); code != http.StatusForbidden {
+		t.Fatalf("cross-origin request got %d", code)
+	}
+	if code := makeRequest("http://127.0.0.1:8317", "guess", "127.0.0.1:1000"); code != http.StatusForbidden {
+		t.Fatalf("bad token got %d", code)
+	}
+	if code := makeRequest("http://127.0.0.1:8317", h.controlToken, "192.0.2.42:1000"); code != http.StatusForbidden {
+		t.Fatalf("remote request got %d", code)
+	}
+	if called != 0 {
+		t.Fatalf("restart callback invoked by forbidden request")
+	}
+	if code := makeRequest("http://127.0.0.1:8317", h.controlToken, "127.0.0.1:1000"); code != http.StatusAccepted {
+		t.Fatalf("valid local restart got %d", code)
+	}
+	if called != 1 {
+		t.Fatalf("restart callback invoked %d times, want 1", called)
+	}
+
+	h.cfg.AllowLAN = true
+	if code := makeRequest("http://127.0.0.1:8317", h.controlToken, "127.0.0.1:1000"); code != http.StatusForbidden {
+		t.Fatalf("LAN-enabled restart should be refused, got %d", code)
+	}
+	if called != 1 {
+		t.Fatalf("LAN-enabled restart invoked callback")
+	}
+}
+
+func TestDashboardRestartButtonDoesNotExposeControlOnNonTermux(t *testing.T) {
+	h := New(config.Config{Listen:"127.0.0.1:8317"})
+	req := httptest.NewRequest(http.MethodGet, "http://127.0.0.1:8317/ui", nil)
+	rec := httptest.NewRecorder()
+	h.Handler().ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "id=\"restartAhB\"") {
+		t.Fatalf("missing restart UI")
+	}
+	if !strings.Contains(rec.Body.String(), "const ahbRestartAvailable=false;") {
+		t.Fatalf("non-Termux control should be disabled")
+	}
+	if strings.Contains(rec.Body.String(), "__AHB_CONTROL_TOKEN__") {
+		t.Fatalf("UI token template was not substituted")
+	}
+}
