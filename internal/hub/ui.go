@@ -261,18 +261,32 @@ th,td{font-size:12px}
   <div class="quick-connect">
     <div>
       <div class="eyebrow">FreeBuff account onboarding</div>
-      <div class="quick-title">新版 Node.js FreeBuff 需要重新完成裝置授權。</div>
+      <div class="quick-title">直接用手機瀏覽器完成官方 OAuth 授權。</div>
       <p>舊 Rust 版的 Web Cookie 不能直接匯入新版；原本的帳號資料會保留在備份和 data/freebuff/。新版以自己的 CLI/Bearer 帳號為來源，無額外管理網頁。</p>
       <div class="quick-actions">
         <a class="btn" href="https://github.com/yutian81/freebuff2api" target="_blank" rel="noopener noreferrer">新版原始碼與說明</a>
       </div>
     </div>
     <div class="command-panel">
-      <div class="eyebrow">Device-code login on Termux</div>
-      <div class="command-box">cd ~/AhB &amp;&amp; ./scripts/freebuff-login-termux.sh</div>
-      <div class="command-help">指令會顯示僅供你本人使用的授權連結，登入後將 Bearer Token 私密保存在手機，不會顯示或上傳給 AhB。登入後請重啟服務。</div>
-      <div class="command-box">cd ~/AhB &amp;&amp; ./scripts/check-freebuff-login.sh</div>
-      <div class="command-help">帳號數與健康狀態僅為本機觀測；0 個帳號或舊版 Cookie 無法推理。請勿將任何授權連結、Token 或包含敏感資料的輸出分享。</div>
+      <div class="eyebrow">官方 Google / CLI OAuth 授權</div>
+      <div class="quick-title">直接在 AhB 登入，不需要 Termux 指令</div>
+      <p id="freebuffAccountCount">正在查詢本機帳號數…</p>
+      <div class="command-actions">
+       <button type="button" class="btn primary" id="startFreebuffLogin" disabled>以 Google 登入 FreeBuff</button>
+       <button type="button" class="btn" id="cancelFreebuffLogin" style="display:none">取消登入</button>
+      </div>
+      <div id="freebuffLoginFeedback" class="quick-note" role="status" aria-live="polite" style="display:none;margin-top:10px">
+       <span id="freebuffLoginMessage">正在檢查授權狀態…</span>
+       <div id="freebuffLoginLinkArea" style="display:none;margin-top:12px">
+        <a id="freebuffLoginLink" class="btn primary" target="_blank" rel="noopener noreferrer" href="#">開啟 FreeBuff 官方授權頁</a>
+        <p class="command-help">這是一次性登入網址，請只在自己的手機開啟，不要分享截圖或網址。授權完成後，AhB 會自動安全保存到本機。</p>
+       </div>
+       <div style="margin-top:10px"><button type="button" class="btn" id="reloadFreebuff" style="display:none">重新載入 FreeBuff 帳號</button></div>
+      </div>
+      <details style="margin-top:14px"><summary class="muted" style="cursor:pointer">備用：使用 Termux 登入</summary>
+       <div class="command-box" style="margin-top:7px">cd ~/AhB &amp;&amp; ./scripts/freebuff-login-termux.sh</div>
+       <div class="command-help">只有本機 OAuth 按鈕無法使用時才需要。不要把授權連結或 Token 傳給其他人。</div>
+      </details>
     </div>
   </div>
 </section>
@@ -359,6 +373,110 @@ const ahbControlToken="__AHB_CONTROL_TOKEN__";
 const ahbRestartAvailable=__AHB_RESTART_AVAILABLE__;
 const ahbProviderControlAvailable=__AHB_PROVIDER_CONTROL_AVAILABLE__;
 const ahbUpdateAvailable=__AHB_UPDATE_AVAILABLE__;
+// The official FreeBuff CLI OAuth link is one-time data. Only the link (never
+// a Bearer token) is sent to the browser; private credential files stay on
+// the Android device and are never rendered or logged by this dashboard.
+const freebuffStart=document.getElementById('startFreebuffLogin');
+const freebuffCancel=document.getElementById('cancelFreebuffLogin');
+const freebuffFeedback=document.getElementById('freebuffLoginFeedback');
+const freebuffMessage=document.getElementById('freebuffLoginMessage');
+const freebuffCount=document.getElementById('freebuffAccountCount');
+const freebuffLinkArea=document.getElementById('freebuffLoginLinkArea');
+const freebuffLink=document.getElementById('freebuffLoginLink');
+const freebuffReload=document.getElementById('reloadFreebuff');
+let freebuffTimer=null,freebuffAuthTab=null,freebuffOpenedLink='';
+freebuffStart.disabled=!ahbProviderControlAvailable;
+function freebuffOfficialURL(raw){
+ try {
+  const u=new URL(raw);
+  return u.protocol==='https:'&&(u.hostname==='www.codebuff.com'||u.hostname==='codebuff.com')?u.href:'';
+ }catch(_){return ''}
+}
+async function freebuffLoginAction(action){
+ const res=await fetch('/api/control/login/freebuff',{
+  method:'POST',credentials:'same-origin',cache:'no-store',
+  headers:{'X-AhB-Control-Token':ahbControlToken,'Content-Type':'application/json'},
+  body:JSON.stringify({action})
+ });
+ if(!res.ok)throw new Error((await res.text()).trim().slice(0,140)||'HTTP '+res.status);
+ return res.json();
+}
+function showFreebuffLogin(data){
+ const state=data.state||'idle';
+ if(freebuffTimer){clearTimeout(freebuffTimer);freebuffTimer=null}
+ const count=Number.isInteger(data.accounts)?data.accounts:0;
+ freebuffCount.textContent='本機已保存 '+count+' 個 CLI 帳號 · 不代表有可用額度';
+ freebuffFeedback.style.display=state==='idle'?'none':'block';
+ freebuffMessage.textContent=data.detail||({
+  starting:'正在向官方要求一次性授權網址…',
+  waiting:'請在 Codebuff 官方網站登入；AhB 正在等待授權完成…',
+  done:'已完成授權並安全保存到手機。',
+  expired:'授權逾時，請重新開始。',
+  cancelled:'授權已取消。',
+  failed:'授權失敗，請稍後重試。'
+ }[state]||'尚未開始');
+ const url=state==='waiting'?freebuffOfficialURL(data.url||''):'';
+ freebuffLinkArea.style.display=url?'block':'none';
+ if(url){
+  freebuffLink.href=url;
+  if(freebuffAuthTab&&freebuffOpenedLink!==url){
+   try {freebuffAuthTab.location.href=url;freebuffOpenedLink=url;}
+   catch(_){ /* Popup was blocked or closed; keep the manual link. */ }
+  }
+ }
+ if(state!=='starting'&&state!=='waiting'){freebuffAuthTab=null;freebuffOpenedLink=''}
+ freebuffCancel.style.display=(state==='starting'||state==='waiting')?'inline-flex':'none';
+ freebuffReload.style.display=state==='done'?'inline-flex':'none';
+ freebuffStart.disabled=!ahbProviderControlAvailable||state==='starting'||state==='waiting';
+ freebuffStart.textContent=state==='starting'||state==='waiting'?'授權進行中…':(count?'新增另一個 Google 帳號':'以 Google 登入 FreeBuff');
+ if(state==='starting'||state==='waiting'){
+  freebuffTimer=setTimeout(async()=>{
+   try{showFreebuffLogin(await freebuffLoginAction('status'))}
+   catch(err){freebuffMessage.textContent='無法確認授權：'+err.message;freebuffStart.disabled=false}
+  },1500);
+ }
+}
+freebuffStart.addEventListener('click',async()=>{
+ if(!ahbProviderControlAvailable)return;
+ freebuffStart.disabled=true;
+ // Opening the tab synchronously retains the user gesture in mobile browsers.
+ // If blocked, users can use the explicit official URL shown below.
+ freebuffAuthTab=window.open('about:blank','_blank');
+ try{if(freebuffAuthTab)freebuffAuthTab.document.title='FreeBuff 官方授權載入中…';}catch(_){}
+ freebuffOpenedLink='';
+ freebuffFeedback.style.display='block';
+ freebuffMessage.textContent='正在取得官方 Google 授權網址…';
+ try{showFreebuffLogin(await freebuffLoginAction('start'))}
+ catch(err){
+  if(freebuffAuthTab){try{freebuffAuthTab.close()}catch(_){}}
+  freebuffAuthTab=null;
+  freebuffStart.disabled=false;
+  freebuffMessage.textContent='無法開始 FreeBuff 登入：'+err.message;
+ }
+});
+freebuffCancel.addEventListener('click',async()=>{
+ try{showFreebuffLogin(await freebuffLoginAction('cancel'))}
+ catch(err){freebuffMessage.textContent='取消授權失敗：'+err.message}
+});
+freebuffReload.addEventListener('click',async()=>{
+ freebuffReload.disabled=true;
+ try{
+  const data=await getJSON('/api/providers');
+  const p=(data.providers||[]).find(x=>x.id==='freebuff');
+  if(!p||!p.enabled){controlNotice('FreeBuff 尚未啟用；先到總覽開啟。');return}
+  const endpoint=p.process_alive?'/api/control/recover/freebuff':'/api/control/wake/freebuff';
+  const res=await fetch(endpoint,{
+   method:'POST',credentials:'same-origin',cache:'no-store',
+   headers:{'X-AhB-Control-Token':ahbControlToken,'Content-Type':'application/json'},body:'{}'
+  });
+  if(!res.ok)throw new Error((await res.text()).trim().slice(0,160)||'HTTP '+res.status);
+  controlNotice('已重新載入 FreeBuff。請透過模型清單和實際推論確認帳號／額度。');
+  await refresh();
+ }catch(err){controlNotice('FreeBuff 尚未完成重新載入：'+err.message)}
+ finally{freebuffReload.disabled=false}
+});
+freebuffLoginAction('status').then(showFreebuffLogin).catch(()=>{freebuffCount.textContent='本機登入狀態目前無法取得';});
+
 const startCopilotLoginBtn=document.getElementById('startCopilotLogin');
 const copilotLoginFeedback=document.getElementById('copilotLoginFeedback');
 const copilotLoginMessage=document.getElementById('copilotLoginMessage');

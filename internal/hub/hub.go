@@ -39,6 +39,11 @@ type Hub struct {
 	controlPending bool
 	copilotLoginMu sync.Mutex
 	copilotLogin *copilotLoginSession
+	freebuffLoginMu sync.Mutex
+	freebuffLogin *freebuffLoginSession
+	freebuffAuthBase string // fixed official origin; overridden only by test fixtures
+	freebuffAuthClient *http.Client
+	freebuffPollInterval time.Duration
 	demandMu sync.Mutex
 	demandContext context.Context
 }
@@ -188,6 +193,7 @@ func (h *Hub) Handler() http.Handler {
 	mux.HandleFunc("/api/control/provider/", h.handleControlProvider)
 	mux.HandleFunc("/api/control/resources", h.handleControlResources)
 	mux.HandleFunc("/api/control/login/copilot", h.handleCopilotLogin)
+	mux.HandleFunc("/api/control/login/freebuff", h.handleFreebuffLogin)
 	mux.HandleFunc("/api/control/wake/", h.wakeProvider)
 	mux.HandleFunc("/api/control/recover/", h.handleControlRecover)
 	mux.HandleFunc("/api/control/proxy/", h.handleControlProxy)

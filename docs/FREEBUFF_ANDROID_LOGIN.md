@@ -11,6 +11,14 @@ AhB replaced the legacy Rust `lza6/Freebuff-2API v0.10.3` with the independently
 - The new gateway is copied into `data/freebuff/gateway/`. During upgrading, only this replaceable source directory is refreshed from the new package; `data/freebuff/credentials/` and local saved authorized CLI logins survive.
 - AhB's old `freebuff/` model namespace and loopback port **8402** remain; the gateway has **no legacy Rust management UI**.
 
+## One-tap local Dashboard OAuth (new, pending release)
+
+AhB now integrates the existing authorized FreeBuff/Codebuff CLI device flow into **Dashboard → 帳號與登入 → FreeBuff**. Tap **以 Google 登入 FreeBuff** once. AhB requests a one-time link from the official `https://www.codebuff.com/api/auth/cli/code` endpoint and opens that *official site* in the browser; Google sign-in itself stays on the official browser flow. A background process checks `/api/auth/cli/status` (up to five minutes) and saves only the completed account's `authToken` in a private owner-only file under `data/freebuff/credentials/`. It never sends that token to Dashboard, GitHub, Telegram or an AhB log. Existing authorized accounts are preserved and multi-account login can be repeated. This is a CLI-device OAuth flow, **not** a new Google OAuth client that accepts Google passwords or a way to skip official login.
+
+After success, press **重新載入 FreeBuff 帳號** in the same panel; the Hub wakes a sleeping Gateway or safely restarts an idle running one. If the current Gateway has a live chat or SSE request, it will refuse to interrupt it; retry the reload after those requests finish.
+
+The original Termux script remains as an offline/manual fallback only. The panel is limited to local authenticated AhB controls. One-time authorization links must not be copied into logs or shared with other users. A successful OAuth link merely means a token was saved; use live model inference and quota checks to verify usable account entitlement.
+
 ## Steps on Android after a verified published release
 
 Upgrade with `scripts/upgrade-prebuilt-termux.sh`, which safely installs Termux Node.js and takes a backup before replacing the binaries and gateway source. Then:
