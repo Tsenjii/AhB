@@ -531,7 +531,7 @@ async function refresh(){
   const providers=p.providers||[];
   const sidecarRSS=providers.reduce((n,x)=>n+(x.rss_bytes||0),0);
   const ready=providers.filter(x=>x.enabled&&x.state==='HEALTHY').length;
-  document.getElementById('runtime').textContent='RSS '+fmtBytes((r.process_rss_bytes||0)+sidecarRSS)+' · '+(r.goos||'?')+'/'+(r.goarch||'?');
+  document.getElementById('runtime').textContent='RSS '+fmtBytes((r.process_rss_bytes||0)+sidecarRSS)+' · 按需 '+(r.running_on_demand??0)+'/'+(r.max_running_sidecars||1)+' · '+(r.goos||'?')+'/'+(r.goarch||'?');
   document.getElementById('providerTotal').textContent=providers.filter(x=>x.enabled).length;
   document.getElementById('modelTotal').textContent=lastModels.length;
   document.getElementById('providerReady').textContent=ready+' endpoint healthy / '+providers.length+' configured';
