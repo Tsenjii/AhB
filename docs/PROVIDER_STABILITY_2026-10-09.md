@@ -1,4 +1,4 @@
-# AhB seven bundled providers — stability and release matrix (2026-10-09)
+> **Historical seven-provider stabilization snapshot.** The released 2026-10-09 `5841235` bundle now contains **nine** native gateways, uses the **new yutian81 FreeBuff Node/CLI** adapter, and pins **Agent2API v2.9.8**. The account findings below concern older phone builds. For current packaging and verification state see [NEXT_AI_HANDOFF.md](NEXT_AI_HANDOFF.md) and [README](../README.md).\n\n# AhB seven bundled providers — stability and release matrix (2026-10-09)
 
 Source evidence: [provider config](../config.example.json), [Android build workflow](../.github/workflows/build-android-arm64.yml), [on-device acceptance](NEXT_PHONE_ACCEPTANCE.md). This is **source-level and CI coverage**, not proof of every user's live quotas.
 
