@@ -168,6 +168,13 @@ th,td{font-size:12px}
 .ui-toggle:has(input:disabled){cursor:not-allowed;opacity:.45}
 .quick-note{padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:var(--panel);font-size:12px;line-height:1.7;color:var(--muted)}
 @media(max-width:650px){.providers{grid-template-columns:1fr}.provider-actions{flex-wrap:wrap}.overview{grid-template-columns:1fr}.summary{max-width:none}main{padding:15px 12px 34px}}
+@media(max-width:650px){
+ header{flex-wrap:wrap;gap:12px}
+ header>div:last-child{width:100%;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px!important}
+ header>div:last-child button{font-size:12px;padding:11px 3px;min-width:0}
+ .anchor-nav button{font-size:13px;min-height:44px}
+ .ui-toggle{min-height:44px}
+}
 </style>
 </head>
 <body>
