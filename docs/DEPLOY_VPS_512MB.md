@@ -11,12 +11,12 @@ must pass a real smoke test before support is promised.
 - **Android** defaults to up to 3 resident sidecars, idle timeout 15 minutes.
 - **Linux 512 MiB** defaults to a single resident on-demand sidecar, idle
   timeout 2 minutes.
-- Both share the same Go Hub and seven pinned upstream gateways.
+- Both share the same Go Hub and nine pinned upstream gateways.
 - **Agent2API is not rewritten**. It is compiled unchanged for each platform.
 - Both expose a unified local API at `127.0.0.1:8317/v1`, with a local
   dashboard at `127.0.0.1:8317/ui`.
 
-A one-process on-demand cap prevents loading all seven gateways simultaneously,
+A one-process on-demand cap prevents loading all nine gateways simultaneously,
 but does not guarantee that a given upstream process will always fit in
 512 MiB RAM. Avoid local browser automation or extra heavyweight apps.
 
@@ -68,9 +68,26 @@ ssh -N -L 8317:127.0.0.1:8317 USER@VPS
 
 Then open `http://127.0.0.1:8317/ui` in your **local computer** browser.
 The GUI's on/off toggles trigger a strictly scoped Linux restart, preserving
-existing account files. The separate Linux release update path is still under
-development: do not replace the running installation with a fresh-install
-command. Back up accounts and test the update process before upgrading.
+existing account files. For a **staged Linux upgrade**, run:
+
+```bash
+cd "$HOME/AhB"
+bash scripts/upgrade-linux.sh
+# A timestamped AhB.backup-* directory retains the previous release.
+bash scripts/start-linux.sh
+```
+
+The Linux upgrader only selects Linux-specific GitHub releases (or a
+deliberately pinned `AHB_LINUX_RELEASE_TAG`), checks SHA-256 and archive
+safety **before** stopping the old Hub, preserves credentials/config and
+newly installed static assets separately, and retains a complete rollback
+backup. It refuses to copy account databases if owned processes or listening
+ports are still running. The old installation must have an intact Linux
+stop helper and installer; older unknown layouts fail closed.
+
+This is tested with synthetic credentials/archives in CI; the first real
+512 MiB VPS installation and an account-authorized live upgrade still need
+verification. Do not automatically remove the backup.
 
 ## Actual RAM measurement
 
