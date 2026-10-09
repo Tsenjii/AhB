@@ -43,8 +43,9 @@ curl -fsS http://127.0.0.1:8317/healthz
 
 The installer verifies SHA-256, rejects unsafe archive entries, checks the
 Linux config profile and **refuses to overwrite an existing installation**.
-The archive includes Linux-specific `bin/hubd`, OpenCode, FreeBuff,
-Agent2API, DeepSeek, Grok, Kiro, and Copilot components.
+The archive includes Linux-native `bin/hubd` plus nine bundled provider adapters:
+OpenCode, FreeBuff, Agent2API, DeepSeek, Grok, Kiro, Copilot, Gemini Web
+and Duck.ai. Each stays off-process until requested.
 
 If the release does not exist yet, the download will fail and no installation
 takes place. That is expected until the dual-edition pull request is merged
@@ -81,6 +82,10 @@ free -m
 ps -eo pid,rss,comm --sort=-rss | head -n 20
 curl -fsS http://127.0.0.1:8317/api/runtime
 ```
+
+Gemini Web and Duck.ai are unofficial gateways. Availability, upstream
+limits, model names, and actual permissions must be checked with an
+account-authorized request; packaging does not guarantee inference.
 
 The Linux profile holds a full streaming-response lease and does not
 terminate active model requests to make room for a different provider.
