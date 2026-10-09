@@ -62,3 +62,25 @@ func TestProviderToggleFailsClosedWithoutSecrets(t *testing.T){
  now,_:=os.ReadFile(path)
  if string(now)!=string(raw){t.Fatal("credentials-free login error changed config")}
 }
+
+func TestDashboardUpdateControlRequiresLocalAuthorization(t *testing.T){
+ h:=New(config.Config{Listen:"127.0.0.1:8317"})
+ count:=0
+ h.SetRestartHandler(func()error{return nil})
+ h.SetUpdateHandler(func()error{count++;return nil})
+ send:=func(origin,token string)int{
+  req:=httptest.NewRequest(http.MethodPost,"http://127.0.0.1:8317/api/control/update",strings.NewReader("{}"))
+  req.RemoteAddr="127.0.0.1:8800"
+  req.Header.Set("Origin",origin)
+  req.Header.Set("X-AhB-Control-Token",token)
+  rec:=httptest.NewRecorder()
+  h.Handler().ServeHTTP(rec,req)
+  return rec.Code
+ }
+ if x:=send("http://127.0.0.1:8317","fake");x!=403{t.Fatalf("bad token got %d",x)}
+ if x:=send("https://untrusted.test",h.controlToken);x!=403{t.Fatalf("CSRF got %d",x)}
+ if count!=0{t.Fatal("untrusted update scheduled")}
+ if x:=send("http://127.0.0.1:8317",h.controlToken);x!=202{t.Fatalf("local update got %d",x)}
+ if count!=1{t.Fatal("update callback not invoked once")}
+ if x:=send("http://127.0.0.1:8317",h.controlToken);x!=409{t.Fatalf("second update should be refused: %d",x)}
+}

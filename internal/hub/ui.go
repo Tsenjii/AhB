@@ -177,7 +177,7 @@ th,td{font-size:12px}
   <div class="mark">AhB</div>
   <div><h1>Local Gateway</h1><div id="runtime" class="kicker">正在讀取執行狀態…</div></div>
  </div>
- <div style="display:flex;gap:8px;align-items:center"><button id="restartAhB" type="button" disabled title="只重新啟動 AhB，不會關閉 Termux">重新啟動 AhB</button><button id="refresh">重新整理</button></div>
+ <div style="display:flex;gap:8px;align-items:center"><button id="updateAhB" type="button" disabled title="連 Agent2API 在內，從已發布 Android 封包安全更新">更新 AhB</button><button id="restartAhB" type="button" disabled title="只重新啟動 AhB，不會關閉 Termux">重新啟動 AhB</button><button id="refresh">重新整理</button></div>
 </header>
 <nav class="anchor-nav" aria-label="AhB 分頁" id="ahbTabs">
  <button type="button" data-tab="home" class="selected" aria-current="page">總覽</button>
@@ -245,7 +245,7 @@ th,td{font-size:12px}
   <div>
    <div class="eyebrow">Optional packages</div>
    <div class="quick-title">有帳號才啟用，減少手機負擔。</div>
-   <p>Copilot 是隨新版預編譯包附帶的輕量 Go 程式；登入需在 Termux 完成 GitHub Device Flow。Kimi Web 是另外安裝的 Python 帳號池；兩者都不會預設啟用。</p>
+   <p>Copilot 使用 GitHub 裝置授權，Kimi Web 需要額外安裝。Agent2API 的 Android 更新由 AhB 統一封包管理：在首頁按「更新 AhB」即可安全檢查並更新整套服務。</p>
    <p>這裡只會複製安裝指令，並不會在瀏覽器執行任何命令或取得帳號金鑰。</p>
   </div>
   <div class="quick-form">
@@ -317,6 +317,7 @@ th,td{font-size:12px}
 const ahbControlToken="__AHB_CONTROL_TOKEN__";
 const ahbRestartAvailable=__AHB_RESTART_AVAILABLE__;
 const ahbProviderControlAvailable=__AHB_PROVIDER_CONTROL_AVAILABLE__;
+const ahbUpdateAvailable=__AHB_UPDATE_AVAILABLE__;
 const restartAhBButton=document.getElementById('restartAhB');
 restartAhBButton.disabled=!ahbRestartAvailable;
 restartAhBButton.title=ahbRestartAvailable?'重新啟動 AhB 後端及其受控服務，不會關閉 Termux':'僅限本機 Android Termux 預編譯版提供此操作';
@@ -340,6 +341,26 @@ restartAhBButton.addEventListener('click',async()=>{
   restartAhBButton.disabled=false;
   restartAhBButton.textContent='重新啟動 AhB';
   alert(e.message+'。原本的 AhB 不會被強制停止。');
+ }
+});
+const updateAhBButton=document.getElementById('updateAhB');
+updateAhBButton.disabled=!ahbUpdateAvailable;
+updateAhBButton.addEventListener('click',async()=>{
+ if(!ahbUpdateAvailable||updateAhBButton.disabled)return;
+ if(!confirm('檢查 GitHub 已發布的 AhB Android 封包，有新版才更新。這會連 Agent2API 等內建服務一起更新，舊帳號與資料保留，會中斷目前請求。確定嗎？'))return;
+ updateAhBButton.disabled=true;
+ updateAhBButton.textContent='正在檢查…';
+ try{
+  const r=await fetch('/api/control/update',{
+   method:'POST',cache:'no-store',credentials:'same-origin',
+   headers:{'X-AhB-Control-Token':ahbControlToken,'Content-Type':'application/json'},body:'{}'
+  });
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  controlNotice('已開始檢查更新。若有新版，系統會驗證封包、備份既有資料、更新後重新啟動 AhB；手機 Termux 不會被關閉。');
+  updateAhBButton.textContent='正在檢查更新…';
+ }catch(e){
+  updateAhBButton.disabled=false;updateAhBButton.textContent='更新 AhB';
+  controlNotice('無法啟動更新：'+e.message);
  }
 });
 // The dashboard starts with only the essential service cards and model list.
@@ -526,5 +547,8 @@ func (h *Hub) handleUI(w http.ResponseWriter, _ *http.Request) {
 	}
 	html = strings.Replace(html, "__AHB_RESTART_AVAILABLE__", available, 1)
 	html = strings.Replace(html, "__AHB_PROVIDER_CONTROL_AVAILABLE__", available, 1)
+	updater := "false"
+	if available == "true" && h.updateFn != nil { updater = "true" }
+	html = strings.Replace(html, "__AHB_UPDATE_AVAILABLE__", updater, 1)
 	_, _ = w.Write([]byte(html))
 }
