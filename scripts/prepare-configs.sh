@@ -40,6 +40,8 @@ if command -v jq >/dev/null 2>&1 && [ -f config.json ]; then
           (((.providers[] | select(.id == "opencode") | .env) // {}) + {"GODEBUG":"netdns=cgo"})
       | (.providers[] | select(.id == "grok") | .env) =
           (((.providers[] | select(.id == "grok") | .env) // {}) + {"GODEBUG":"netdns=cgo"})
+      | (.providers[] | select(.id == "copilot") | .env) =
+          (((.providers[] | select(.id == "copilot") | .env) // {}) + {"GODEBUG":"netdns=cgo"})
       # Switch existing FreeBuff installs to the pinned Node service without
       # touching old Cookie, SQLite or token stores under data/freebuff/.
       | .providers |= map(
