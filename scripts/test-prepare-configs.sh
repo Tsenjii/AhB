@@ -26,8 +26,10 @@ bash scripts/prepare-configs.sh
 jq -e '
   (.providers | map(.id) | unique | length) == (.providers | length)
   and (any(.providers[]; .id == "copilot" and .enabled == false and .env.GODEBUG == "netdns=cgo" and .env.MY_COPILOT_SETTING == "preserved"))
-  and (any(.providers[]; .id == "kimiweb" and .enabled == false))
-  and (any(.providers[]; .id == "grok" and .enabled == false))
+  and (all(.providers[]; .id != "kimiweb" and .id != "lmarena"))
+  and (.resources.max_running_sidecars == 1 and .resources.idle_stop_seconds == 120)
+  and (all(.providers[] | select(.kind == "sidecar"); .start_mode == "on_demand"))
+  and (any(.providers[]; .id == "grok" and .enabled == true and .start_mode == "on_demand"))
   and (any(.providers[]; .id == "custom-provider" and .headers.Authorization == "Bearer preserved-bridge-secret"))
   and (any(.providers[]; .id == "opencode" and .headers.Authorization == "Bearer preserved-user-secret" and .env.CUSTOM == "preserved" and .env.GODEBUG == "netdns=cgo"))
   and (any(.providers[]; .id == "freebuff" and .enabled == true
@@ -99,7 +101,7 @@ printf 'OLD_COOKIE_DO_NOT_CONVERT\n' > "$LEGACY/data/freebuff/tokens.json"
       and (.headers.Authorization | startswith("Bearer "))))
     and (any(.providers[]; .id == "copilot" and .enabled == false))
     and (any(.providers[]; .id == "grok" and .enabled == false))
-    and (any(.providers[]; .id == "kiro" and .enabled == false))
+    and (any(.providers[]; .id == "kiro" and .enabled == true))
   ' config.json >/dev/null
   test "$(cat data/hub-local-key.txt)" = "FIRST_RELEASE_SECRET"
   test "$(cat data/freebuff/tokens.json)" = "OLD_COOKIE_DO_NOT_CONVERT"
@@ -110,4 +112,4 @@ printf 'OLD_COOKIE_DO_NOT_CONVERT\n' > "$LEGACY/data/freebuff/tokens.json"
 )
 echo "first-release 3-provider AhB config -> latest 7-provider migration fixture passed"
 
-echo "prepare-configs fixture passed (atomic preserve, new disabled providers, idempotence, malformed config rejection)"
+echo "prepare-configs fixture passed (secret preservation, only installed defaults, lazy 512MB policy, idempotence)"
