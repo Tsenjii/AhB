@@ -337,8 +337,8 @@ th,td{font-size:12px}
 
 <section id="modelsSection">
  <div class="section-head">
-  <div><div class="section-title"><h2>Models</h2><span id="modelCount" class="count">—</span></div><div class="desc">512 MB 模式只列出目前已啟動服務的即時模型。睡眠中的服務可在上方點「啟動並載入模型」，也能用 provider/model 請求喚醒。</div></div>
-  <input id="search" class="search" placeholder="搜尋模型或 Provider">
+  <div><div class="section-title"><h2>Models</h2><span id="modelCount" class="count">—</span></div><div class="desc">已啟動來源顯示即時清單；休眠來源可顯示六小時內曾成功取得的模型快取（並標示「休眠快取」）。快取不保證帳號有效、模型未下架或有剩餘額度。可依序掃描全部來源而不常駐九個程序。</div></div>
+  <div class="command-actions"><button type="button" id="scanAllModels" class="btn" disabled>逐一載入全部模型</button><input id="search" class="search" placeholder="搜尋模型或 Provider"></div>
  </div>
  <div class="table-wrap">
   <table><thead><tr><th>Model ID</th><th>Provider</th><th>Upstream</th></tr></thead><tbody id="models"></tbody></table>
@@ -543,6 +543,8 @@ switchTab('home');
 const fmtBytes=n=>!n?'—':n<1048576?(n/1024).toFixed(1)+' KiB':(n/1048576).toFixed(1)+' MiB';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let lastModels=[];
+let lastProviders=[];
+let scanningAllModels=false;
 async function getJSON(path){const r=await fetch(path,{cache:'no-store'});if(!r.ok)throw new Error(path+' HTTP '+r.status);return r.json()}
 function modelCounts(models){const out={};for(const m of models){const p=m.x_provider||'';out[p]=(out[p]||0)+1}return out}
 function accountLabel(x){
@@ -560,7 +562,7 @@ function renderModels(){
  const rows=lastModels.filter(m=>!q||String(m.id||'').toLowerCase().includes(q)||String(m.x_provider_name||m.x_provider||'').toLowerCase().includes(q));
  document.getElementById('modelCount').textContent=rows.length===lastModels.length?lastModels.length+' listed':rows.length+' of '+lastModels.length;
  document.getElementById('models').innerHTML=rows.length?rows.map(m=>
-  '<tr><td><code>'+esc(m.id)+'</code></td><td>'+esc(m.x_provider_name||m.x_provider||'—')+'</td><td><code>'+esc(m.x_upstream_id||'—')+'</code></td></tr>'
+  '<tr><td><code>'+esc(m.id)+'</code>'+(m.x_cached?'<span class="muted"> · 休眠快取</span>':'')+'</td><td>'+esc(m.x_provider_name||m.x_provider||'—')+'</td><td><code>'+esc(m.x_upstream_id||'—')+'</code></td></tr>'
  ).join(''):'<tr><td colspan="3" class="muted">沒有符合的模型</td></tr>';
 }
 function actionLink(url,label,primary,enabled){
@@ -581,6 +583,8 @@ async function refresh(){
   lastModels=m.data||[];
   const counts=modelCounts(lastModels);
   const providers=p.providers||[];
+  lastProviders=providers;
+  document.getElementById('scanAllModels').disabled=!ahbProviderControlAvailable||scanningAllModels;
   const sidecarRSS=providers.reduce((n,x)=>n+(x.rss_bytes||0),0);
   const ready=providers.filter(x=>x.enabled&&x.state==='HEALTHY').length;
   const ahbRSS=r.ahb_rss_bytes||((r.process_rss_bytes||0)+sidecarRSS);
@@ -610,7 +614,7 @@ async function refresh(){
     '<div class="provider-main"><div class="provider-name"><span class="state-dot '+esc(x.state)+'"></span>'+esc(x.display_name||x.id)+' <span class="badge">'+esc(x.state)+'</span></div><div class="desc">'+esc(x.description||x.id)+'</div>'+
      '<div class="layers"><span class="layer">Process <b>'+esc(x.kind==='external'?'N/A':(x.process_alive?'YES':'NO'))+'</b></span><span class="layer">Ready <b>'+esc(x.provider_ready?'YES':'NO')+'</b></span><span class="layer">Credentials <b>'+esc(accountLabel(x))+'</b></span><span class="layer" title="最近一次 API 上游回覆 HTTP 狀態；200 不保證串流完整或有可用額度">Last API <b>'+esc(lastRequestLabel(x))+'</b></span></div>'+
      (x.last_error?'<div class="provider-error">'+esc(x.last_error)+'</div>':'')+'</div>'+
-    '<div class="metrics"><div class="metric"><b>'+esc(counts[x.id]||0)+'</b><span>Models</span></div><div class="metric"><b>'+esc(fmtBytes(x.rss_bytes))+'</b><span>RSS</span></div><div class="metric"><b>'+esc(x.restarts||0)+'</b><span>Restarts</span></div></div>'+
+    '<div class="metrics"><div class="metric"><b>'+esc(x.enabled&&x.start_mode==='on_demand'&&!x.process_alive&&!(counts[x.id]>0)?'SLEEP':(counts[x.id]||0))+'</b><span>Models</span></div><div class="metric"><b>'+esc(fmtBytes(x.rss_bytes))+'</b><span>RSS</span></div><div class="metric"><b>'+esc(x.restarts||0)+'</b><span>Restarts</span></div></div>'+
     '<div class="provider-actions">'+
       '<label class="ui-toggle"><input type="checkbox" data-provider-toggle="'+esc(x.id)+'" '+(x.enabled?'checked ':'')+(!ahbProviderControlAvailable?'disabled ':'')+' aria-label="'+esc(x.display_name||x.id)+' 啟用或停用"><span>'+(x.enabled?'已開啟':'已關閉')+'</span></label>'+
       (enabled&&x.start_mode==='on_demand'&&!x.process_alive?'<button type="button" class="btn" data-provider-wake="'+esc(x.id)+'" '+(!ahbProviderControlAvailable?'disabled':'')+'>啟動並載入模型</button>':'')+
@@ -625,6 +629,39 @@ async function refresh(){
 }
 document.getElementById('refresh').addEventListener('click',refresh);
 document.getElementById('search').addEventListener('input',renderModels);
+// Explicit opt-in discovery: never wake nine gateways just because a client
+// polls /v1/models. Requests are sequential to respect the 512 MiB ceiling.
+document.getElementById('scanAllModels').addEventListener('click',async()=>{
+ if(!ahbProviderControlAvailable||scanningAllModels)return;
+ scanningAllModels=true;
+ const button=document.getElementById('scanAllModels');
+ button.disabled=true;
+ const targets=lastProviders.filter(x=>x.enabled&&x.start_mode==='on_demand')
+   .sort((a,b)=>Number(a.id==='opencode')-Number(b.id==='opencode'));
+ let discovered=0, unavailable=0;
+ try{
+  for(let i=0;i<targets.length;i++){
+   const id=targets[i].id;
+   button.textContent='讀取中 '+(i+1)+' / '+targets.length+' · '+id;
+   try{
+    const res=await fetch('/api/control/wake/'+encodeURIComponent(id),{
+     method:'POST',credentials:'same-origin',cache:'no-store',
+     headers:{'X-AhB-Control-Token':ahbControlToken,'Content-Type':'application/json'},body:'{}'
+    });
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const answer=await res.json();
+    if(answer.model_discovery==='ok')discovered++;
+    else unavailable++;
+   }catch(_){unavailable++}
+  }
+  controlNotice('模型掃描完成：'+discovered+' 個來源已回傳模型資料，'+unavailable+' 個未確認（可能未登入、忙碌或無法讀取）。休眠快取不是額度驗證。');
+  await refresh();
+ }finally{
+  scanningAllModels=false;
+  button.textContent='逐一載入全部模型';
+  button.disabled=!ahbProviderControlAvailable;
+ }
+});
 for(const [buttonId,cmdId] of [['copyCopilotInstall','copilotInstallCommand']]){
  document.getElementById(buttonId).addEventListener('click',async function(){
   const original=this.textContent;
