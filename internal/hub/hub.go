@@ -208,7 +208,13 @@ func (h *Hub) handleHealth(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (h *Hub) handleRuntime(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, collectRuntimeStats())
+ stats:=collectRuntimeStats()
+ stats.MaxRunningSidecars=h.maxDemandSidecars()
+ stats.IdleStopSeconds=int(h.demandIdle().Seconds())
+ h.demandMu.Lock()
+ for _,p:=range h.providers {if h.onDemand(p)&&p.demand!=nil&&p.demand.running {stats.RunningOnDemand++}}
+ h.demandMu.Unlock()
+ writeJSON(w,http.StatusOK,stats)
 }
 
 func (h *Hub) handleProviders(w http.ResponseWriter, _ *http.Request) {
