@@ -1,5 +1,14 @@
 # NEXT AI HANDOFF — AhB (2026-10-09 release checkpoint)
 
+## 2026-10-10 final onboarding reliability checkpoint
+
+- [PR #29](https://github.com/Tsenjii/AhB/pull/29) merged at `0f48b1165b468658e34ea273f3a9b02ed147b2af` after Go CI/race, Android ARM64, native Linux AMD64/ARM64 all passed. The official Android `prebuilt/source-commit.txt` matches this SHA and the published SHA-256 verified Linux release is [`linux-0f48b1165b46`](https://github.com/Tsenjii/AhB/releases/tag/linux-0f48b1165b46).
+- FreeBuff official Codebuff CLI browser OAuth is managed in AhB Dashboard, with terminal-session cancellation and saved-credential counts serialized so `done` never reports stale account totals. Simulated tests do not authorize real accounts.
+- Native admin access center offers **explicit local copy + original WebUI link**; for sleeping on-demand providers the local UI first wakes the provider. The Hub rejects remote/iframe abuse; Docker/remote clients are not shown misleading `127.0.0.1` console links. This is not true cross-upstream OAuth/SSO and does not reset account passwords.
+- Generic Linux Docker/Compose default pins the matching Linux release; any actual deployment still requires its private `AHB_PUBLIC_TOKEN`. No Infrlo-specific deployment workflow or native macOS/Windows binaries.
+- User has deliberately postponed updating Android until this release is verified. Only **after user initiates** the one-time upgrade can genuine Android WebUI copy/clipboard, FreeBuff Google auth, preserved OpenCode/Agent2API sessions, 503 recovery, proxy, SSE and tool calling be accepted. See [Android final acceptance](ANDROID_FINAL_ACCEPTANCE.md).
+
+
 > **Canonical long-form history:** [AI_HANDOFF.md](../AI_HANDOFF.md). Historical notes there remain for audit only; use the latest dated release gate below, not older v2.9.6 / v2.9.7 / Rust FreeBuff snapshots. Recheck GitHub Actions and release pointers if HEAD changes.
 
 ## Repository and objective
