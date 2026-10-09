@@ -66,7 +66,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git clone --depth 1 --branch v1.3.7 https://github.com/jasonxu114514/opencode2api.git /tmp/opencode2api
+          # 2026-10-08 pinned upstream fixes: free-model probe and manual route selection.
+          OPENCODE_SHA="1e2702f6e0562c7656d5bcfb99ce4b47383077a5"
+          git init /tmp/opencode2api
+          git -C /tmp/opencode2api remote add origin https://github.com/jasonxu114514/opencode2api.git
+          git -C /tmp/opencode2api fetch --depth 1 origin "$OPENCODE_SHA"
+          git -C /tmp/opencode2api checkout --detach FETCH_HEAD
           cd /tmp/opencode2api
           CC="$ANDROID_TOOLCHAIN/aarch64-linux-android24-clang" \
             GOOS=android GOARCH=arm64 CGO_ENABLED=1 \
