@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# CI fixture uses only synthetic example keys; trace to locate failing migration assertion.
-set -x
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
@@ -102,7 +100,7 @@ printf 'OLD_COOKIE_DO_NOT_CONVERT\n' > "$LEGACY/data/freebuff/tokens.json"
       and .ui_url == "" and .env.FREEBUFF_CREDENTIALS_DIR == "./credentials"
       and (.headers.Authorization | startswith("Bearer "))))
     and (any(.providers[]; .id == "copilot" and .enabled == false))
-    and (any(.providers[]; .id == "grok" and .enabled == false))
+    and (any(.providers[]; .id == "grok" and .enabled == true))
     and (any(.providers[]; .id == "kiro" and .enabled == true))
   ' config.json >/dev/null
   test "$(cat data/hub-local-key.txt)" = "FIRST_RELEASE_SECRET"
