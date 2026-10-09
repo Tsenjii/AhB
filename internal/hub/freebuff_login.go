@@ -67,6 +67,15 @@ func (s *freebuffLoginSession) view(accountCount int) map[string]any {
  defer s.mu.RUnlock()
  return map[string]any{"state":s.state,"url":s.link,"detail":s.detail,"accounts":accountCount}
 }
+func (s *freebuffLoginSession) viewWithAccounts(root string) map[string]any {
+ // Read account count *while holding the same session lock* that protects
+ // the file-commit operation. "done" and the new account count must become
+ // visible together, even if a status request overlaps the final disk write.
+ s.mu.RLock()
+ defer s.mu.RUnlock()
+ return map[string]any{"state":s.state,"url":s.link,"detail":s.detail,
+  "accounts":countFreebuffCredentials(root)}
+}
 
 func (h *Hub) handleFreebuffLogin(w http.ResponseWriter,r *http.Request) {
  w.Header().Set("Cache-Control","no-store")
@@ -93,14 +102,14 @@ func (h *Hub) handleFreebuffLogin(w http.ResponseWriter,r *http.Request) {
   if h.freebuffLogin==nil{
    writeJSON(w,200,map[string]any{"state":"idle","accounts":count});return
   }
-  writeJSON(w,200,h.freebuffLogin.view(count));return
+  writeJSON(w,200,h.freebuffLogin.viewWithAccounts(root));return
  }
  if action=="cancel" {
   if h.freebuffLogin==nil{
    writeJSON(w,200,map[string]any{"state":"idle","accounts":count});return
   }
   h.freebuffLogin.stop()
-  writeJSON(w,200,h.freebuffLogin.view(countFreebuffCredentials(root)));return
+  writeJSON(w,200,h.freebuffLogin.viewWithAccounts(root));return
  }
  h.controlMu.Lock()
  pending:=h.controlPending
@@ -112,7 +121,7 @@ func (h *Hub) handleFreebuffLogin(w http.ResponseWriter,r *http.Request) {
  if h.freebuffLogin!=nil{
   snap:=h.freebuffLogin.view(count)
   if snap["state"]=="starting"||snap["state"]=="waiting"{
-   writeJSON(w,200,snap);return
+   writeJSON(w,200,h.freebuffLogin.viewWithAccounts(root));return
   }
  }
  h.demandMu.Lock()
@@ -125,7 +134,7 @@ func (h *Hub) handleFreebuffLogin(w http.ResponseWriter,r *http.Request) {
  session:=&freebuffLoginSession{state:"starting",detail:"正在向 FreeBuff 官方要求授權網址…",cancel:cancel}
  h.freebuffLogin=session
  go h.runFreebuffLogin(ctx,root,session)
- writeJSON(w,http.StatusAccepted,session.view(count))
+ writeJSON(w,http.StatusAccepted,session.viewWithAccounts(root))
 }
 
 // OAuth transport has a private fixed production origin. Tests can point the
