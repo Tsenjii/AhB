@@ -325,6 +325,27 @@ jobs:
           git -C /tmp/ahb-duck2api checkout --detach FETCH_HEAD
           (
             cd /tmp/ahb-duck2api
+            # wlynxg/anet v0.0.5 uses go:linkname on private net.zoneCache
+            # which was removed in Go 1.26's Android runtime. Keep anet's
+            # cache local rather than linking against unsupported stdlib guts.
+            # This is scoped to Duck.ai's Android build only.
+            mod_dir="$(go mod download -json github.com/wlynxg/anet@v0.0.5 | jq -r .Dir)"
+            test -d "$mod_dir"
+            cp -R "$mod_dir" /tmp/ahb-duck-anet
+            chmod -R u+w /tmp/ahb-duck-anet
+            python3 - <<'PY'
+          from pathlib import Path
+          path=Path("/tmp/ahb-duck-anet/interface_android.go")
+          s=path.read_text()
+          for line in (
+              "//go:linkname zoneCache net.zoneCache",
+              "//go:linkname zoneCacheX golang.org/x/net/internal/socket.zoneCache",
+          ):
+              assert s.count(line)==1, "unexpected anet upstream Go linkname declaration"
+              s=s.replace(line,"// Local Android cache. Go 1.26 no longer exposes private net internals.")
+          path.write_text(s)
+          PY
+            go mod edit -replace github.com/wlynxg/anet=/tmp/ahb-duck-anet
             CC="$ANDROID_TOOLCHAIN/aarch64-linux-android24-clang" GOOS=android GOARCH=arm64 CGO_ENABLED=1 go build -buildvcs=false -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/dist/AhB/bin/duck2api" .
             cp LICENSE "$GITHUB_WORKSPACE/dist/AhB/LICENSE.duck2api"
           )
