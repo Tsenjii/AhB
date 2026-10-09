@@ -36,6 +36,9 @@ jobs:
       - name: Test Termux doctor execution and private bridges
         run: bash scripts/test-doctor-termux.sh
 
+      - name: Test native Linux installer checksums, archive safety and no-overwrite
+        run: bash scripts/test-install-linux.sh
+
       - name: Test non-destructive prebuilt upgrades
         run: bash scripts/test-upgrade-prebuilt.sh
       - name: Test universal localhost bridge connector
