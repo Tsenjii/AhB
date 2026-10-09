@@ -209,6 +209,31 @@ th,td{font-size:12px}
 <div id="error" class="notice"></div>
 <div id="warnings" class="notice"></div>
 
+<section id="resourceSettings">
+ <div class="section-head"><div class="section-title"><h2>資源與常駐設定</h2><span class="count">Android / Linux 各自保留設定</span></div></div>
+ <div class="quick-connect">
+  <div>
+   <div class="eyebrow">RAM monitor</div>
+   <div class="quick-title" id="systemRamSummary">正在讀取整機 RAM…</div>
+   <p id="ramSourceHint">Linux VPS 若有 cgroup 記憶體上限，優先顯示容器額度；否則顯示主機實體記憶體。AhB RSS 不等於整台機器的 RAM。</p>
+   <div class="layers">
+    <span class="layer">系統 RAM <b id="systemRamValue">—</b></span>
+    <span class="layer">可用 RAM <b id="availableRamValue">—</b></span>
+    <span class="layer">AhB + 轉接器 RSS <b id="ahbRamValue">—</b></span>
+   </div>
+   <div style="height:8px;border-radius:9px;background:var(--line);overflow:hidden;margin-top:12px"><div id="ramMeter" style="width:0%;height:100%;background:var(--accent);transition:width .2s"></div></div>
+   <div class="command-help">上方「系統 RAM」包含其他程式；AhB RSS 為各程序估算相加，共用記憶體可能重複計算。Linux 512 MB 建議最多 1 個，Android 可設定較高。</div>
+  </div>
+  <div class="command-panel">
+   <div class="eyebrow">On-demand sidecars</div>
+   <div class="field"><label for="maxResident">同時最多常駐幾個轉接器？</label><input id="maxResident" type="number" min="1" max="16" step="1" inputmode="numeric" value="1"></div>
+   <div class="field"><label for="idleTimeout">閒置多久自動關閉？（秒）</label><input id="idleTimeout" type="number" min="30" max="86400" step="1" inputmode="numeric" value="120"></div>
+   <div class="command-actions"><button type="button" id="saveResourceSettings" disabled>儲存資源設定</button></div>
+   <div class="command-help">儲存後只重啟 AhB 自己的服務；不會刪除帳號或登入。正在進行的推理請求可能中斷。此數量不包含 AhB 主程式。</div>
+  </div>
+ </div>
+</section>
+
 <section id="diagnostics">
   <div class="section-head"><div class="section-title"><h2>全來源狀態檢查</h2><span class="count">No inference / no secrets</span></div></div>
   <div class="quick-connect">
@@ -428,11 +453,11 @@ const tabSections={
  home:['providersSection','modelsSection'],
  accounts:['freebuffLogin','optional'],
  bridges:['connect'],
- advanced:['diagnostics']
+ advanced:['resourceSettings','diagnostics']
 };
 function switchTab(name){
  const active=tabSections[name]||tabSections.home;
- for(const id of ['providersSection','modelsSection','freebuffLogin','optional','connect','diagnostics']){
+ for(const id of ['providersSection','modelsSection','freebuffLogin','optional','connect','resourceSettings','diagnostics']){
   const e=document.getElementById(id);
   if(e)e.classList.toggle('ahb-tab-hidden',!active.includes(id));
  }
@@ -487,6 +512,33 @@ document.getElementById('providers').addEventListener('click',async e=>{
   await refresh();
  }catch(err){controlNotice('無法啟動 '+id+'：'+err.message);await refresh()}
 });
+let resourceSettingsDirty=false;
+document.getElementById('maxResident').addEventListener('input',()=>{resourceSettingsDirty=true});
+document.getElementById('idleTimeout').addEventListener('input',()=>{resourceSettingsDirty=true});
+document.getElementById('saveResourceSettings').addEventListener('click',async()=>{
+ if(!ahbProviderControlAvailable)return;
+ const max=Number(document.getElementById('maxResident').value);
+ const idle=Number(document.getElementById('idleTimeout').value);
+ if(!Number.isInteger(max)||max<1||max>16||!Number.isInteger(idle)||idle<30||idle>86400) {
+  controlNotice('資源設定超出範圍：常駐 1～16 個；閒置 30～86400 秒。');return;
+ }
+ if(!confirm('儲存新常駐上限和閒置時間，並重新啟動 AhB？目前進行中的 API 請求會中斷。'))return;
+ const button=document.getElementById('saveResourceSettings');
+ button.disabled=true;
+ try{
+  const res=await fetch('/api/control/resources',{
+   method:'POST',credentials:'same-origin',cache:'no-store',
+   headers:{'X-AhB-Control-Token':ahbControlToken,'Content-Type':'application/json'},
+   body:JSON.stringify({max_running_sidecars:max,idle_stop_seconds:idle})
+  });
+  if(!res.ok)throw new Error((await res.text()).trim().slice(0,140)||'HTTP '+res.status);
+  const data=await res.json();
+  resourceSettingsDirty=false;
+  if(data.status==='unchanged'){controlNotice('資源設定沒有變更');button.disabled=false;return}
+  controlNotice('資源設定已儲存，正在重啟 AhB。登入資料及其他設定不變。');
+  setTimeout(()=>location.reload(),8500);
+ }catch(err){button.disabled=false;controlNotice('儲存失敗：'+err.message)}
+});
 switchTab('home');
 const fmtBytes=n=>!n?'—':n<1048576?(n/1024).toFixed(1)+' KiB':(n/1048576).toFixed(1)+' MiB';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -531,7 +583,23 @@ async function refresh(){
   const providers=p.providers||[];
   const sidecarRSS=providers.reduce((n,x)=>n+(x.rss_bytes||0),0);
   const ready=providers.filter(x=>x.enabled&&x.state==='HEALTHY').length;
-  document.getElementById('runtime').textContent='RSS '+fmtBytes((r.process_rss_bytes||0)+sidecarRSS)+' · 按需 '+(r.running_on_demand??0)+'/'+(r.max_running_sidecars||1)+' · '+(r.goos||'?')+'/'+(r.goarch||'?');
+  const ahbRSS=r.ahb_rss_bytes||((r.process_rss_bytes||0)+sidecarRSS);
+  const used=r.system_used_bytes||0, total=r.system_total_bytes||0;
+  const percent=total?Math.min(100,Math.max(0,Math.round(used/total*100))):0;
+  document.getElementById('runtime').textContent='AhB RSS '+fmtBytes(ahbRSS)+' · 按需 '+(r.running_on_demand??0)+'/'+(r.max_running_sidecars||1)+' · '+(r.goos||'?')+'/'+(r.goarch||'?');
+  document.getElementById('systemRamSummary').textContent=total?('RAM '+percent+'% 已使用'):'系統 RAM 尚無可用數據';
+  document.getElementById('systemRamValue').textContent=total?(fmtBytes(used)+' / '+fmtBytes(total)):'未取得';
+  document.getElementById('availableRamValue').textContent=total?fmtBytes(r.system_available_bytes||0):'未取得';
+  document.getElementById('ahbRamValue').textContent=fmtBytes(ahbRSS);
+  document.getElementById('ramMeter').style.width=percent+'%';
+  document.getElementById('ramSourceHint').textContent=r.system_memory_source==='cgroup_v2'
+   ?'此 Linux 容器有獨立記憶體上限，顯示整個 cgroup 用量（含其他程序及快取）。'
+   :'顯示整台主機 /proc/meminfo 的實際可用記憶體（不是只有 AhB）。';
+  if(!resourceSettingsDirty){
+   document.getElementById('maxResident').value=r.max_running_sidecars||1;
+   document.getElementById('idleTimeout').value=r.idle_stop_seconds||120;
+  }
+  document.getElementById('saveResourceSettings').disabled=!ahbProviderControlAvailable;
   document.getElementById('providerTotal').textContent=providers.filter(x=>x.enabled).length;
   document.getElementById('modelTotal').textContent=lastModels.length;
   document.getElementById('providerReady').textContent=ready+' endpoint healthy / '+providers.length+' configured';
