@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# CI fixture uses only synthetic example keys; trace to locate failing migration assertion.
+set -x
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
