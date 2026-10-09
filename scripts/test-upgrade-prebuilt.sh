@@ -33,6 +33,8 @@ chmod +x "$NEW/scripts/prepare-configs.sh"
 # stop helper, even when the old installation was a three-provider release.
 cat > "$NEW/scripts/stop-termux.sh" <<'EOF'
 #!/usr/bin/env bash
+# Fixture implements the allowlisted AhB stop-helper contract.
+collect_ahb_pids() { :; }
 exit 0
 EOF
 chmod +x "$NEW/scripts/stop-termux.sh"
@@ -95,6 +97,46 @@ test "${#backups[@]}" -eq 1
 test "$(cat "${backups[0]}/data/agent2api/ui/index.html")" = "old assets"
 test "$(cat "${backups[0]}/data/freebuff/gateway/index.html")" = "old gateway"
 test "$(cat "${backups[0]}/data/opencode/account.txt")" = "secret account state"
+
+# Regression: known 2026-10-09 published AhB release has a corrupted stop
+# helper (bash parse error at Kimi case). Verify recovery from a SHA-checked
+# replacement, full account preservation, and an independently kept old tree.
+RECOVERY="$TMP/recovery/AhB"
+mkdir -p "$TMP/recovery"
+cp -a "$OLD" "$RECOVERY"
+cat > "$RECOVERY/scripts/stop-termux.sh" <<'EOF'
+#!/usr/bin/env bash
+collect_ahb_pids() {
+  case "$cmdline" in
+      "$ROOT/data/kimiweb/venv/bin/python"
+EOF
+if bash -n "$RECOVERY/scripts/stop-termux.sh" >/dev/null 2>&1; then
+  echo "expected malformed published stop helper" >&2
+  exit 1
+fi
+if ! AIHUB_INSTALL_DIR="$RECOVERY" bash "$ROOT/scripts/upgrade-prebuilt-termux.sh" > "$TMP/recovery-success.log" 2>&1; then
+  cat "$TMP/recovery-success.log" >&2
+  exit 1
+fi
+bash -n "$RECOVERY/scripts/stop-termux.sh"
+test "$(cat "$RECOVERY/data/opencode/account.txt")" = "secret account state"
+test "$(cat "$RECOVERY/data/freebuff/tokens.json")" = "old private cookie"
+shopt -s nullglob
+recovery_backups=("$TMP/recovery/AhB.backup-"*)
+test "${#recovery_backups[@]}" -eq 1
+test "$(cat "${recovery_backups[0]}/data/opencode/account.txt")" = "secret account state"
+test "$(find "${recovery_backups[0]}/scripts" -maxdepth 1 -name 'stop-termux.sh.corrupt-*' | wc -l)" -eq 1
+# Unknown corruption must fail closed without modifying user config or data.
+UNKNOWN="$TMP/unknown/AhB"
+mkdir -p "$TMP/unknown"
+cp -a "$RECOVERY" "$UNKNOWN"
+printf 'case broken in\n' > "$UNKNOWN/scripts/stop-termux.sh"
+if AIHUB_INSTALL_DIR="$UNKNOWN" bash "$ROOT/scripts/upgrade-prebuilt-termux.sh" > "$TMP/unknown-rejected.log" 2>&1; then
+  echo "expected unknown broken helper to be rejected" >&2
+  exit 1
+fi
+test "$(cat "$UNKNOWN/data/opencode/account.txt")" = "secret account state"
+grep -q "unknown invalid legacy" "$TMP/unknown-rejected.log"
 
 # A checksum failure must leave an existing install untouched and running.
 rm -f "$AIHUB_TEST_STOP_MARKER"

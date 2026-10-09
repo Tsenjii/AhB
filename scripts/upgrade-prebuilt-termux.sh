@@ -25,9 +25,19 @@ if [ ! -f "$DEST/scripts/stop-termux.sh" ] || [ ! -r "$DEST/scripts/stop-termux.
   echo "Old installation left untouched. Check whether this is an older assistant-new project rather than AhB." >&2
   exit 1
 fi
-if ! bash -n "$DEST/scripts/stop-termux.sh"; then
-  echo "Cannot safely upgrade: invalid legacy stop script; old installation left untouched." >&2
-  exit 1
+# Early AhB Android releases accidentally published a syntactically corrupted
+# stop helper. Recognize ONLY that known signature: unknown corruption still
+# fails closed, and we never snapshot a live SQLite database.
+LEGACY_STOP_REPAIR=0
+if ! bash -n "$DEST/scripts/stop-termux.sh" >/dev/null 2>&1; then
+  if grep -Fq '      "$ROOT/data/kimiweb/venv/bin/python"' "$DEST/scripts/stop-termux.sh" &&
+     grep -Fq 'collect_ahb_pids()' "$DEST/scripts/stop-termux.sh"; then
+    LEGACY_STOP_REPAIR=1
+    echo "Detected known corrupted AhB stop helper; will recover it ONLY after package verification."
+  else
+    echo "Cannot safely upgrade: unknown invalid legacy stop script; old installation left untouched." >&2
+    exit 1
+  fi
 fi
 case "$(uname -m)" in
   aarch64|arm64) ;;
@@ -67,6 +77,20 @@ done
 jq -e '.providers | type == "array"' "$DEST/config.json" > /dev/null
 jq -e '.providers | type == "array"' "$NEW/config.example.json" > /dev/null
 bash -n "$NEW/scripts/prepare-configs.sh"
+# A package without a valid stop helper must never replace a working install.
+if [ ! -f "$NEW/scripts/stop-termux.sh" ] || ! bash -n "$NEW/scripts/stop-termux.sh"; then
+  echo "Downloaded AhB package contains an invalid stop helper; no old files changed." >&2
+  exit 1
+fi
+# On the known broken legacy release, restore only the known-good stop helper
+# from the checksum-verified archive. Keep the corrupted original for audit
+# and rollback; preserve config, keys, accounts and other user files.
+if [ "$LEGACY_STOP_REPAIR" = 1 ]; then
+  if ! grep -Fq 'collect_ahb_pids()' "$NEW/scripts/stop-termux.sh"; then
+    echo "New package stop helper cannot safely repair this legacy install." >&2
+    exit 1
+  fi
+fi
 
 assets=(
   AhB/data/freebuff/gateway
@@ -89,6 +113,16 @@ if [ -e "$BACKUP" ]; then
 fi
 
 echo "Stopping AhB before taking a consistent account/database snapshot..."
+if [ "$LEGACY_STOP_REPAIR" = 1 ]; then
+  broken_backup="$DEST/scripts/stop-termux.sh.corrupt-$(date +%Y%m%d-%H%M%S)"
+  if [ -e "$broken_backup" ]; then
+    echo "Existing damaged-helper backup; aborting: $broken_backup" >&2
+    exit 1
+  fi
+  cp -p "$DEST/scripts/stop-termux.sh" "$broken_backup"
+  install -m 700 "$NEW/scripts/stop-termux.sh" "$DEST/scripts/stop-termux.sh"
+  echo "Repaired the known corrupted stop helper; preserved original as $(basename "$broken_backup")."
+fi
 # Invoke with bash so even very old installs with missing executable bit
 # are cleanly stopped before account databases are copied.
 bash "$DEST/scripts/stop-termux.sh"
