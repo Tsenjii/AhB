@@ -46,6 +46,7 @@ func main() {
 	defer cancel()
 
 	h := hub.New(cfg)
+	h.SetControlConfigPath(*configPath)
 	configureTermuxRestart(h)
 	h.Start(ctx)
 
