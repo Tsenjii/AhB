@@ -1041,6 +1041,11 @@ func (h *Hub) handleUI(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Referrer-Policy", "no-referrer")
+	// This HTML contains a page-local control nonce and can request private
+	// native-console credentials. Never allow another website to frame it
+	// and trick users into clicking administrative buttons.
+	w.Header().Set("X-Frame-Options", "DENY")
+	w.Header().Set("Content-Security-Policy", "frame-ancestors 'none'")
 	w.WriteHeader(http.StatusOK)
 	html := strings.Replace(dashboardHTML, "__AHB_CONTROL_TOKEN__", h.controlToken, 1)
 	available := "false"
