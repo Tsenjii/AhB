@@ -26,7 +26,8 @@
       "health_path": "/healthz",
       "models_path": "/v1/models",
       "max_restarts": 3,
-      "startup_timeout_seconds": 60
+      "startup_timeout_seconds": 60,
+      "start_mode": "on_demand"
     },
     {
       "id": "freebuff",
@@ -52,13 +53,14 @@
       "headers": {
         "Authorization": "Bearer __AIHUB_SERVER_KEY__"
       },
-      "startup_timeout_seconds": 60
+      "startup_timeout_seconds": 60,
+      "start_mode": "on_demand"
     },
     {
       "id": "agent2api",
       "display_name": "Agent2API",
       "description": "Optional: WorkBuddy CN/Intl / KukuAI / CodeArts / Qoder / Cline / Trae / Loomy and more",
-      "enabled": false,
+      "enabled": true,
       "kind": "sidecar",
       "base_url": "http://127.0.0.1:8403",
       "ui_url": "http://127.0.0.1:8403/",
@@ -75,13 +77,14 @@
       "health_path": "/health",
       "models_path": "/v1/models",
       "max_restarts": 3,
-      "startup_timeout_seconds": 60
+      "startup_timeout_seconds": 60,
+      "start_mode": "on_demand"
     },
     {
       "id": "deepseek",
       "display_name": "DeepSeek Web",
       "description": "Optional: DeepSeek Web multi-account gateway via Deepseek2API",
-      "enabled": false,
+      "enabled": true,
       "kind": "sidecar",
       "base_url": "http://127.0.0.1:8405",
       "ui_url": "http://127.0.0.1:8405/admin",
@@ -102,13 +105,14 @@
       "health_path": "/healthz",
       "models_path": "/v1/models",
       "max_restarts": 3,
-      "startup_timeout_seconds": 60
+      "startup_timeout_seconds": 60,
+      "start_mode": "on_demand"
     },
     {
       "id": "grok",
       "display_name": "Grok",
       "description": "Optional: Grok Build / Web / Console multi-account gateway via Grok2API",
-      "enabled": false,
+      "enabled": true,
       "kind": "sidecar",
       "base_url": "http://127.0.0.1:8407",
       "ui_url": "http://127.0.0.1:8407/",
@@ -130,13 +134,14 @@
       "startup_timeout_seconds": 90,
       "env": {
         "GODEBUG": "netdns=cgo"
-      }
+      },
+      "start_mode": "on_demand"
     },
     {
       "id": "kiro",
       "display_name": "Kiro",
       "description": "Optional: Kiro multi-account gateway via Kiro-Go",
-      "enabled": false,
+      "enabled": true,
       "kind": "sidecar",
       "base_url": "http://127.0.0.1:8408",
       "ui_url": "http://127.0.0.1:8408/admin",
@@ -154,26 +159,14 @@
       "health_path": "/health",
       "models_path": "/v1/models",
       "max_restarts": 3,
-      "startup_timeout_seconds": 60
-    },
-    {
-      "id": "lmarena",
-      "display_name": "LMArena External",
-      "description": "Optional external LMArena OpenAI-compatible local bridge; launch separately",
-      "enabled": false,
-      "kind": "external",
-      "base_url": "http://127.0.0.1:5102",
-      "ui_url": "",
-      "docs_url": "https://github.com/Lianues/LMArenaBridge",
-      "health_path": "/v1/models",
-      "models_path": "/v1/models",
-      "health_interval_seconds": 15
+      "startup_timeout_seconds": 60,
+      "start_mode": "on_demand"
     },
     {
       "id": "copilot",
       "display_name": "GitHub Copilot (optional)",
       "description": "Optional lightweight single-account Copilot OAuth gateway. Quota eligibility must be checked separately.",
-      "enabled": false,
+      "enabled": true,
       "kind": "sidecar",
       "base_url": "http://127.0.0.1:8410",
       "ui_url": "",
@@ -194,27 +187,8 @@
       "health_path": "/v1/models",
       "models_path": "/v1/models",
       "max_restarts": 3,
-      "startup_timeout_seconds": 90
-    },
-    {
-      "id": "kimiweb",
-      "display_name": "Kimi Web (optional Termux)",
-      "description": "Kimi Web multi-account bridge. Optional Python install required, not bundled in base ARM64 archive.",
-      "enabled": false,
-      "kind": "sidecar",
-      "base_url": "http://127.0.0.1:8412",
-      "ui_url": "http://127.0.0.1:8412/admin",
-      "docs_url": "https://github.com/chopper1026/kimi2api",
-      "binary": "./data/kimiweb/venv/bin/python",
-      "args": [
-        "run.py"
-      ],
-      "work_dir": "./data/kimiweb/source",
-      "headers": {},
-      "health_path": "/healthz",
-      "models_path": "/v1/models",
-      "max_restarts": 3,
-      "startup_timeout_seconds": 90
+      "startup_timeout_seconds": 90,
+      "start_mode": "on_demand"
     }
   ],
   "routes": [],
@@ -228,12 +202,14 @@
         "agent2api",
         "freebuff",
         "deepseek",
-        "lmarena",
         "grok",
         "kiro",
-        "copilot",
-        "kimiweb"
+        "copilot"
       ]
     }
+  },
+  "resources": {
+    "max_running_sidecars": 1,
+    "idle_stop_seconds": 120
   }
 }
