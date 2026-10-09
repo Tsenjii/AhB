@@ -19,7 +19,7 @@ for needle in ('id="bridgePreset"', 'id="bridgeURL"', 'id="bridgeCommand"',
     assert needle in html, f"missing UI element: {needle}"
 assert "Node.js" in html and "FreeBuff" in html and "freebuff-login-termux.sh" in html
 assert "'/api/control/resources'" in html and "'/api/runtime'" in html
-assert "sleeping_unverified" not in html or "x_cached" in html
+assert "x_cached" in html and "休眠快取" in html
 assert "'/api/control/wake/'" in html and "scanAllModels" in html
 js=html.split("<script>",1)[1].split("</script>",1)[0]
 Path(sys.argv[1]).write_text(js,encoding="utf-8")
