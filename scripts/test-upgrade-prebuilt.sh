@@ -119,4 +119,35 @@ test -f "$OLD/config.json"
 test "$(cat "$OLD/data/opencode/account.txt")" = "secret account state"
 mv "$OLD/scripts/stop-termux.sh.temporarily-missing" "$OLD/scripts/stop-termux.sh"
 
+# Regression: a legacy stop script can exit 0 while a foreground hub remains
+# alive (no PID file). The upgrader must abort before copying live accounts.
+LIVE_PORT=18819
+jq --arg listen "127.0.0.1:$LIVE_PORT" '.listen=$listen' "$OLD/config.json" > "$TMP/live-config.json"
+mv "$TMP/live-config.json" "$OLD/config.json"
+python3 -m http.server "$LIVE_PORT" --bind 127.0.0.1 > "$TMP/live-server.log" 2>&1 &
+live_pid=$!
+trap 'kill "$live_pid" 2>/dev/null || true; rm -rf "$TMP"' EXIT
+listening=0
+for attempt in 1 2 3 4 5 6 7 8 9 10; do
+  if (exec 3<>"/dev/tcp/127.0.0.1/$LIVE_PORT") 2>/dev/null; then
+    listening=1; break
+  fi
+  sleep .1
+done
+if [ "$listening" != 1 ]; then
+  echo "mock listener did not start" >&2
+  exit 1
+fi
+if bash "$ROOT/scripts/upgrade-prebuilt-termux.sh" > "$TMP/live-rejected.txt" 2>&1; then
+  echo "expected the upgrade to refuse a live foreground listener" >&2
+  exit 1
+fi
+grep -q "listeners still active" "$TMP/live-rejected.txt"
+test "$(cat "$OLD/data/opencode/account.txt")" = "secret account state"
+test "$(jq -r '.listen' "$OLD/config.json")" = "127.0.0.1:$LIVE_PORT"
+kill "$live_pid" 2>/dev/null || true
+wait "$live_pid" 2>/dev/null || true
+trap 'rm -rf "$TMP"' EXIT
+
+echo "upgrade correctly refused active legacy frontend; original data preserved"
 echo "upgrade-prebuilt fixture tests passed"
