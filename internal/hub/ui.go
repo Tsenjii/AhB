@@ -209,6 +209,31 @@ th,td{font-size:12px}
 <div id="error" class="notice"></div>
 <div id="warnings" class="notice"></div>
 
+<section id="resourceSettings">
+ <div class="section-head"><div class="section-title"><h2>資源與常駐設定</h2><span class="count">Android / Linux 各自保留設定</span></div></div>
+ <div class="quick-connect">
+  <div>
+   <div class="eyebrow">RAM monitor</div>
+   <div class="quick-title" id="systemRamSummary">正在讀取整機 RAM…</div>
+   <p id="ramSourceHint">Linux VPS 若有 cgroup 記憶體上限，優先顯示容器額度；否則顯示主機實體記憶體。AhB RSS 不等於整台機器的 RAM。</p>
+   <div class="layers">
+    <span class="layer">系統 RAM <b id="systemRamValue">—</b></span>
+    <span class="layer">可用 RAM <b id="availableRamValue">—</b></span>
+    <span class="layer">AhB + 轉接器 RSS <b id="ahbRamValue">—</b></span>
+   </div>
+   <div style="height:8px;border-radius:9px;background:var(--line);overflow:hidden;margin-top:12px"><div id="ramMeter" style="width:0%;height:100%;background:var(--accent);transition:width .2s"></div></div>
+   <div class="command-help">上方「系統 RAM」包含其他程式；AhB RSS 為各程序估算相加，共用記憶體可能重複計算。Linux 512 MB 建議最多 1 個，Android 可設定較高。</div>
+  </div>
+  <div class="command-panel">
+   <div class="eyebrow">On-demand sidecars</div>
+   <div class="field"><label for="maxResident">同時最多常駐幾個轉接器？</label><input id="maxResident" type="number" min="1" max="16" step="1" inputmode="numeric" value="1"></div>
+   <div class="field"><label for="idleTimeout">閒置多久自動關閉？（秒）</label><input id="idleTimeout" type="number" min="30" max="86400" step="1" inputmode="numeric" value="120"></div>
+   <div class="command-actions"><button type="button" id="saveResourceSettings" disabled>儲存資源設定</button></div>
+   <div class="command-help">儲存後只重啟 AhB 自己的服務；不會刪除帳號或登入。正在進行的推理請求可能中斷。此數量不包含 AhB 主程式。</div>
+  </div>
+ </div>
+</section>
+
 <section id="diagnostics">
   <div class="section-head"><div class="section-title"><h2>全來源狀態檢查</h2><span class="count">No inference / no secrets</span></div></div>
   <div class="quick-connect">
@@ -252,8 +277,8 @@ th,td{font-size:12px}
   <div>
    <div class="eyebrow">Optional packages</div>
    <div class="quick-title">有帳號才啟用，減少手機負擔。</div>
-   <p>Copilot 使用 GitHub 裝置授權，Kimi Web 需要額外安裝。Agent2API 的 Android 更新由 AhB 統一封包管理：在首頁按「更新 AhB」即可安全檢查並更新整套服務。</p>
-   <p>Copilot 現在可以直接在這一頁完成官方裝置授權；不會顯示永久 Token。Kimi Web 仍需額外安裝。</p>
+   <p>預設只有隨安裝包提供的七個網關；其他尚未整合的來源不會冒充為已安裝。Agent2API 的 Android 更新由 AhB 統一封包管理：在首頁按「更新 AhB」即可安全檢查並更新整套服務。</p>
+   <p>Copilot 可以在這裡完成官方裝置授權；未安裝的 Kimi Web 不再列入預設來源。</p>
   </div>
   <div class="quick-form">
    <div class="command-panel">
@@ -272,11 +297,7 @@ th,td{font-size:12px}
     <div class="command-box" id="copilotInstallCommand" style="display:none">cd ~/AhB && ./scripts/login-copilot2api.sh</div>
     <div class="command-help">授權資料只存放在手機的私密帳號目錄，AhB 不會在網頁顯示永久金鑰。已有帳號時可直接回總覽啟用。</div>
    </div>
-   <div class="command-panel"><div class="field"><label>Kimi Web · 額外安裝 Python/React 環境</label></div>
-    <div class="command-box" id="kimiInstallCommand">cd ~/AhB && ./scripts/install-kimiweb-termux.sh &amp;&amp; ./scripts/enable-kimiweb-termux.sh &amp;&amp; ./scripts/stop-termux.sh &amp;&amp; ./scripts/start-termux.sh</div>
-    <div class="command-actions"><button type="button" id="copyKimiInstall">複製安裝指令</button></div>
-    <div class="command-help">需要 Python 依賴和合法可用的 Kimi 帳號；手機端安裝與推理尚未驗證。</div>
-   </div>
+
   </div>
  </div>
 </section>
@@ -287,18 +308,14 @@ th,td{font-size:12px}
    <div class="eyebrow">Connect</div>
    <div class="quick-title">接入新的 API，不用改程式。</div>
    <p>選擇已在本機啟動的相容 API，填入連接埠，複製一條指令至 Termux 即可套用。既有帳號與原始管理介面不受影響。</p>
-   <p>AhB 不代替上游登入，也不負責自動繞過網站驗證。你可以連接自己的 LMArena、Windsurf、Kimi 或其他相容橋接服務。</p>
+   <p>這是手動接入<strong>已另外安裝</strong>的本機服務，不代表 AhB 已內建它。沒有外部服務時不用設定。</p>
   </div>
   <div class="quick-form">
    <div class="fieldrow">
     <div class="field"><label for="bridgePreset">來源</label><select id="bridgePreset">
-      <option value="lmarena">LMArena</option><option value="windsurf">WindsurfAPI</option>
-      <option value="qwen">Qwen2API</option><option value="kimi">Kimi2API</option>
-      <option value="gemini">Gemini2API</option><option value="claude">Claude2API</option>
-      <option value="codex">GPT · Codex OAuth Bridge</option>
-      <option value="custom">其他相容服務</option>
+      <option value="custom">自訂已安裝的本機 API</option>
      </select></div>
-    <div class="field"><label for="bridgeURL">本機 API 地址</label><input id="bridgeURL" type="url" inputmode="url" spellcheck="false" value="http://127.0.0.1:5102" placeholder="http://127.0.0.1:5102"></div>
+    <div class="field"><label for="bridgeURL">本機 API 地址</label><input id="bridgeURL" type="url" inputmode="url" spellcheck="false" value="http://127.0.0.1:8418" placeholder="http://127.0.0.1:8418"></div>
    </div>
    <div class="field" id="customIdField" style="display:none"><label for="customBridgeId">來源代號（小寫英文）</label><input id="customBridgeId" value="mybridge" maxlength="30" spellcheck="false"></div>
    <div class="command-panel">
@@ -320,7 +337,7 @@ th,td{font-size:12px}
 
 <section id="modelsSection">
  <div class="section-head">
-  <div><div class="section-title"><h2>Models</h2><span id="modelCount" class="count">—</span></div><div class="desc">Provider 回報的模型清單；出現在此不代表帳號有足夠額度完成推理。</div></div>
+  <div><div class="section-title"><h2>Models</h2><span id="modelCount" class="count">—</span></div><div class="desc">512 MB 模式只列出目前已啟動服務的即時模型。睡眠中的服務可在上方點「啟動並載入模型」，也能用 provider/model 請求喚醒。</div></div>
   <input id="search" class="search" placeholder="搜尋模型或 Provider">
  </div>
  <div class="table-wrap">
@@ -436,11 +453,11 @@ const tabSections={
  home:['providersSection','modelsSection'],
  accounts:['freebuffLogin','optional'],
  bridges:['connect'],
- advanced:['diagnostics']
+ advanced:['resourceSettings','diagnostics']
 };
 function switchTab(name){
  const active=tabSections[name]||tabSections.home;
- for(const id of ['providersSection','modelsSection','freebuffLogin','optional','connect','diagnostics']){
+ for(const id of ['providersSection','modelsSection','freebuffLogin','optional','connect','resourceSettings','diagnostics']){
   const e=document.getElementById(id);
   if(e)e.classList.toggle('ahb-tab-hidden',!active.includes(id));
  }
@@ -479,6 +496,48 @@ async function toggleProvider(id,enabled){
 document.getElementById('providers').addEventListener('change',e=>{
  const input=e.target.closest('input[data-provider-toggle]');
  if(input)toggleProvider(input.dataset.providerToggle,input.checked);
+});
+document.getElementById('providers').addEventListener('click',async e=>{
+ const button=e.target.closest('button[data-provider-wake]');
+ if(!button)return;
+ const id=button.dataset.providerWake;
+ button.disabled=true;button.textContent='正在啟動…';
+ try{
+  const r=await fetch('/api/control/wake/'+encodeURIComponent(id),{
+   method:'POST',credentials:'same-origin',cache:'no-store',
+   headers:{'X-AhB-Control-Token':ahbControlToken,'Content-Type':'application/json'},body:'{}'
+  });
+  if(!r.ok)throw new Error((await r.text()).trim().slice(0,160)||'HTTP '+r.status);
+  controlNotice(id+' 已啟動；閒置後會自動停止，登入資格與免費額度需由實際請求驗證。');
+  await refresh();
+ }catch(err){controlNotice('無法啟動 '+id+'：'+err.message);await refresh()}
+});
+let resourceSettingsDirty=false;
+document.getElementById('maxResident').addEventListener('input',()=>{resourceSettingsDirty=true});
+document.getElementById('idleTimeout').addEventListener('input',()=>{resourceSettingsDirty=true});
+document.getElementById('saveResourceSettings').addEventListener('click',async()=>{
+ if(!ahbProviderControlAvailable)return;
+ const max=Number(document.getElementById('maxResident').value);
+ const idle=Number(document.getElementById('idleTimeout').value);
+ if(!Number.isInteger(max)||max<1||max>16||!Number.isInteger(idle)||idle<30||idle>86400) {
+  controlNotice('資源設定超出範圍：常駐 1～16 個；閒置 30～86400 秒。');return;
+ }
+ if(!confirm('儲存新常駐上限和閒置時間，並重新啟動 AhB？目前進行中的 API 請求會中斷。'))return;
+ const button=document.getElementById('saveResourceSettings');
+ button.disabled=true;
+ try{
+  const res=await fetch('/api/control/resources',{
+   method:'POST',credentials:'same-origin',cache:'no-store',
+   headers:{'X-AhB-Control-Token':ahbControlToken,'Content-Type':'application/json'},
+   body:JSON.stringify({max_running_sidecars:max,idle_stop_seconds:idle})
+  });
+  if(!res.ok)throw new Error((await res.text()).trim().slice(0,140)||'HTTP '+res.status);
+  const data=await res.json();
+  resourceSettingsDirty=false;
+  if(data.status==='unchanged'){controlNotice('資源設定沒有變更');button.disabled=false;return}
+  controlNotice('資源設定已儲存，正在重啟 AhB。登入資料及其他設定不變。');
+  setTimeout(()=>location.reload(),8500);
+ }catch(err){button.disabled=false;controlNotice('儲存失敗：'+err.message)}
 });
 switchTab('home');
 const fmtBytes=n=>!n?'—':n<1048576?(n/1024).toFixed(1)+' KiB':(n/1048576).toFixed(1)+' MiB';
@@ -524,7 +583,23 @@ async function refresh(){
   const providers=p.providers||[];
   const sidecarRSS=providers.reduce((n,x)=>n+(x.rss_bytes||0),0);
   const ready=providers.filter(x=>x.enabled&&x.state==='HEALTHY').length;
-  document.getElementById('runtime').textContent='RSS '+fmtBytes((r.process_rss_bytes||0)+sidecarRSS)+' · '+(r.goos||'?')+'/'+(r.goarch||'?');
+  const ahbRSS=r.ahb_rss_bytes||((r.process_rss_bytes||0)+sidecarRSS);
+  const used=r.system_used_bytes||0, total=r.system_total_bytes||0;
+  const percent=total?Math.min(100,Math.max(0,Math.round(used/total*100))):0;
+  document.getElementById('runtime').textContent='AhB RSS '+fmtBytes(ahbRSS)+' · 按需 '+(r.running_on_demand??0)+'/'+(r.max_running_sidecars||1)+' · '+(r.goos||'?')+'/'+(r.goarch||'?');
+  document.getElementById('systemRamSummary').textContent=total?('RAM '+percent+'% 已使用'):'系統 RAM 尚無可用數據';
+  document.getElementById('systemRamValue').textContent=total?(fmtBytes(used)+' / '+fmtBytes(total)):'未取得';
+  document.getElementById('availableRamValue').textContent=total?fmtBytes(r.system_available_bytes||0):'未取得';
+  document.getElementById('ahbRamValue').textContent=fmtBytes(ahbRSS);
+  document.getElementById('ramMeter').style.width=percent+'%';
+  document.getElementById('ramSourceHint').textContent=r.system_memory_source==='cgroup_v2'
+   ?'此 Linux 容器有獨立記憶體上限，顯示整個 cgroup 用量（含其他程序及快取）。'
+   :'顯示整台主機 /proc/meminfo 的實際可用記憶體（不是只有 AhB）。';
+  if(!resourceSettingsDirty){
+   document.getElementById('maxResident').value=r.max_running_sidecars||1;
+   document.getElementById('idleTimeout').value=r.idle_stop_seconds||120;
+  }
+  document.getElementById('saveResourceSettings').disabled=!ahbProviderControlAvailable;
   document.getElementById('providerTotal').textContent=providers.filter(x=>x.enabled).length;
   document.getElementById('modelTotal').textContent=lastModels.length;
   document.getElementById('providerReady').textContent=ready+' endpoint healthy / '+providers.length+' configured';
@@ -538,6 +613,7 @@ async function refresh(){
     '<div class="metrics"><div class="metric"><b>'+esc(counts[x.id]||0)+'</b><span>Models</span></div><div class="metric"><b>'+esc(fmtBytes(x.rss_bytes))+'</b><span>RSS</span></div><div class="metric"><b>'+esc(x.restarts||0)+'</b><span>Restarts</span></div></div>'+
     '<div class="provider-actions">'+
       '<label class="ui-toggle"><input type="checkbox" data-provider-toggle="'+esc(x.id)+'" '+(x.enabled?'checked ':'')+(!ahbProviderControlAvailable?'disabled ':'')+' aria-label="'+esc(x.display_name||x.id)+' 啟用或停用"><span>'+(x.enabled?'已開啟':'已關閉')+'</span></label>'+
+      (enabled&&x.start_mode==='on_demand'&&!x.process_alive?'<button type="button" class="btn" data-provider-wake="'+esc(x.id)+'" '+(!ahbProviderControlAvailable?'disabled':'')+'>啟動並載入模型</button>':'')+
       actionLink(x.ui_url,'管理原本 UI',true,enabled&&manageable)+actionLink(x.docs_url,'上游文件',false,true)+'</div>'+
    '</div></article>';
   }).join('');
@@ -549,7 +625,7 @@ async function refresh(){
 }
 document.getElementById('refresh').addEventListener('click',refresh);
 document.getElementById('search').addEventListener('input',renderModels);
-for(const [buttonId,cmdId] of [['copyCopilotInstall','copilotInstallCommand'],['copyKimiInstall','kimiInstallCommand']]){
+for(const [buttonId,cmdId] of [['copyCopilotInstall','copilotInstallCommand']]){
  document.getElementById(buttonId).addEventListener('click',async function(){
   const original=this.textContent;
   this.textContent=(await copyText(document.getElementById(cmdId).textContent))?'已複製':'複製失敗';
@@ -562,7 +638,7 @@ document.getElementById('copyBase').addEventListener('click',async()=>{
 });
 // No secrets are requested in the browser: bridge keys are configured locally
 // through the script's private environment, never embedded into a URL or page.
-const bridgeDefaults={lmarena:5102,windsurf:3003,qwen:3000,kimi:8000,gemini:5918,claude:8080,codex:9879,custom:8418};
+const bridgeDefaults={custom:8418};
 let previousPreset='lmarena';
 function updateBridgeCommand(){
  const preset=document.getElementById('bridgePreset').value;
@@ -597,7 +673,23 @@ document.getElementById('copyBridge').addEventListener('click',async function(){
 });
 updateBridgeCommand();
 document.getElementById('baseUrl').textContent=location.origin+'/v1';
-refresh();setInterval(refresh,10000);
+refresh();
+// Refresh RAM separately: avoid re-probing all upstream model lists merely
+// to update the memory gauge on a 512 MiB VPS.
+setInterval(()=>{
+ if(document.visibilityState==='hidden')return;
+ getJSON('/api/runtime').then(r=>{
+  const total=r.system_total_bytes||0,used=r.system_used_bytes||0;
+  const pct=total?Math.min(100,Math.round(used/total*100)):0;
+  document.getElementById('systemRamSummary').textContent=total?'RAM '+pct+'% 已使用':'系統 RAM 尚無可用數據';
+  document.getElementById('systemRamValue').textContent=total?fmtBytes(used)+' / '+fmtBytes(total):'未取得';
+  document.getElementById('availableRamValue').textContent=total?fmtBytes(r.system_available_bytes||0):'未取得';
+  document.getElementById('ahbRamValue').textContent=fmtBytes(r.ahb_rss_bytes);
+  document.getElementById('ramMeter').style.width=pct+'%';
+  document.getElementById('runtime').textContent='AhB RSS '+fmtBytes(r.ahb_rss_bytes)+' · 按需 '+(r.running_on_demand??0)+'/'+(r.max_running_sidecars||1)+' · '+(r.goos||'?')+'/'+(r.goarch||'?');
+ }).catch(()=>{});
+},5000);
+setInterval(()=>{if(document.visibilityState!=='hidden')refresh()},30000);
 </script>
 </body>
 </html>`

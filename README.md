@@ -2,24 +2,46 @@
 
 A lightweight Android/Termux AI gateway that supervises mature provider adapters and exposes one local API.
 
-## What V1 does
+## Two editions, one shared codebase
 
-Default providers:
+AhB is maintained as **two separate native distributions**. Both build
+the same Go Hub and seven pinned upstream gateways. Agent2API remains
+**unmodified**.
 
-- **OpenCode Free** via `opencode2api v1.3.7`
-- **FreeBuff** via `Freebuff2API v0.10.3`
+| Policy | Android Termux | Native Linux VPS |
+| --- | --- | --- |
+| Platform | Android ARM64 | Linux AMD64 / ARM64 |
+| Default providers | Seven bundled, all enabled | Seven bundled, all enabled |
+| Startup | On demand | On demand |
+| Maximum resident on-demand providers | **3** | **1** |
+| Idle cleanup | **900 seconds** | **120 seconds** |
+| Release | Android `prebuilt` branch | Independent Linux GitHub Release |
+| GUI toggles | Controlled local restart | Controlled local restart |
 
-Optional provider pack:
+These are concurrency/process caps, **not guaranteed RAM limits**. Disabled
+providers consume no child-process RSS, and switching to a sleeping backend
+can release an idle sidecar. Long-running SSE requests hold an active lease.
 
-- **Agent2API v2.9.7 (next build; previously published 91c8da4 remains v2.9.6)** — adds a mature UI and adapters for personal WorkBuddy domestic/international, CodeArts, Qoder, Cline, Trae, Loomy, KukuAI and other supported accounts without reimplementing those protocols in this repo.
-- **DeepSeek2API** — optional DeepSeek Web multi-account sidecar with its original admin UI, OpenAI/Anthropic/Responses compatibility, tool calling and provider-internal account pooling.
-- **Grok2API** — optional Grok Build / Web / Console multi-account sidecar with its original management UI, quota/model sync, OpenAI/Anthropic/Responses support and media features.
-- **Kiro-Go** — optional Kiro multi-account sidecar with its original Web admin, automatic token refresh, OpenAI/Anthropic/Responses endpoints and account-level proxy support.
-- **GitHub Copilot (new opt-in Go sidecar)** — native ARM64 build wired to the bundle; use your own authorized GitHub Copilot Device Flow login, then enable. The binary has no built-in API-key authentication, so it remains localhost only. Real Android inference verification still required.
-- **Kimi Web (new optional Termux installer)** — `chopper1026/kimi2api` account-pool backend and WebUI with local-only credentials and explicit opt-in; Python/Node dependencies are installed *only on request*, not in the base archive. Android installation/login/inference unverified.
-- **External localhost bridges** — a universal attach tool and phone-first connection wizard for **LMArena, WindsurfAPI, Qwen2API, Kimi2API, Gemini2API, Claude2API**, and any custom local OpenAI-compatible service. These run separately; AhB connects to their local HTTP APIs but does not claim to install or operate the external bridge.
+**Bundled:** OpenCode2API (Go), FreeBuff2API (Node), Agent2API (Rust),
+DeepSeek2API (Go), Grok2API (Go), Kiro-Go (Go), Copilot2API (Go),
+Gemini Web2API (Go), DuckDuckGo AI2API (Go).
+Each requires its own legitimate account/authorization and may have
+different quota and model capabilities.
 
-The Hub itself stays small. Provider-specific login, account pools, quota logic, proxy settings and diagnostics remain inside the upstream adapters.
+**Not bundled:** Kimi Web, LMArena, Windsurf, Qwen, Gemini or any other
+generic local connector; those are not installed services. Existing Kimi
+data and custom bridges are not discarded by migration. The historical
+Termux Python Kimi installer remains for old installations only.
+
+The Linux CI builds separate, native ELF binaries; **Android packages are
+not Linux packages**. Linux packages require an appropriate GNU/Linux
+environment and Node.js for FreeBuff. See
+[512 MB VPS guide](docs/DEPLOY_VPS_512MB.md) and
+[technical constraints](docs/512MB-DEPLOYMENT.md).
+
+**Development status:** the dual-edition change is under review; do not
+replace a working phone install or VPS before both native builds and
+device-level tests pass.
 
 ## Unified API
 
@@ -42,7 +64,9 @@ lmarena/<model>
 windsurf/<model>
 qwen/<model>
 kimi/<model>
-gemini/<model>
+geminiweb/<model>
+duckai/<model>
+gemini/<model> # only if attached externally
 claude/<model>
 <custom-id>/<model> # only after connecting that local bridge
 ```
@@ -73,7 +97,7 @@ It shows provider status, process RSS, restart counts, model counts and the unif
 Each healthy provider has a **管理原本 UI** button:
 
 - OpenCode: `http://127.0.0.1:8404/`
-- FreeBuff: `http://127.0.0.1:8402/ui`
+- FreeBuff: no WebUI in the bundled Node adapter
 - Agent2API when installed: `http://127.0.0.1:8403/`
 - DeepSeek2API when enabled: `http://127.0.0.1:8405/admin`
 - Grok2API when enabled: `http://127.0.0.1:8407/`

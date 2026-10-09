@@ -7,7 +7,7 @@ cd "$ROOT"
 
 is_ahb_exe() {
   case "$1" in
-    "$ROOT/bin/hubd"|"$ROOT/bin/opencode2api"|"$ROOT/bin/agent2api-server"|"$ROOT/bin/deepseek2api"|"$ROOT/bin/grok2api"|"$ROOT/bin/kiro-go"|"$ROOT/bin/copilot2api"|"$ROOT/bin/freebuff2api")
+    "$ROOT/bin/hubd"|"$ROOT/bin/opencode2api"|"$ROOT/bin/agent2api-server"|"$ROOT/bin/deepseek2api"|"$ROOT/bin/grok2api"|"$ROOT/bin/kiro-go"|"$ROOT/bin/copilot2api"|"$ROOT/bin/freebuff2api"|"$ROOT/bin/gemini-web2api-go"|"$ROOT/bin/duck2api")
       return 0 ;;
     *) return 1 ;;
   esac
@@ -69,7 +69,17 @@ if [ -n "${pids// /}" ]; then
         remaining="$remaining $pid"
       fi
     done
-    [ -z "${remaining// /}" ] && break
+    # Process exit and /proc reaping are not instantaneous. A first quiet
+    # observation can race the original PID's state transition; check twice
+    # before declaring a clean stop, without ever terminating unrelated PIDs.
+    if [ -z "${remaining// /}" ]; then
+      sleep 0.2
+      remaining=""
+      for pid in $pids; do
+        if pid_still_running "$pid"; then remaining="$remaining $pid"; fi
+      done
+      [ -z "${remaining// /}" ] && break
+    fi
     sleep 1
   done
   remaining=""

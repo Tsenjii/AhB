@@ -1,98 +1,76 @@
-name: Build Android ARM64 bundle
+name: Build Linux AMD64 and ARM64 bundles
 
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
-    paths:
-      - "go.mod"
-      - "cmd/**"
-      - "internal/**"
-      - "config.example.json"
-      - "configs/**"
-      - "scripts/**"
-      - ".github/workflows/build-android-arm64.yml"
+    branches: [main, feat/512mb-lean-pack-20261009]
+    paths: ["cmd/**", "internal/**", "config.example.json", "configs/**", "scripts/**", ".github/workflows/build-linux.yml"]
   pull_request:
-    paths:
-      - "go.mod"
-      - "cmd/**"
-      - "internal/**"
-      - "config.example.json"
-      - "configs/**"
-      - "scripts/**"
-      - ".github/workflows/build-android-arm64.yml"
+    paths: ["cmd/**", "internal/**", "config.example.json", "configs/**", "scripts/**", ".github/workflows/build-linux.yml"]
 
 permissions:
   contents: write
 
 concurrency:
-  group: ahb-android-prebuilt
+  group: ahb-linux-build-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  android-arm64:
-    runs-on: ubuntu-latest
-    timeout-minutes: 90
-
+  linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 110
+    env:
+      AHB_ARCH: ${{ matrix.arch }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-go@v6
         with:
-          go-version: "1.24.x"
+          go-version: "1.26.x"
 
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: "1.95.0"
-          targets: aarch64-linux-android
 
-      - name: Locate Android NDK
-        shell: bash
-        run: |
-          set -euo pipefail
-          ndk="${ANDROID_NDK_LATEST_HOME:-}"
-          if [ -z "$ndk" ] || [ ! -d "$ndk" ]; then
-            ndk="$(find "$ANDROID_SDK_ROOT/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
-          fi
-          test -d "$ndk"
-          toolchain="$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin"
-          test -x "$toolchain/aarch64-linux-android24-clang"
-          echo "ANDROID_NDK_SELECTED=$ndk" >> "$GITHUB_ENV"
-          echo "ANDROID_TOOLCHAIN=$toolchain" >> "$GITHUB_ENV"
-
-      - name: Build hubd for Android ARM64
+      - name: Build hubd for native Linux
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p dist/AhB/bin
-          GOOS=android GOARCH=arm64 CGO_ENABLED=0 \
+          GOOS=linux GOARCH="$AHB_ARCH" CGO_ENABLED=0 \
             go build -trimpath -ldflags="-s -w" -o dist/AhB/bin/hubd ./cmd/hubd
-          # Immutable package identity for dashboard-side, checksum-protected upgrades.
+          # Immutable Linux build identity.
           printf '%s\n' "$GITHUB_SHA" > dist/AhB/.build-commit
           test "$(wc -c < dist/AhB/.build-commit)" -eq 41
           grep -Fx "$GITHUB_SHA" dist/AhB/.build-commit
 
-      - name: Build pinned OpenCode gateway for Android ARM64
+      - name: Build pinned OpenCode gateway for native Linux
         shell: bash
         run: |
           set -euo pipefail
-          # 2026-10-08 pinned upstream fixes: free-model probe and manual route selection.
+          # Reviewed upstream revision.
           OPENCODE_SHA="1e2702f6e0562c7656d5bcfb99ce4b47383077a5"
           git init /tmp/opencode2api
           git -C /tmp/opencode2api remote add origin https://github.com/jasonxu114514/opencode2api.git
           git -C /tmp/opencode2api fetch --depth 1 origin "$OPENCODE_SHA"
           git -C /tmp/opencode2api checkout --detach FETCH_HEAD
           cd /tmp/opencode2api
-          CC="$ANDROID_TOOLCHAIN/aarch64-linux-android24-clang" \
-            GOOS=android GOARCH=arm64 CGO_ENABLED=1 \
+          GOOS=linux GOARCH="$AHB_ARCH" CGO_ENABLED=1 \
             go build -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/dist/AhB/bin/opencode2api" ./cmd/opencode2api
 
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
 
-      - name: Package pinned Node.js FreeBuff gateway (Termux runtime)
+      - name: Package pinned Node.js FreeBuff gateway (native Node.js)
         shell: bash
         run: |
           set -euo pipefail
@@ -130,7 +108,7 @@ jobs:
           cp server.js worker.js package.json freebuff_tools/extract_freebuff.py             "$GITHUB_WORKSPACE/dist/AhB/data/freebuff/gateway/"
           cp LICENSE "$GITHUB_WORKSPACE/dist/AhB/LICENSE.freebuff2api"
           cat > "$GITHUB_WORKSPACE/dist/AhB/bin/freebuff2api" <<'SH'
-          #!/data/data/com.termux/files/usr/bin/bash
+          #!/usr/bin/env bash
           set -euo pipefail
           ROOT="$(cd "$(dirname "$0")/.." && pwd)"
           export HOST=127.0.0.1 PORT=8402
@@ -167,27 +145,24 @@ jobs:
           rm -rf "$smoke"
 
 
-      - name: Build pinned Agent2API headless for Android ARM64
+      - name: Build pinned Agent2API headless for native Linux
         shell: bash
         env:
-          CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER: ${{ env.ANDROID_TOOLCHAIN }}/aarch64-linux-android24-clang
-          CC_aarch64_linux_android: ${{ env.ANDROID_TOOLCHAIN }}/aarch64-linux-android24-clang
-          AR_aarch64_linux_android: ${{ env.ANDROID_TOOLCHAIN }}/llvm-ar
           CARGO_PROFILE_RELEASE_LTO: "false"
           CARGO_PROFILE_RELEASE_CODEGEN_UNITS: "8"
           CARGO_BUILD_JOBS: "2"
         run: |
           set -euo pipefail
-          # Pinned Agent2API v2.9.8 upstream source (2026-10-08); built as Android headless.
+          # Pinned Agent2API v2.9.8 upstream source (2026-10-08); built as native Linux headless.
           AGENT_SHA="f82308a9549ee4760f27e393058c3482056ec514"
           git init /tmp/agent2api
           git -C /tmp/agent2api remote add origin https://github.com/aimod-cc/agent2api.git
           git -C /tmp/agent2api fetch --depth 1 origin "$AGENT_SHA"
           git -C /tmp/agent2api checkout --detach FETCH_HEAD
           cd /tmp/agent2api/desktop-tauri/src-tauri
-          cargo build --locked --release --target aarch64-linux-android \
+          cargo build --locked --release \
             --package agent2api-server --bin agent2api-server
-          cp ../../target/aarch64-linux-android/release/agent2api-server \
+          cp ../../target/release/agent2api-server \
             "$GITHUB_WORKSPACE/dist/AhB/bin/agent2api-server"
           mkdir -p "$GITHUB_WORKSPACE/dist/AhB/data/agent2api"
           cp -R ../ui "$GITHUB_WORKSPACE/dist/AhB/data/agent2api/ui"
@@ -201,7 +176,7 @@ jobs:
           go-version: "1.26.x"
           cache: false
 
-      - name: Build optional lightweight GitHub Copilot bridge for Android ARM64
+      - name: Build optional lightweight GitHub Copilot bridge for native Linux
         shell: bash
         run: |
           set -euo pipefail
@@ -212,16 +187,12 @@ jobs:
           git -C /tmp/copilot2api fetch --depth 1 origin "$COPILOT_SHA"
           git -C /tmp/copilot2api checkout --detach FETCH_HEAD
           cd /tmp/copilot2api
-          # Android/Termux has no traditional /etc/resolv.conf. Pure-Go DNS
-          # can fall back to [::1]:53 and break GitHub Device Flow OAuth.
-          # Use Android bionic getaddrinfo via NDK cgo (same as Grok/Kiro).
-          CC="$ANDROID_TOOLCHAIN/aarch64-linux-android24-clang" \
-            GOOS=android GOARCH=arm64 CGO_ENABLED=1 \
+          GOOS=linux GOARCH="$AHB_ARCH" CGO_ENABLED=1 \
             go build -tags=netcgo -trimpath -ldflags="-s -w" \
             -o "$GITHUB_WORKSPACE/dist/AhB/bin/copilot2api" .
           cp LICENSE "$GITHUB_WORKSPACE/dist/AhB/LICENSE.copilot2api"
 
-      - name: Build pinned Grok2API for Android ARM64
+      - name: Build pinned Grok2API for native Linux
         shell: bash
         run: |
           set -euo pipefail
@@ -239,8 +210,7 @@ jobs:
           pnpm --dir frontend build
 
           cd backend
-          CC="$ANDROID_TOOLCHAIN/aarch64-linux-android24-clang" \
-            GOOS=android GOARCH=arm64 CGO_ENABLED=1 \
+          GOOS=linux GOARCH="$AHB_ARCH" CGO_ENABLED=1 \
             go build -buildvcs=false -trimpath -ldflags="-s -w" \
             -o "$GITHUB_WORKSPACE/dist/AhB/bin/grok2api" ./cmd/grok2api
 
@@ -248,7 +218,7 @@ jobs:
           cp -R /tmp/grok2api/frontend/dist "$GITHUB_WORKSPACE/dist/AhB/data/grok2api/frontend/dist"
           cp /tmp/grok2api/LICENSE "$GITHUB_WORKSPACE/dist/AhB/LICENSE.grok2api" || true
 
-      - name: Build pinned Kiro-Go for Android ARM64
+      - name: Build pinned Kiro-Go for native Linux
         shell: bash
         run: |
           set -euo pipefail
@@ -260,8 +230,7 @@ jobs:
           git -C /tmp/kiro-go checkout --detach FETCH_HEAD
 
           cd /tmp/kiro-go
-          CC="$ANDROID_TOOLCHAIN/aarch64-linux-android24-clang" \
-            GOOS=android GOARCH=arm64 CGO_ENABLED=1 \
+          GOOS=linux GOARCH="$AHB_ARCH" CGO_ENABLED=1 \
             go build -buildvcs=false -trimpath -ldflags="-s -w" \
             -o "$GITHUB_WORKSPACE/dist/AhB/bin/kiro-go" .
 
@@ -269,7 +238,7 @@ jobs:
           cp -R /tmp/kiro-go/web "$GITHUB_WORKSPACE/dist/AhB/data/kiro-go/web"
           cp /tmp/kiro-go/LICENSE "$GITHUB_WORKSPACE/dist/AhB/LICENSE.kiro-go" || true
 
-      - name: Build pinned DeepSeek2API for Android ARM64
+      - name: Build pinned DeepSeek2API for native Linux
         shell: bash
         run: |
           set -euo pipefail
@@ -295,8 +264,7 @@ jobs:
           npm ci --prefix webui
           npm run build --prefix webui
 
-          CC="$ANDROID_TOOLCHAIN/aarch64-linux-android24-clang" \
-            GOOS=android GOARCH=arm64 CGO_ENABLED=1 \
+          GOOS=linux GOARCH="$AHB_ARCH" CGO_ENABLED=1 \
             go build -trimpath -ldflags="-s -w" \
             -o "$GITHUB_WORKSPACE/dist/AhB/bin/deepseek2api" ./cmd/Deepseek2API
 
@@ -316,7 +284,7 @@ jobs:
           git -C /tmp/ahb-gemini-web2api checkout --detach FETCH_HEAD
           (
             cd /tmp/ahb-gemini-web2api
-            CC="$ANDROID_TOOLCHAIN/aarch64-linux-android24-clang" GOOS=android GOARCH=arm64 CGO_ENABLED=1 go build -buildvcs=false -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/dist/AhB/bin/gemini-web2api-go" .
+            GOOS=linux GOARCH="$AHB_ARCH" CGO_ENABLED=1 go build -buildvcs=false -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/dist/AhB/bin/gemini-web2api-go" .
             cp LICENSE "$GITHUB_WORKSPACE/dist/AhB/LICENSE.gemini-web2api-go"
           )
           git init /tmp/ahb-duck2api
@@ -325,42 +293,66 @@ jobs:
           git -C /tmp/ahb-duck2api checkout --detach FETCH_HEAD
           (
             cd /tmp/ahb-duck2api
-            # wlynxg/anet v0.0.5 uses go:linkname on private net.zoneCache
-            # which was removed in Go 1.26's Android runtime. Keep anet's
-            # cache local rather than linking against unsupported stdlib guts.
-            # This is scoped to Duck.ai's Android build only.
-            mod_dir="$(go mod download -json github.com/wlynxg/anet@v0.0.5 | jq -r .Dir)"
-            test -d "$mod_dir"
-            cp -R "$mod_dir" /tmp/ahb-duck-anet
-            chmod -R u+w /tmp/ahb-duck-anet
-            python3 - <<'PY'
-          from pathlib import Path
-          path=Path("/tmp/ahb-duck-anet/interface_android.go")
-          s=path.read_text()
-          for line in (
-              "//go:linkname zoneCache net.zoneCache",
-              "//go:linkname zoneCacheX golang.org/x/net/internal/socket.zoneCache",
-          ):
-              assert s.count(line)==1, "unexpected anet upstream Go linkname declaration"
-              s=s.replace(line,"// Local Android cache. Go 1.26 no longer exposes private net internals.")
-          path.write_text(s)
-          PY
-            go mod edit -replace github.com/wlynxg/anet=/tmp/ahb-duck-anet
-            CC="$ANDROID_TOOLCHAIN/aarch64-linux-android24-clang" GOOS=android GOARCH=arm64 CGO_ENABLED=1 go build -buildvcs=false -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/dist/AhB/bin/duck2api" .
+            GOOS=linux GOARCH="$AHB_ARCH" CGO_ENABLED=1 go build -buildvcs=false -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/dist/AhB/bin/duck2api" .
             cp LICENSE "$GITHUB_WORKSPACE/dist/AhB/LICENSE.duck2api"
           )
 
-      - name: Assemble Termux bundle
+      - name: Smoke-test new native gateways on loopback (no accounts)
+        shell: bash
+        run: |
+          set -euo pipefail
+          TMP="$(mktemp -d)"
+          cleanup() {
+            for var in GEMINI_PID DUCK_PID; do
+              pid="${!var:-}"
+              if [ -n "$pid" ]; then kill -TERM "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true; fi
+            done
+            rm -rf "$TMP"
+          }
+          trap cleanup EXIT
+          mkdir -p "$TMP/gemini" "$TMP/duck"
+          cp configs/geminiweb.json "$TMP/gemini/config.json"
+          (
+            cd "$TMP/gemini"
+            API_KEY="ci-local-test-key" ADMIN_TOKEN="ci-local-admin-key"               "$GITHUB_WORKSPACE/dist/AhB/bin/gemini-web2api-go" --config config.json --port 18413               > "$TMP/gemini.log" 2>&1
+          ) &
+          GEMINI_PID=$!
+          (
+            cd "$TMP/duck"
+            SERVER_HOST=127.0.0.1 SERVER_PORT=18414 Authorization="ci-local-test-key"               "$GITHUB_WORKSPACE/dist/AhB/bin/duck2api" > "$TMP/duck.log" 2>&1
+          ) &
+          DUCK_PID=$!
+          for target in "18413:status" "18414:pong"; do
+            port="${target%%:*}"
+            expected="${target#*:}"
+            path="/"
+            if [ "$port" = "18414" ]; then path="/ping"; fi
+            ready=0
+            for i in $(seq 1 80); do
+              if curl -fsS --max-time 2 "http://127.0.0.1:$port$path" | grep -q "$expected"; then ready=1; break; fi
+              sleep 0.25
+            done
+            if [ "$ready" -ne 1 ]; then
+              echo "Native gateway failed loopback smoke test on port $port" >&2
+              tail -n 25 "$TMP/gemini.log" "$TMP/duck.log" >&2
+              exit 1
+            fi
+          done
+          # Access control: unauthenticated model discovery must not succeed.
+          gemini_status="$(curl -s -o /dev/null -w '%{http_code}' --max-time 3 http://127.0.0.1:18413/v1/models)"
+          duck_status="$(curl -s -o /dev/null -w '%{http_code}' --max-time 3 http://127.0.0.1:18414/v1/models)"
+          test "$gemini_status" = 401
+          test "$duck_status" = 401
+          echo "Gemini + Duck native Linux loopback and access-control smoke passed"
+
+      - name: Assemble native Linux bundle
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p dist/AhB/configs dist/AhB/scripts dist/AhB/data/opencode dist/AhB/data/freebuff dist/AhB/data/deepseek2api dist/AhB/data/grok2api/frontend dist/AhB/data/kiro-go dist/AhB/logs
-          cp config.example.json dist/AhB/
+          cp configs/profiles/linux-512mb.json dist/AhB/config.example.json
           cp configs/opencode2api.json configs/freebuff2api.json configs/deepseek2api.json configs/grok2api.yaml configs/kiro-go.json configs/geminiweb.json dist/AhB/configs/
-          cp scripts/prepare-configs.sh scripts/run-termux.sh scripts/start-termux.sh \
-             scripts/stop-termux.sh scripts/doctor-termux.sh scripts/smoke.sh \
-             scripts/test-chat.sh scripts/test-stream.sh scripts/freebuff-login-termux.sh scripts/check-freebuff-login.sh scripts/provider-status-termux.sh scripts/test-tool-roundtrip.sh scripts/test-provider-acceptance.sh scripts/test-grok2api-termux.sh scripts/upgrade-prebuilt-termux.sh scripts/connect-bridge.sh scripts/login-copilot2api.sh scripts/enable-copilot2api.sh scripts/install-kimiweb-termux.sh scripts/enable-kimiweb-termux.sh scripts/enable-agent2api.sh scripts/enable-deepseek2api.sh \
-             scripts/enable-grok2api.sh scripts/enable-kiro-go.sh scripts/enable-lmarena-external.sh dist/AhB/scripts/
+          cp scripts/run-linux.sh scripts/start-linux.sh scripts/stop-linux.sh scripts/install-prebuilt-linux.sh scripts/upgrade-linux.sh scripts/prepare-configs.sh dist/AhB/scripts/
           mkdir -p dist/AhB/data/geminiweb dist/AhB/data/duckai
           cp configs/geminiweb.json dist/AhB/data/geminiweb/config.json
           cp configs/opencode2api.json dist/AhB/data/opencode/config.json
@@ -368,37 +360,68 @@ jobs:
           cp configs/deepseek2api.json dist/AhB/data/deepseek2api/config.json
           cp configs/grok2api.yaml dist/AhB/data/grok2api/config.yaml
           cp configs/kiro-go.json dist/AhB/data/kiro-go/config.json
+          cp README.md dist/AhB/
+          cp -R docs dist/AhB/
           chmod 700 dist/AhB/bin/*
           chmod +x dist/AhB/scripts/*.sh
-          tar -C dist -czf AhB_android_arm64.tar.gz AhB
-          sha256sum AhB_android_arm64.tar.gz > AhB_android_arm64.tar.gz.sha256
-          sha256sum dist/AhB/bin/* > AhB_android_arm64_binaries.sha256
+          test "$(find dist/AhB/bin -maxdepth 1 -type f | wc -l)" -eq 10
+          jq -e '.resources.max_running_sidecars==1 and .resources.idle_stop_seconds==120 and (.providers|length)==9' dist/AhB/config.example.json
+          for bin in dist/AhB/bin/*; do
+            if [ "$(basename "$bin")" = freebuff2api ]; then continue; fi
+            file "$bin"
+            readelf -h "$bin" | grep -q 'ELF64'
+          done
+          tar -C dist -czf "AhB_linux_$AHB_ARCH.tar.gz" AhB
+          sha256sum "AhB_linux_$AHB_ARCH.tar.gz" > "AhB_linux_$AHB_ARCH.tar.gz.sha256"
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: AhB-android-arm64
-          retention-days: 14
-          path: |
-            AhB_android_arm64.tar.gz
-            AhB_android_arm64.tar.gz.sha256
-            AhB_android_arm64_binaries.sha256
-
-      - name: Publish public prebuilt branch
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      - name: Smoke-test installed Linux AhB Hub without waking providers
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p /tmp/ahb-prebuilt
-          cp AhB_android_arm64.tar.gz /tmp/ahb-prebuilt/
-          cp AhB_android_arm64.tar.gz.sha256 /tmp/ahb-prebuilt/
-          cp AhB_android_arm64_binaries.sha256 /tmp/ahb-prebuilt/
-          printf '%s\n' "$GITHUB_SHA" > /tmp/ahb-prebuilt/source-commit.txt
+          cd dist/AhB
+          trap 'bash scripts/stop-linux.sh >/dev/null 2>&1 || true' EXIT
+          bash scripts/start-linux.sh
+          ready=0
+          for i in $(seq 1 25); do
+            if curl -fsS --max-time 2 http://127.0.0.1:8317/healthz >/dev/null 2>&1; then ready=1; break; fi
+            sleep .25
+          done
+          [ "$ready" -eq 1 ] || { tail -n 45 logs/hubd.log; exit 1; }
+          curl -fsS --max-time 4 http://127.0.0.1:8317/api/runtime | jq -e             '.max_running_sidecars == 1 and .idle_stop_seconds == 120 and .running_on_demand == 0 and .process_rss_bytes > 0'
+          curl -fsS --max-time 4 http://127.0.0.1:8317/api/providers | jq -e             '(.providers|length) == 9 and all(.providers[]; .enabled == true and .start_mode == "on_demand")'
+          bash scripts/stop-linux.sh
+          trap - EXIT
+          echo "Linux AhB fresh-install Hub and nine sleeping providers smoke passed"
 
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout --orphan prebuilt-publish
-          git rm -rf .
-          cp /tmp/ahb-prebuilt/* .
-          git add AhB_android_arm64.tar.gz AhB_android_arm64.tar.gz.sha256 AhB_android_arm64_binaries.sha256 source-commit.txt
-          git commit -m "prebuilt: Android ARM64 $GITHUB_SHA"
-          git push --force origin HEAD:prebuilt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AhB-linux-${{ matrix.arch }}
+          retention-days: 14
+          path: |
+            AhB_linux_*.tar.gz
+            AhB_linux_*.tar.gz.sha256
+
+  publish:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: linux
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: AhB-linux-*
+          merge-multiple: true
+          path: dist-release
+      - name: Publish immutable native Linux bundles
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd dist-release
+          sha256sum -c AhB_linux_amd64.tar.gz.sha256
+          sha256sum -c AhB_linux_arm64.tar.gz.sha256
+          tag="linux-$(echo "$GITHUB_SHA" | cut -c1-12)"
+          gh release create "$tag" AhB_linux_amd64.tar.gz AhB_linux_amd64.tar.gz.sha256 AhB_linux_arm64.tar.gz AhB_linux_arm64.tar.gz.sha256 \
+            --repo "$GITHUB_REPOSITORY" --title "AhB Linux AMD64/ARM64 — $tag" \
+            --notes "Native Linux AhB with separate 512 MiB defaults. Android Termux package published independently."

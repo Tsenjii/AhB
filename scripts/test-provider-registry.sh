@@ -21,9 +21,19 @@ for c in src["candidates"]:
     assert c["last_reviewed"] and c["notes"]
 for p in cfg["providers"]:
     assert p["id"] in ids, f"config provider missing in source registry: {p['id']}"
-for name in ("copilot", "kimiweb"):
-    p=next(p for p in cfg["providers"] if p["id"]==name)
-    assert p["kind"] == "sidecar" and p["enabled"] is False
+# Android installs expose ONLY adapters actually compiled into the
+# Android bundle, with all nine enabled but resident only on demand.
+installed={"opencode","freebuff","agent2api","deepseek","grok","kiro","copilot","geminiweb","duckai"}
+assert {p["id"] for p in cfg["providers"]} == installed
+for p in cfg["providers"]:
+    assert p["kind"]=="sidecar" and p["enabled"] is True
+    assert p["start_mode"]=="on_demand"
+assert cfg["resources"]["max_running_sidecars"]==3
+assert cfg["resources"]["idle_stop_seconds"]==900
+linux=json.loads(Path("configs/profiles/linux-512mb.json").read_text())
+assert {p["id"] for p in linux["providers"]}==installed
+assert linux["resources"]["max_running_sidecars"]==1
+assert linux["resources"]["idle_stop_seconds"]==120
 assert Path("scripts/login-copilot2api.sh").is_file()
 assert Path("scripts/enable-copilot2api.sh").is_file()
 assert Path("scripts/install-kimiweb-termux.sh").is_file()
@@ -31,5 +41,18 @@ assert Path("scripts/enable-kimiweb-termux.sh").is_file()
 workflow=Path(".github/workflows/build-android-arm64.yml").read_text()
 for name in ("copilot2api","enable-copilot2api.sh","login-copilot2api.sh","install-kimiweb-termux.sh","enable-kimiweb-termux.sh"):
     assert name in workflow, name
-print("registry and optional source wiring verified",len(ids),"candidates")
+for path in (".github/workflows/build-android-arm64.yml",".github/workflows/build-linux.yml"):
+    build=Path(path).read_text()
+    for binary in ("gemini-web2api-go", "duck2api"):
+        assert binary in build, (path,binary)
+assert Path("configs/geminiweb.json").is_file()
+for config in (cfg,linux):
+    gemini=next(x for x in config["providers"] if x["id"]=="geminiweb")
+    duck=next(x for x in config["providers"] if x["id"]=="duckai")
+    assert gemini["base_url"]=="http://127.0.0.1:8413"
+    assert gemini["env"]["API_KEY"]=="__AIHUB_SERVER_KEY__"
+    assert duck["base_url"]=="http://127.0.0.1:8414"
+    assert duck["env"]["SERVER_HOST"]=="127.0.0.1"
+    assert duck["env"]["Authorization"]=="__AIHUB_SERVER_KEY__"
+print("registry and native Android/Linux provider wiring verified",len(ids),"candidates")
 PY

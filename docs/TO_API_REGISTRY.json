@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-10-08",
+  "updated_at": "2026-10-09",
   "purpose": "Living source-of-truth for AhB account-backed To-API providers; source lists are not proof of working phone inference.",
   "status_definitions": {
     "bundled_verified": "Actually packaged and successfully live-tested on Android",
@@ -28,6 +28,26 @@
   ],
   "candidates": [
     {
+      "id": "geminiweb",
+      "name": "Gemini Web to API Go",
+      "url": "https://github.com/zexadev/gemini-web2api-go",
+      "status": "new_bundled_pending_build",
+      "priority": "P1",
+      "notes": "New native Go sidecar wired into Android and Linux build pipelines at 8413, localhost-only, token-protected, 7-day SQLite retention. Upstream commit bc09c717; admin UI and optional authenticated cookie pool. Android/Linux compilation and real-account model/inference not yet verified; advanced tools/Responses are not true incremental SSE.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-09"
+    },
+    {
+      "id": "duckai",
+      "name": "DuckDuckGo AI / Duck2API Go",
+      "url": "https://github.com/aurora-develop/duck2api",
+      "status": "new_bundled_pending_build",
+      "priority": "P2",
+      "notes": "New native Go sidecar wired into both platform builds at 8414, localhost-only and Bearer token-protected. Commit f446c1c6 pinned; chat, Anthropic Messages and Responses support claimed by upstream. 512 MB memory load / Android compatibility / real inference remain unverified.",
+      "verified_live_android": false,
+      "last_reviewed": "2026-10-09"
+    },
+    {
       "id": "opencode",
       "name": "OpenCode Zen / Go",
       "url": "https://github.com/jasonxu114514/opencode2api",
@@ -40,10 +60,10 @@
     {
       "id": "freebuff",
       "name": "FreeBuff / CodeBuff",
-      "url": "https://github.com/lza6/Freebuff-2API",
+      "url": "https://github.com/yutian81/freebuff2api",
       "status": "bundled_needs_account",
       "priority": "P0",
-      "notes": "Bundled; zero active accounts in device report.",
+      "notes": "Actually bundled pinned yutian81 Node.js implementation; requires authorized device login; older Rust implementations are separate comparison candidates and are NOT in the current bundle.",
       "verified_live_android": false,
       "last_reviewed": "2026-10-08"
     },

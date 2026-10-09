@@ -1,86 +1,111 @@
-# Deploy on a 512 MB VPS
+# AhB Linux VPS: 512 MiB RAM (AMD64 or ARM64)
 
-A 512 MB VPS is viable for V1 if you deploy prebuilt binaries. Do not compile FreeBuff on the VPS.
+This guide is for a **native Linux build**, not the Android Termux package.
+The Linux GitHub Actions workflow creates both CPU architectures using
+Ubuntu 24.04 native runners. Their ABI depends on Linux/glibc compatibility;
+Ubuntu 24.04 is the primary initial test target, and Debian/older distros
+must pass a real smoke test before support is promised.
 
-## Recommended runtime
+## Why two distributions?
 
-Use a minimal Debian/Ubuntu image.
+- **Android** defaults to up to 3 resident sidecars, idle timeout 15 minutes.
+- **Linux 512 MiB** defaults to a single resident on-demand sidecar, idle
+  timeout 2 minutes.
+- Both share the same Go Hub and nine pinned upstream gateways.
+- **Agent2API is not rewritten**. It is compiled unchanged for each platform.
+- Both expose a unified local API at `127.0.0.1:8317/v1`, with a local
+  dashboard at `127.0.0.1:8317/ui`.
 
-Processes:
+A one-process on-demand cap prevents loading all nine gateways simultaneously,
+but does not guarantee that a given upstream process will always fit in
+512 MiB RAM. Avoid local browser automation or extra heavyweight apps.
 
-- hubd
-- opencode2api
-- freebuff2api
+## System dependencies
 
-Keep all three bound to loopback. Access the hub through an SSH tunnel first. This avoids spending RAM on a reverse proxy while V1 is still being validated.
+On a suitable Ubuntu server, install the small *runtime* dependencies
+(`jq`, `curl`, `tar`, `python3`, `coreutils`, and Node.js 22 for
+FreeBuff). Native Go and Rust gateways are already compiled by GitHub
+Actions and **do not need Go or Rust installed on the VPS**.
 
-## Estimated memory budget
+Use an unprivileged user and keep the `~/AhB/data` directory readable only
+by that user. Do not open port 8317 publicly.
 
-These are planning estimates until measured on the target VPS:
+## First install, after the GitHub Linux release succeeds
 
-- hubd: **~7–10 MB RSS measured** on a local Linux/amd64 idle build (the current code reports its own live RSS)
-- opencode2api: roughly 20–70 MB RSS
-- freebuff2api: roughly 60–180 MB RSS
-- minimal OS + sshd: roughly 70–140 MB
-
-Expected idle total: roughly **150–290 MB**. OpenCode and FreeBuff values remain planning estimates until the first real deployment; the dashboard will replace them with live RSS immediately.
-
-Under active streaming, model-catalog refreshes, SQLite activity, and larger buffers, plan for roughly 250–420 MB total system use.
-
-512 MB should work, but it is tight enough that a small swap file is recommended.
-
-The hub dashboard and /api/providers report each sidecar's live RSS from /proc so the estimate can be replaced with real measurements immediately after deployment.
-
-## Install a prebuilt bundle
-
-Unpack the release bundle into:
-
-```text
-/opt/android-ai-hub
+```bash
+# The Linux release must exist first. Do not run this before CI is green.
+curl -fsSL https://raw.githubusercontent.com/Tsenjii/AhB/main/scripts/install-prebuilt-linux.sh -o "$HOME/ahb-linux-install.sh"
+bash "$HOME/ahb-linux-install.sh"
+cd "$HOME/AhB"
+bash scripts/start-linux.sh
+curl -fsS http://127.0.0.1:8317/healthz
 ```
 
-Create an unprivileged service account:
+The installer verifies SHA-256, rejects unsafe archive entries, checks the
+Linux config profile and **refuses to overwrite an existing installation**.
+The archive includes Linux-native `bin/hubd` plus nine bundled provider adapters:
+OpenCode, FreeBuff, Agent2API, DeepSeek, Grok, Kiro, Copilot, Gemini Web
+and Duck.ai. Each stays off-process until requested.
 
-```sh
-sudo useradd --system --home /opt/android-ai-hub --shell /usr/sbin/nologin aihub || true
-sudo chown -R aihub:aihub /opt/android-ai-hub
+If the release does not exist yet, the download will fail and no installation
+takes place. That is expected until the dual-edition pull request is merged
+and both native CI builds pass.
+
+## Control and diagnosis
+
+```bash
+cd "$HOME/AhB"
+bash scripts/start-linux.sh
+bash scripts/stop-linux.sh
+tail -n 40 logs/hubd.log
 ```
 
-Install the service:
+To reach the loopback-only UI remotely, open an SSH tunnel on your computer:
 
-```sh
-sudo cp /opt/android-ai-hub/deploy/android-ai-hub.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now android-ai-hub
-```
-
-Check:
-
-```sh
-sudo systemctl status android-ai-hub
-curl -s http://127.0.0.1:8317/healthz
-```
-
-## Remote access without exposing the API
-
-From another machine:
-
-```sh
+```bash
 ssh -N -L 8317:127.0.0.1:8317 USER@VPS
 ```
 
-Then use:
+Then open `http://127.0.0.1:8317/ui` in your **local computer** browser.
+The GUI's on/off toggles trigger a strictly scoped Linux restart, preserving
+existing account files. For a **staged Linux upgrade**, run:
 
-```text
-http://127.0.0.1:8317/v1
+```bash
+cd "$HOME/AhB"
+bash scripts/upgrade-linux.sh
+# A timestamped AhB.backup-* directory retains the previous release.
+bash scripts/start-linux.sh
 ```
 
-The dashboard is available at:
+The Linux upgrader only selects Linux-specific GitHub releases (or a
+deliberately pinned `AHB_LINUX_RELEASE_TAG`), checks SHA-256 and archive
+safety **before** stopping the old Hub, preserves credentials/config and
+newly installed static assets separately, and retains a complete rollback
+backup. It refuses to copy account databases if owned processes or listening
+ports are still running. The old installation must have an intact Linux
+stop helper and installer; older unknown layouts fail closed.
 
-```text
-http://127.0.0.1:8317/ui
+This is tested with synthetic credentials/archives in CI; the first real
+512 MiB VPS installation and an account-authorized live upgrade still need
+verification. Do not automatically remove the backup.
+
+## Actual RAM measurement
+
+Use these commands after deployment; do not infer a device's RAM from the
+language or binary size:
+
+```bash
+free -m
+ps -eo pid,rss,comm --sort=-rss | head -n 20
+curl -fsS http://127.0.0.1:8317/api/runtime
 ```
 
-## Why not compile on 512 MB
+Gemini Web and Duck.ai are unofficial gateways. Availability, upstream
+limits, model names, and actual permissions must be checked with an
+account-authorized request; packaging does not guarantee inference.
 
-The hub and OpenCode gateway are small, but a Rust release build of FreeBuff can consume much more than 512 MB during compilation. Build it on GitHub Actions, a PC, or another larger machine, then copy the resulting binary to the VPS.
+The Linux profile holds a full streaming-response lease and does not
+terminate active model requests to make room for a different provider.
+Trying to run two different providers simultaneously with a one-process
+limit may return `503`; this is an intentional bounded-resource response,
+not proof that the upstream model is broken.

@@ -89,8 +89,8 @@ func (h *Hub) handleCopilotLogin(w http.ResponseWriter,r *http.Request) {
  busy:=h.controlPending
  h.controlMu.Unlock()
  if busy {http.Error(w,"AhB restart pending",409);return}
- if p,ok:=h.providers["copilot"]; !ok || p.cfg.Enabled {
-  http.Error(w,"Please disable Copilot before interactive device login",409);return
+ if p,ok:=h.providers["copilot"]; !ok || (p.cfg.Enabled && (!h.onDemand(p) || p.snapshot().PID>0)) {
+  http.Error(w,"Please stop any active Copilot service before interactive device login",409);return
  }
  if h.copilotLogin!=nil {
   state:=h.copilotLogin.snapshot()["state"]

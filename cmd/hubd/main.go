@@ -48,6 +48,7 @@ func main() {
 	h := hub.New(cfg)
 	h.SetControlConfigPath(*configPath)
 	configureTermuxRestart(h)
+	configureLinuxRestart(h)
 	configureTermuxUpdater(h)
 	h.Start(ctx)
 
@@ -141,6 +142,31 @@ func configureTermuxUpdater(h *hub.Hub) {
   if err!=nil{return err}
   defer out.Close()
   cmd:=exec.Command("bash",script,strconv.Itoa(os.Getpid()))
+  cmd.Dir=root
+  cmd.Stdin=nil
+  cmd.Stdout=out
+  cmd.Stderr=out
+  cmd.SysProcAttr=&syscall.SysProcAttr{Setsid:true}
+  if err:=cmd.Start();err!=nil{return err}
+  return cmd.Process.Release()
+ })
+}
+
+ // Linux uses an intentionally separate startup command, while sharing the
+ // exact same localhost+origin+ephemeral-token checks for dashboard controls.
+func configureLinuxRestart(h *hub.Hub) {
+ if runtime.GOOS!="linux" {return}
+ exe,err:=os.Executable()
+ if err!=nil || filepath.Base(exe)!="hubd" {return}
+ root:=filepath.Clean(filepath.Join(filepath.Dir(exe),".."))
+ script:=filepath.Join(root,"scripts","start-linux.sh")
+ if fi,e:=os.Stat(script);e!=nil || fi.IsDir() {return}
+ h.SetRestartHandler(func()error {
+  logPath:=filepath.Join(root,"logs","ui-restart.log")
+  out,err:=os.OpenFile(logPath,os.O_CREATE|os.O_APPEND|os.O_WRONLY,0600)
+  if err!=nil{return err}
+  defer out.Close()
+  cmd:=exec.Command("bash",script,"--restart-from-pid",strconv.Itoa(os.Getpid()))
   cmd.Dir=root
   cmd.Stdin=nil
   cmd.Stdout=out
