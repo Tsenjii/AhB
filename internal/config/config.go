@@ -57,6 +57,9 @@ type ProviderConfig struct {
 	Args                  []string          `json:"args,omitempty"`
 	WorkDir               string            `json:"work_dir,omitempty"`
 	Env                   map[string]string `json:"env,omitempty"`
+	// Outbound proxy for this child process only. Account-level native proxy
+	// settings (Agent2API etc.) remain managed by their original UI.
+	ProxyURL string `json:"proxy_url,omitempty"`
 	Headers               map[string]string `json:"headers,omitempty"`
 	HealthPath            string            `json:"health_path,omitempty"`
 	ModelsPath            string            `json:"models_path,omitempty"`
@@ -163,6 +166,10 @@ func (c Config) Validate() error {
 			}
 		}
 
+		if p.ProxyURL != "" {
+			if p.Kind != "sidecar" { return fmt.Errorf("provider %q: outbound proxy is supported only on managed sidecars",id) }
+			if err := validateProxyURL(p.ProxyURL); err != nil {return fmt.Errorf("provider %q: %w", id,err)}
+		}
 		if p.StartMode != "" && p.StartMode != "always" && p.StartMode != "on_demand" {
 			return fmt.Errorf("provider %q: start_mode must be always or on_demand", id)
 		}
@@ -294,4 +301,21 @@ func validateListen(addr string, allowLAN bool) error {
 		return fmt.Errorf("listen address %q is not loopback; V1 is intentionally loopback-only", addr)
 	}
 	return nil
+}
+func validateProxyURL(raw string) error {
+ u,err:=url.Parse(raw)
+ if err!=nil||u.Host==""||(u.Scheme!="http"&&u.Scheme!="https"&&u.Scheme!="socks5"){
+  return fmt.Errorf("proxy_url must be http, https or socks5 URL with host")
+ }
+ if u.User!=nil||u.RawQuery!=""||u.Fragment!=""||u.Path!=""||u.Opaque!="" {
+  return fmt.Errorf("proxy_url cannot contain credentials, paths or query parameters")
+ }
+ if u.Hostname()=="" {return fmt.Errorf("proxy_url host is required")}
+ if u.Port()!="" {
+  var port int
+  if n,err:=fmt.Sscanf(u.Port(),"%d",&port);err!=nil||n!=1||port<1||port>65535 {
+   return fmt.Errorf("proxy_url port must be 1..65535")
+  }
+ }
+ return nil
 }
