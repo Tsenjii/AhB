@@ -246,13 +246,24 @@ th,td{font-size:12px}
    <div class="eyebrow">Optional packages</div>
    <div class="quick-title">有帳號才啟用，減少手機負擔。</div>
    <p>Copilot 使用 GitHub 裝置授權，Kimi Web 需要額外安裝。Agent2API 的 Android 更新由 AhB 統一封包管理：在首頁按「更新 AhB」即可安全檢查並更新整套服務。</p>
-   <p>這裡只會複製安裝指令，並不會在瀏覽器執行任何命令或取得帳號金鑰。</p>
+   <p>Copilot 現在可以直接在這一頁完成官方裝置授權；不會顯示永久 Token。Kimi Web 仍需額外安裝。</p>
   </div>
   <div class="quick-form">
-   <div class="command-panel"><div class="field"><label>GitHub Copilot · 授權登入後按 Ctrl+C</label></div>
-    <div class="command-box" id="copilotInstallCommand">cd ~/AhB && ./scripts/login-copilot2api.sh</div>
-    <div class="command-actions"><button type="button" id="copyCopilotInstall">複製登入指令</button></div>
-    <div class="command-help">登入後執行 ./scripts/enable-copilot2api.sh 再重新啟動 AhB。</div>
+   <div class="command-panel">
+    <div class="field"><label>GitHub Copilot · 本機裝置授權</label></div>
+    <p>直接在 AhB 開始登入，使用官方 GitHub 網頁完成授權，無須離開管理介面輸入 Termux 指令。</p>
+    <div class="command-actions"><button type="button" id="startCopilotLogin" class="btn primary">登入 GitHub Copilot</button><button type="button" id="copyCopilotInstall">複製備用指令</button></div>
+    <div id="copilotLoginFeedback" class="quick-note" role="status" aria-live="polite" style="display:none;margin-top:10px">
+     <span id="copilotLoginMessage">正在檢查登入狀態…</span>
+     <div id="copilotLoginDevice" style="display:none;margin-top:8px">
+      <a href="https://github.com/login/device" target="_blank" rel="noopener noreferrer" class="btn primary">開啟 GitHub 官方授權頁</a>
+      <div style="margin-top:9px">一次性授權碼：<code id="copilotDeviceCode" style="font-size:19px;font-weight:700;user-select:all"></code></div>
+      <p>只輸入在 GitHub 官方網站，不要傳給他人。</p>
+     </div>
+     <button type="button" id="enableCopilotAfterLogin" class="btn primary" style="display:none">啟用 Copilot 服務</button>
+    </div>
+    <div class="command-box" id="copilotInstallCommand" style="display:none">cd ~/AhB && ./scripts/login-copilot2api.sh</div>
+    <div class="command-help">授權資料只存放在手機的私密帳號目錄，AhB 不會在網頁顯示永久金鑰。已有帳號時可直接回總覽啟用。</div>
    </div>
    <div class="command-panel"><div class="field"><label>Kimi Web · 額外安裝 Python/React 環境</label></div>
     <div class="command-box" id="kimiInstallCommand">cd ~/AhB && ./scripts/install-kimiweb-termux.sh &amp;&amp; ./scripts/enable-kimiweb-termux.sh &amp;&amp; ./scripts/stop-termux.sh &amp;&amp; ./scripts/start-termux.sh</div>
@@ -318,6 +329,56 @@ const ahbControlToken="__AHB_CONTROL_TOKEN__";
 const ahbRestartAvailable=__AHB_RESTART_AVAILABLE__;
 const ahbProviderControlAvailable=__AHB_PROVIDER_CONTROL_AVAILABLE__;
 const ahbUpdateAvailable=__AHB_UPDATE_AVAILABLE__;
+const startCopilotLoginBtn=document.getElementById('startCopilotLogin');
+const copilotLoginFeedback=document.getElementById('copilotLoginFeedback');
+const copilotLoginMessage=document.getElementById('copilotLoginMessage');
+const copilotLoginDevice=document.getElementById('copilotLoginDevice');
+const copilotDeviceCode=document.getElementById('copilotDeviceCode');
+const enableCopilotAfterLogin=document.getElementById('enableCopilotAfterLogin');
+let copilotLoginTimer=null;
+startCopilotLoginBtn.disabled=!ahbProviderControlAvailable;
+enableCopilotAfterLogin.addEventListener('click',()=>{
+ switchTab('home');
+ toggleProvider('copilot',true);
+});
+async function copilotLoginAction(action){
+ const r=await fetch('/api/control/login/copilot',{
+  method:'POST',cache:'no-store',credentials:'same-origin',
+  headers:{'X-AhB-Control-Token':ahbControlToken,'Content-Type':'application/json'},
+  body:JSON.stringify({action})
+ });
+ if(!r.ok)throw new Error('HTTP '+r.status+': '+(await r.text()).trim().slice(0,120));
+ return await r.json();
+}
+function showCopilotLogin(data){
+ copilotLoginFeedback.style.display='block';
+ const state=data.state||'idle';
+ const text={idle:'尚未啟動授權',starting:'正在向 GitHub 要求裝置授權…',waiting:'請打開 GitHub 並輸入授權碼，授權後會自動完成。',done:'已登入！現在可以啟用 Copilot。',failed:'登入未成功，請確認帳號或網路後再試。'}[state]||'正在登入…';
+ copilotLoginMessage.textContent=data.detail||text;
+ copilotLoginDevice.style.display=(state==='waiting'&&data.user_code)?'block':'none';
+ copilotDeviceCode.textContent=state==='waiting'?(data.user_code||''):'';
+ enableCopilotAfterLogin.style.display=state==='done'?'inline-flex':'none';
+ startCopilotLoginBtn.disabled=!ahbProviderControlAvailable || state==='starting'||state==='waiting';
+ startCopilotLoginBtn.textContent=state==='waiting'?'授權進行中…':(state==='done'?'已完成登入':'登入 GitHub Copilot');
+ if(copilotLoginTimer){clearTimeout(copilotLoginTimer);copilotLoginTimer=null}
+ if(state==='waiting'||state==='starting'){
+  copilotLoginTimer=setTimeout(async()=>{
+   try{showCopilotLogin(await copilotLoginAction('status'))}
+   catch(e){copilotLoginMessage.textContent='無法取得登入狀態：'+e.message;startCopilotLoginBtn.disabled=false}
+  },1800);
+ }
+}
+startCopilotLoginBtn.addEventListener('click',async()=>{
+ startCopilotLoginBtn.disabled=true;
+ copilotLoginFeedback.style.display='block';
+ copilotLoginMessage.textContent='正在啟動 GitHub 授權…';
+ try{showCopilotLogin(await copilotLoginAction('start'))}
+ catch(e){
+  copilotLoginMessage.textContent='未能開始授權：'+e.message;
+  startCopilotLoginBtn.disabled=false;
+ }
+});
+
 const restartAhBButton=document.getElementById('restartAhB');
 restartAhBButton.disabled=!ahbRestartAvailable;
 restartAhBButton.title=ahbRestartAvailable?'重新啟動 AhB 後端及其受控服務，不會關閉 Termux':'僅限本機 Android Termux 預編譯版提供此操作';
