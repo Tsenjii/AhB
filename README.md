@@ -92,6 +92,8 @@ http://127.0.0.1:8317/ui
 
 It shows provider status, process RSS, restart counts, model counts and the unified model list.
 
+**On-demand model discovery (Android and 512 MiB Linux):** The dashboard's **逐一載入全部模型** button wakes each enabled on-demand gateway **sequentially**, fetches only its model-list metadata, and releases the process before moving on. Plain `GET /v1/models` never wakes all gateways just to enumerate choices. For a successfully discovered gateway that is later asleep, the Hub can return its last six hours of model identifiers and numeric context limits from a private `data/hub-model-catalog.json` cache. Cached rows explicitly carry `x_cached: true`, `x_cache_state: "sleeping_unverified"` and `x_cached_at`; a source with no recent discovery remains **SLEEP**, not zero-model verified. The cache contains no credentials or arbitrary upstream metadata, is limited to 2 MiB, and persists safely through normal upgrades. Cached entries never prove current account entitlements, model availability, quota, tool calling or a healthy process. Every real inference request still rechecks on-demand process/account readiness; cached entries do not enable unverified virtual aliases.
+
 Each healthy provider has a **管理原本 UI** button:
 
 - OpenCode: `http://127.0.0.1:8404/`
