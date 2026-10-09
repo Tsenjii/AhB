@@ -23,6 +23,7 @@ assert "'/api/control/resources'" in html and "'/api/runtime'" in html
 assert "x_cached" in html and "休眠快取" in html
 assert "'/api/control/wake/'" in html and "scanAllModels" in html
 assert "'/api/control/console-access'" in html and "nativeConsoleRequest" in html
+assert "visit.addEventListener('click',async event=>" in html and "started=await fetch('/api/control/wake/'" in html
 js=html.split("<script>",1)[1].split("</script>",1)[0]
 Path(sys.argv[1]).write_text(js,encoding="utf-8")
 PY
