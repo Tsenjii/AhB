@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 umask 077
-: "${AHB_PUBLIC_TOKEN:?Set AHB_PUBLIC_TOKEN in Infrlo private environment settings}"
+: "${AHB_PUBLIC_TOKEN:?Set AHB_PUBLIC_TOKEN in private Docker environment or .env}"
 [ "${#AHB_PUBLIC_TOKEN}" -ge 32 ] || { echo 'AHB_PUBLIC_TOKEN must contain at least 32 characters' >&2; exit 1; }
 ROOT="${AHB_STATE_DIR:-/state}/AhB"
 mkdir -p "$ROOT"
@@ -28,8 +28,8 @@ else
 fi
 cd "$ROOT"
 bash ./scripts/prepare-configs.sh
-if ! jq -e '.listen == "127.0.0.1:8317" and (.allow_lan == false) and .resources.max_running_sidecars == 1' config.json >/dev/null; then
-  echo 'Unsafe config: Infrlo requires loopback Hub with one resident sidecar' >&2
+if ! jq -e '.listen == "127.0.0.1:8317" and (.allow_lan == false) and (.resources.max_running_sidecars >= 1) and (.resources.max_running_sidecars <= 16)' config.json >/dev/null; then
+  echo 'Unsafe config: Docker requires loopback Hub and valid process ceiling' >&2
   exit 1
 fi
 env -u AHB_PUBLIC_TOKEN -u AHB_PUBLIC_USER ./bin/hubd -config ./config.json &

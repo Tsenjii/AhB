@@ -1,0 +1,30 @@
+services:
+  ahb:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        AHB_RELEASE_TAG: ${AHB_RELEASE_TAG:-linux-5b3d0e8f08ef}
+    image: ahb:local
+    container_name: ahb
+    restart: unless-stopped
+    init: true
+    environment:
+      AHB_PUBLIC_TOKEN: ${AHB_PUBLIC_TOKEN:?Create a private .env with a random AHB_PUBLIC_TOKEN first}
+      AHB_PUBLIC_USER: ${AHB_PUBLIC_USER:-ahb}
+      AHB_STATE_DIR: /state
+      PORT: "8080"
+    ports:
+      - "127.0.0.1:${AHB_HOST_PORT:-8080}:8080"
+    volumes:
+      - ahb-data:/state
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    security_opt:
+      - no-new-privileges:true
+volumes:
+  ahb-data:
