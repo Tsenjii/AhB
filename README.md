@@ -2,41 +2,45 @@
 
 A lightweight Android/Termux AI gateway that supervises mature provider adapters and exposes one local API.
 
-## Two maintained editions: Android Termux and Linux VPS
+## Two editions, one shared codebase
 
-**Only seven** provider adapters are bundled with the Android prebuilt:
-[OpenCode2API](https://github.com/jasonxu114514/opencode2api) (Go),
-[FreeBuff2API](https://github.com/yutian81/freebuff2api) (Node),
-[Agent2API](https://github.com/aimod-cc/agent2api) (Rust),
-[DeepSeek2API](https://github.com/zengtao227/Deepseek2API) (Go),
-[Grok2API](https://github.com/chenyme/grok2api) (Go),
-[Kiro-Go](https://github.com/Quorinex/Kiro-Go) (Go), and
-[Copilot2API](https://github.com/whtsky/copilot2api) (Go).
+AhB is maintained as **two separate native distributions**. Both build
+the same Go Hub and seven pinned upstream gateways. Agent2API remains
+**unmodified**.
 
-**Fresh installations:** all seven are `enabled=true` but start **on demand**
-and stop after 120 seconds idle. The one-process default limits memory
-pressure on a 512 MiB host. A long-running response holds its provider alive,
-and another backend is not started until an idle one can stop. Sleeping
-providers do not populate `/v1/models` until explicitly woken by their
-dashboard card; clients with known `provider/model` IDs wake the backend
-when sending an inference request. This is a process-count limit, not an
-exact 512 MiB RSS guarantee. Existing user settings and account files remain
-preserved by migration.
+| Policy | Android Termux | Native Linux VPS |
+| --- | --- | --- |
+| Platform | Android ARM64 | Linux AMD64 / ARM64 |
+| Default providers | Seven bundled, all enabled | Seven bundled, all enabled |
+| Startup | On demand | On demand |
+| Maximum resident on-demand providers | **3** | **1** |
+| Idle cleanup | **900 seconds** | **120 seconds** |
+| Release | Android `prebuilt` branch | Independent Linux GitHub Release |
+| GUI toggles | Controlled local restart | Controlled local restart |
 
-**Not bundled:** LMArena, Windsurf, Qwen, Gemini, Claude and Kimi Web.
-Any of these can be connected via the optional generic localhost bridge
-*only after the user installs a compatible third-party service separately*.
-The legacy Python Kimi installer remains available for existing installations,
-but Kimi is no longer falsely listed as an installed provider.
+These are concurrency/process caps, **not guaranteed RAM limits**. Disabled
+providers consume no child-process RSS, and switching to a sleeping backend
+can release an idle sidecar. Long-running SSE requests hold an active lease.
 
-Agent2API stays intact as one highly capable Rust provider for WorkBuddy,
-Qoder, Cline, CodeArts, Trae and other accounts. No duplicate per-platform
-adapters are necessary. DeepSeek's older upstream is discontinued; a more
-recent Rust replacement is being evaluated separately. Do not move accounts
-or change backends without real authorized-inference tests.
+**Bundled:** OpenCode2API (Go), FreeBuff2API (Node), Agent2API (Rust),
+DeepSeek2API (Go), Grok2API (Go), Kiro-Go (Go), Copilot2API (Go).
+Each requires its own legitimate account/authorization and may have
+different quota and model capabilities.
 
-See [512 MiB Linux deployment notes](docs/512MB-DEPLOYMENT.md). This branch is
-not a published release until CI, Android compilation and device tests pass.
+**Not bundled:** Kimi Web, LMArena, Windsurf, Qwen, Gemini or any other
+generic local connector; those are not installed services. Existing Kimi
+data and custom bridges are not discarded by migration. The historical
+Termux Python Kimi installer remains for old installations only.
+
+The Linux CI builds separate, native ELF binaries; **Android packages are
+not Linux packages**. Linux packages require an appropriate GNU/Linux
+environment and Node.js for FreeBuff. See
+[512 MB VPS guide](docs/DEPLOY_VPS_512MB.md) and
+[technical constraints](docs/512MB-DEPLOYMENT.md).
+
+**Development status:** the dual-edition change is under review; do not
+replace a working phone install or VPS before both native builds and
+device-level tests pass.
 
 ## Unified API
 
