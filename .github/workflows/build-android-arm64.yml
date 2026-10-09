@@ -295,17 +295,44 @@ jobs:
           cp -R static/admin "$GITHUB_WORKSPACE/dist/AhB/data/deepseek2api/static/admin"
           cp LICENSE "$GITHUB_WORKSPACE/dist/AhB/LICENSE.deepseek2api" || true
 
+      - name: Build pinned Gemini Web Go and Duck.ai Go (localhost-only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          GEMINI_SHA="bc09c7171915deb7406a4b14344692cfa330388e"
+          DUCK_SHA="f446c1c68fffa02c34de0805daf1604fe26349e9"
+          git init /tmp/ahb-gemini-web2api
+          git -C /tmp/ahb-gemini-web2api remote add origin https://github.com/zexadev/gemini-web2api-go.git
+          git -C /tmp/ahb-gemini-web2api fetch --depth 1 origin "$GEMINI_SHA"
+          git -C /tmp/ahb-gemini-web2api checkout --detach FETCH_HEAD
+          (
+            cd /tmp/ahb-gemini-web2api
+            CC="$ANDROID_TOOLCHAIN/aarch64-linux-android24-clang" GOOS=android GOARCH=arm64 CGO_ENABLED=1 go build -buildvcs=false -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/dist/AhB/bin/gemini-web2api-go" .
+            cp LICENSE "$GITHUB_WORKSPACE/dist/AhB/LICENSE.gemini-web2api-go"
+          )
+          git init /tmp/ahb-duck2api
+          git -C /tmp/ahb-duck2api remote add origin https://github.com/aurora-develop/Duck2api.git
+          git -C /tmp/ahb-duck2api fetch --depth 1 origin "$DUCK_SHA"
+          git -C /tmp/ahb-duck2api checkout --detach FETCH_HEAD
+          (
+            cd /tmp/ahb-duck2api
+            CC="$ANDROID_TOOLCHAIN/aarch64-linux-android24-clang" GOOS=android GOARCH=arm64 CGO_ENABLED=1 go build -buildvcs=false -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/dist/AhB/bin/duck2api" .
+            cp LICENSE "$GITHUB_WORKSPACE/dist/AhB/LICENSE.duck2api"
+          )
+
       - name: Assemble Termux bundle
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p dist/AhB/configs dist/AhB/scripts dist/AhB/data/opencode dist/AhB/data/freebuff dist/AhB/data/deepseek2api dist/AhB/data/grok2api/frontend dist/AhB/data/kiro-go dist/AhB/logs
           cp config.example.json dist/AhB/
-          cp configs/opencode2api.json configs/freebuff2api.json configs/deepseek2api.json configs/grok2api.yaml configs/kiro-go.json dist/AhB/configs/
+          cp configs/opencode2api.json configs/freebuff2api.json configs/deepseek2api.json configs/grok2api.yaml configs/kiro-go.json configs/geminiweb.json dist/AhB/configs/
           cp scripts/prepare-configs.sh scripts/run-termux.sh scripts/start-termux.sh \
              scripts/stop-termux.sh scripts/doctor-termux.sh scripts/smoke.sh \
              scripts/test-chat.sh scripts/test-stream.sh scripts/freebuff-login-termux.sh scripts/check-freebuff-login.sh scripts/provider-status-termux.sh scripts/test-tool-roundtrip.sh scripts/test-provider-acceptance.sh scripts/test-grok2api-termux.sh scripts/upgrade-prebuilt-termux.sh scripts/connect-bridge.sh scripts/login-copilot2api.sh scripts/enable-copilot2api.sh scripts/install-kimiweb-termux.sh scripts/enable-kimiweb-termux.sh scripts/enable-agent2api.sh scripts/enable-deepseek2api.sh \
              scripts/enable-grok2api.sh scripts/enable-kiro-go.sh scripts/enable-lmarena-external.sh dist/AhB/scripts/
+          mkdir -p dist/AhB/data/geminiweb dist/AhB/data/duckai
+          cp configs/geminiweb.json dist/AhB/data/geminiweb/config.json
           cp configs/opencode2api.json dist/AhB/data/opencode/config.json
           cp configs/freebuff2api.json dist/AhB/data/freebuff/config.json
           cp configs/deepseek2api.json dist/AhB/data/deepseek2api/config.json
