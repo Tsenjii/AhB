@@ -1,6 +1,9 @@
 package hub
 
-import "net/http"
+import (
+	"net/http"
+	"strings"
+)
 
 const dashboardHTML = `<!doctype html>
 <html lang="zh-TW">
@@ -165,7 +168,7 @@ th,td{font-size:12px}
   <div class="mark">AhB</div>
   <div><h1>Local Gateway</h1><div id="runtime" class="kicker">正在讀取執行狀態…</div></div>
  </div>
- <button id="refresh">重新整理</button>
+ <div style="display:flex;gap:8px;align-items:center"><button id="restartAhB" type="button" disabled title="只重新啟動 AhB，不會關閉 Termux">重新啟動 AhB</button><button id="refresh">重新整理</button></div>
 </header>
 <nav class="anchor-nav" aria-label="頁面捷徑" style="margin-top:15px">
  <a href="#diagnostics">狀態檢查</a><a href="#freebuffLogin">FreeBuff 登入</a><a href="#optional">選裝來源</a><a href="#connect">連接來源</a><a href="#providersSection">服務狀態</a><a href="#modelsSection">模型目錄</a>
@@ -297,6 +300,34 @@ th,td{font-size:12px}
 <div class="footer">Account 顯示的是帳號憑證或上游回報狀態，並非可用餘額；如 Agent2API 可能顯示 2/2 但實際回 503。Last API 只顯示本次啟動後最近一次上游 HTTP 狀態，不含對話或金鑰；HTTP 200 亦不保證完整串流或下一次有額度。Quota 請以來源管理介面或真實請求為準。</div>
 </main>
 <script>
+// Ephemeral, loopback-only control. Never save this token to storage.
+const ahbControlToken="__AHB_CONTROL_TOKEN__";
+const ahbRestartAvailable=__AHB_RESTART_AVAILABLE__;
+const restartAhBButton=document.getElementById('restartAhB');
+restartAhBButton.disabled=!ahbRestartAvailable;
+restartAhBButton.title=ahbRestartAvailable?'重新啟動 AhB 後端及其受控服務，不會關閉 Termux':'僅限本機 Android Termux 預編譯版提供此操作';
+restartAhBButton.addEventListener('click',async()=>{
+ if(!ahbRestartAvailable||restartAhBButton.disabled)return;
+ if(!confirm('要重新啟動 AhB 嗎？進行中的 API 請求會暫時中斷，但帳號和設定會保留。'))return;
+ restartAhBButton.disabled=true;
+ restartAhBButton.textContent='準備重新啟動…';
+ try{
+  const r=await fetch('/api/control/restart',{
+   method:'POST',cache:'no-store',credentials:'same-origin',
+   headers:{'X-AhB-Control-Token':ahbControlToken,'Content-Type':'application/json'},
+   body:'{}'
+  });
+  if(!r.ok)throw new Error('排程失敗 (HTTP '+r.status+')');
+  restartAhBButton.textContent='正在重新啟動…';
+  // The previous HTTP connection disappears while hubd gracefully exits.
+  // Loading the page again verifies the new daemon rather than guessing.
+  setTimeout(()=>location.reload(),9500);
+ }catch(e){
+  restartAhBButton.disabled=false;
+  restartAhBButton.textContent='重新啟動 AhB';
+  alert(e.message+'。原本的 AhB 不會被強制停止。');
+ }
+});
 const fmtBytes=n=>!n?'—':n<1048576?(n/1024).toFixed(1)+' KiB':(n/1048576).toFixed(1)+' MiB';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let lastModels=[];
@@ -422,5 +453,11 @@ func (h *Hub) handleUI(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Referrer-Policy", "no-referrer")
 	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte(dashboardHTML))
+	html := strings.Replace(dashboardHTML, "__AHB_CONTROL_TOKEN__", h.controlToken, 1)
+	available := "false"
+	if h.controlToken != "" && h.restartFn != nil && !h.cfg.AllowLAN {
+		available = "true"
+	}
+	html = strings.Replace(html, "__AHB_RESTART_AVAILABLE__", available, 1)
+	_, _ = w.Write([]byte(html))
 }
