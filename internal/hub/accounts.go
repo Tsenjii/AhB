@@ -40,28 +40,36 @@ func (s *accountProbeState) set(v accountProbe) {
 	s.mu.Unlock()
 }
 
-func (h *Hub) pollProviderAccounts(ctx context.Context, p *runtimeProvider) {
-	refresh := func() {
-		probe, err := h.fetchProviderAccounts(ctx, p.cfg)
-		if err != nil {
-			p.accounts.set(accountProbe{Known: false, LastError: err.Error(), UpdatedAt: time.Now()})
-			return
-		}
-		probe.UpdatedAt = time.Now()
-		p.accounts.set(probe)
-	}
-	refresh()
+// refreshProviderAccounts checks authenticated readiness after a sidecar
+// starts; a running HTTP endpoint alone is not proof of usable credentials.
+func (h *Hub) refreshProviderAccounts(ctx context.Context, p *runtimeProvider) {
+ probe, err := h.fetchProviderAccounts(ctx, p.cfg)
+ if err != nil {
+  p.accounts.set(accountProbe{Known:false,LastError:err.Error(),UpdatedAt:time.Now()})
+  return
+ }
+ probe.UpdatedAt=time.Now()
+ p.accounts.set(probe)
+}
 
-	ticker := time.NewTicker(10 * time.Second)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			refresh()
-		}
-	}
+func (h *Hub) pollProviderAccounts(ctx context.Context, p *runtimeProvider) {
+ refresh := func() {
+  // On-demand sidecars intentionally have no listening endpoint while
+  // sleeping. Do not generate background localhost requests and false
+  // failures every ten seconds on a 512 MiB VPS. DeepSeek uses a local
+  // on-disk account probe and can still be inspected while asleep.
+  if h.onDemand(p) && p.cfg.ID!="deepseek" && p.snapshot().PID==0 {return}
+  h.refreshProviderAccounts(ctx,p)
+ }
+ refresh()
+ ticker:=time.NewTicker(10*time.Second)
+ defer ticker.Stop()
+ for {
+  select {
+  case <-ctx.Done():return
+  case <-ticker.C:refresh()
+  }
+ }
 }
 
 func (h *Hub) fetchProviderAccounts(parent context.Context, cfg config.ProviderConfig) (accountProbe, error) {
