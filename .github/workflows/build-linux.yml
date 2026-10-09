@@ -1,0 +1,333 @@
+name: Build Linux AMD64 and ARM64 bundles
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, feat/512mb-lean-pack-20261009]
+    paths: ["cmd/**", "internal/**", "config.example.json", "configs/**", "scripts/**", ".github/workflows/build-linux.yml"]
+  pull_request:
+    paths: ["cmd/**", "internal/**", "config.example.json", "configs/**", "scripts/**", ".github/workflows/build-linux.yml"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ahb-linux-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 110
+    env:
+      AHB_ARCH: ${{ matrix.arch }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.26.x"
+
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.95.0"
+
+      - name: Build hubd for native Linux
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/AhB/bin
+          GOOS=linux GOARCH="$AHB_ARCH" CGO_ENABLED=0 \
+            go build -trimpath -ldflags="-s -w" -o dist/AhB/bin/hubd ./cmd/hubd
+          # Immutable Linux build identity.
+          printf '%s\n' "$GITHUB_SHA" > dist/AhB/.build-commit
+          test "$(wc -c < dist/AhB/.build-commit)" -eq 41
+          grep -Fx "$GITHUB_SHA" dist/AhB/.build-commit
+
+      - name: Build pinned OpenCode gateway for native Linux
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Reviewed upstream revision.
+          OPENCODE_SHA="1e2702f6e0562c7656d5bcfb99ce4b47383077a5"
+          git init /tmp/opencode2api
+          git -C /tmp/opencode2api remote add origin https://github.com/jasonxu114514/opencode2api.git
+          git -C /tmp/opencode2api fetch --depth 1 origin "$OPENCODE_SHA"
+          git -C /tmp/opencode2api checkout --detach FETCH_HEAD
+          cd /tmp/opencode2api
+          GOOS=linux GOARCH="$AHB_ARCH" CGO_ENABLED=1 \
+            go build -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/dist/AhB/bin/opencode2api" ./cmd/opencode2api
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Package pinned Node.js FreeBuff gateway (Linux runtime)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # yutian81/freebuff2api latest reviewed 2026-10-08; no npm dependencies.
+          FREEBUFF_SHA="e0d8c9d4d1a955f46fbeb6841ea192bd8b3f2109"
+          git init /tmp/freebuff2api
+          git -C /tmp/freebuff2api remote add origin https://github.com/yutian81/freebuff2api.git
+          git -C /tmp/freebuff2api fetch --depth 1 origin "$FREEBUFF_SHA"
+          git -C /tmp/freebuff2api checkout --detach FETCH_HEAD
+          cd /tmp/freebuff2api
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("server.js")
+          s = p.read_text()
+          before = "const credDir = resolve(__dirname, 'credentials');"
+          after = "const credDir = process.env.FREEBUFF_CREDENTIALS_DIR || resolve(__dirname, 'credentials');"
+          assert s.count(before) == 1, "unsupported upstream credentials directory format"
+          s = s.replace(before, after)
+          before = 'apiKey=${env.FREEBUFF_API_KEY.slice(0,8)}...'
+          assert s.count(before) == 1, "unsupported upstream API key log format"
+          s = s.replace(before, 'apiKey=configured')
+          p.write_text(s)
+          p = Path("freebuff_tools/extract_freebuff.py")
+          s = p.read_text()
+          before = 'CRED_FILE = Path(__file__).resolve().parent / "freebuff_credentials.json"'
+          after = 'CRED_FILE = Path(os.environ.get("FREEBUFF_CRED_FILE", str(Path(__file__).resolve().parent / "freebuff_credentials.json")))'
+          assert s.count(before) == 1, "unsupported upstream login credential store"
+          s = s.replace(before, after)
+          before = 'print("    " + auth_token)'
+          assert s.count(before) == 1, "unsupported upstream auth-token stdout format"
+          s = s.replace(before, 'print("    已儲存至本機安全檔案，請使用 AhB 匯入腳本（不顯示 token）。")')
+          p.write_text(s)
+          PY
+          mkdir -p "$GITHUB_WORKSPACE/dist/AhB/data/freebuff/gateway" "$GITHUB_WORKSPACE/dist/AhB/bin"
+          cp server.js worker.js package.json freebuff_tools/extract_freebuff.py             "$GITHUB_WORKSPACE/dist/AhB/data/freebuff/gateway/"
+          cp LICENSE "$GITHUB_WORKSPACE/dist/AhB/LICENSE.freebuff2api"
+          cat > "$GITHUB_WORKSPACE/dist/AhB/bin/freebuff2api" <<'SH'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+          export HOST=127.0.0.1 PORT=8402
+          exec node "$ROOT/data/freebuff/gateway/server.js"
+          SH
+          chmod +x "$GITHUB_WORKSPACE/dist/AhB/bin/freebuff2api"
+          node --check "$GITHUB_WORKSPACE/dist/AhB/data/freebuff/gateway/server.js"
+          node --check "$GITHUB_WORKSPACE/dist/AhB/data/freebuff/gateway/worker.js"
+          # Local-only contract test against the actual pinned Node source,
+          # with dummy credentials and ZERO real upstream inference requests.
+          smoke="$(mktemp -d)"
+          mkdir -p "$smoke/accounts"
+          printf '%s\n' '{"authToken":"FIXTURE-LOCAL-TEST-NOT-REAL-TOKEN"}' > "$smoke/accounts/test.json"
+          chmod 600 "$smoke/accounts/test.json"
+          PORT=18482 HOST=127.0.0.1 FREEBUFF_CREDENTIALS_DIR="$smoke/accounts" \
+            FREEBUFF_API_KEY="TEST-LOCAL-KEY" \
+            node "$GITHUB_WORKSPACE/dist/AhB/data/freebuff/gateway/server.js" >"$smoke/server.log" 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true; rm -rf "$smoke"' EXIT
+          ready=0
+          for i in $(seq 1 40); do
+            if curl -fsS --max-time 2 http://127.0.0.1:18482/healthz > "$smoke/health.json" 2>/dev/null; then ready=1; break; fi
+            sleep .25
+          done
+          if [ "$ready" != 1 ]; then
+            echo "Pinned FreeBuff Node gateway failed to start and respond on localhost" >&2
+            exit 1
+          fi
+          jq -e '.accounts == 1 and .unknown_accounts == 1' "$smoke/health.json"
+          unauth="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18482/v1/models)"
+          test "$unauth" = 401
+          kill "$pid"; wait "$pid" 2>/dev/null || true
+          trap - EXIT
+          rm -rf "$smoke"
+
+
+      - name: Build pinned Agent2API headless for native Linux
+        shell: bash
+        env:
+                    CARGO_PROFILE_RELEASE_LTO: "false"
+          CARGO_PROFILE_RELEASE_CODEGEN_UNITS: "8"
+          CARGO_BUILD_JOBS: "2"
+        run: |
+          set -euo pipefail
+          # Pinned Agent2API v2.9.8 upstream source (2026-10-08); built as Android headless.
+          AGENT_SHA="f82308a9549ee4760f27e393058c3482056ec514"
+          git init /tmp/agent2api
+          git -C /tmp/agent2api remote add origin https://github.com/aimod-cc/agent2api.git
+          git -C /tmp/agent2api fetch --depth 1 origin "$AGENT_SHA"
+          git -C /tmp/agent2api checkout --detach FETCH_HEAD
+          cd /tmp/agent2api/desktop-tauri/src-tauri
+          cargo build --locked --release \
+            --package agent2api-server --bin agent2api-server
+          cp ../../target/release/agent2api-server \
+            "$GITHUB_WORKSPACE/dist/AhB/bin/agent2api-server"
+          mkdir -p "$GITHUB_WORKSPACE/dist/AhB/data/agent2api"
+          cp -R ../ui "$GITHUB_WORKSPACE/dist/AhB/data/agent2api/ui"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.26.x"
+          cache: false
+
+      - name: Build optional lightweight GitHub Copilot bridge for native Linux
+        shell: bash
+        run: |
+          set -euo pipefail
+          COPILOT_SHA="a4aac95d4a8f430f02121f79ea36aeaaa06daea1"
+          rm -rf /tmp/copilot2api
+          git init /tmp/copilot2api
+          git -C /tmp/copilot2api remote add origin https://github.com/whtsky/copilot2api.git
+          git -C /tmp/copilot2api fetch --depth 1 origin "$COPILOT_SHA"
+          git -C /tmp/copilot2api checkout --detach FETCH_HEAD
+          cd /tmp/copilot2api
+          GOOS=linux GOARCH="$AHB_ARCH" CGO_ENABLED=1 \
+            go build -tags=netcgo -trimpath -ldflags="-s -w" \
+            -o "$GITHUB_WORKSPACE/dist/AhB/bin/copilot2api" .
+          cp LICENSE "$GITHUB_WORKSPACE/dist/AhB/LICENSE.copilot2api"
+
+      - name: Build pinned Grok2API for native Linux
+        shell: bash
+        run: |
+          set -euo pipefail
+          GROK_SHA="7c889a960e2638341b4dae9a5c81af0e0f38c87f"
+          rm -rf /tmp/grok2api
+          git init /tmp/grok2api
+          git -C /tmp/grok2api remote add origin https://github.com/chenyme/grok2api.git
+          git -C /tmp/grok2api fetch --depth 1 origin "$GROK_SHA"
+          git -C /tmp/grok2api checkout --detach FETCH_HEAD
+
+          cd /tmp/grok2api
+          corepack enable
+          corepack prepare pnpm@11.5.2 --activate
+          pnpm --dir frontend install --frozen-lockfile
+          pnpm --dir frontend build
+
+          cd backend
+          GOOS=linux GOARCH="$AHB_ARCH" CGO_ENABLED=1 \
+            go build -buildvcs=false -trimpath -ldflags="-s -w" \
+            -o "$GITHUB_WORKSPACE/dist/AhB/bin/grok2api" ./cmd/grok2api
+
+          mkdir -p "$GITHUB_WORKSPACE/dist/AhB/data/grok2api/frontend"
+          cp -R /tmp/grok2api/frontend/dist "$GITHUB_WORKSPACE/dist/AhB/data/grok2api/frontend/dist"
+          cp /tmp/grok2api/LICENSE "$GITHUB_WORKSPACE/dist/AhB/LICENSE.grok2api" || true
+
+      - name: Build pinned Kiro-Go for native Linux
+        shell: bash
+        run: |
+          set -euo pipefail
+          KIRO_SHA="f8f6071c9298a4266ad3e0c7e483d4a2510cbcaf"
+          rm -rf /tmp/kiro-go
+          git init /tmp/kiro-go
+          git -C /tmp/kiro-go remote add origin https://github.com/Quorinex/Kiro-Go.git
+          git -C /tmp/kiro-go fetch --depth 1 origin "$KIRO_SHA"
+          git -C /tmp/kiro-go checkout --detach FETCH_HEAD
+
+          cd /tmp/kiro-go
+          GOOS=linux GOARCH="$AHB_ARCH" CGO_ENABLED=1 \
+            go build -buildvcs=false -trimpath -ldflags="-s -w" \
+            -o "$GITHUB_WORKSPACE/dist/AhB/bin/kiro-go" .
+
+          mkdir -p "$GITHUB_WORKSPACE/dist/AhB/data/kiro-go"
+          cp -R /tmp/kiro-go/web "$GITHUB_WORKSPACE/dist/AhB/data/kiro-go/web"
+          cp /tmp/kiro-go/LICENSE "$GITHUB_WORKSPACE/dist/AhB/LICENSE.kiro-go" || true
+
+      - name: Build pinned DeepSeek2API for native Linux
+        shell: bash
+        run: |
+          set -euo pipefail
+          DS_SHA="7a0925fa9bd83e36838b4d3762c81292feb344c2"
+          rm -rf /tmp/deepseek2api
+          git init /tmp/deepseek2api
+          git -C /tmp/deepseek2api remote add origin https://github.com/zengtao227/Deepseek2API.git
+          git -C /tmp/deepseek2api fetch --depth 1 origin "$DS_SHA"
+          git -C /tmp/deepseek2api checkout --detach FETCH_HEAD
+
+          cd /tmp/deepseek2api
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("cmd/Deepseek2API/main.go")
+          s = p.read_text()
+          old = 'Addr:              "0.0.0.0:" + port,'
+          new = 'Addr:              "127.0.0.1:" + port,'
+          if old not in s:
+              raise SystemExit("expected Deepseek2API listen address not found")
+          p.write_text(s.replace(old, new, 1))
+          PY
+
+          npm ci --prefix webui
+          npm run build --prefix webui
+
+          GOOS=linux GOARCH="$AHB_ARCH" CGO_ENABLED=1 \
+            go build -trimpath -ldflags="-s -w" \
+            -o "$GITHUB_WORKSPACE/dist/AhB/bin/deepseek2api" ./cmd/Deepseek2API
+
+          mkdir -p "$GITHUB_WORKSPACE/dist/AhB/data/deepseek2api/static"
+          cp -R static/admin "$GITHUB_WORKSPACE/dist/AhB/data/deepseek2api/static/admin"
+          cp LICENSE "$GITHUB_WORKSPACE/dist/AhB/LICENSE.deepseek2api" || true
+
+      - name: Assemble native Linux bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/AhB/configs dist/AhB/scripts dist/AhB/data/opencode dist/AhB/data/freebuff dist/AhB/data/deepseek2api dist/AhB/data/grok2api/frontend dist/AhB/data/kiro-go dist/AhB/logs
+          cp configs/profiles/linux-512mb.json dist/AhB/config.example.json
+          cp configs/opencode2api.json configs/freebuff2api.json configs/deepseek2api.json configs/grok2api.yaml configs/kiro-go.json dist/AhB/configs/
+          cp scripts/run-linux.sh scripts/start-linux.sh scripts/stop-linux.sh scripts/install-prebuilt-linux.sh scripts/prepare-configs.sh dist/AhB/scripts/
+          cp configs/opencode2api.json dist/AhB/data/opencode/config.json
+          cp configs/freebuff2api.json dist/AhB/data/freebuff/config.json
+          cp configs/deepseek2api.json dist/AhB/data/deepseek2api/config.json
+          cp configs/grok2api.yaml dist/AhB/data/grok2api/config.yaml
+          cp configs/kiro-go.json dist/AhB/data/kiro-go/config.json
+          cp README.md dist/AhB/
+          cp -R docs dist/AhB/
+          chmod 700 dist/AhB/bin/*
+          chmod +x dist/AhB/scripts/*.sh
+          test "$(find dist/AhB/bin -maxdepth 1 -type f | wc -l)" -eq 8
+          jq -e '.resources.max_running_sidecars==1 and .resources.idle_stop_seconds==120 and (.providers|length)==7' dist/AhB/config.example.json
+          for bin in dist/AhB/bin/*; do
+            if [ "$(basename "$bin")" = freebuff2api ]; then continue; fi
+            file "$bin"
+            readelf -h "$bin" | grep -q 'ELF64'
+          done
+          tar -C dist -czf "AhB_linux_$AHB_ARCH.tar.gz" AhB
+          sha256sum "AhB_linux_$AHB_ARCH.tar.gz" > "AhB_linux_$AHB_ARCH.tar.gz.sha256"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AhB-linux-${{ matrix.arch }}
+          retention-days: 14
+          path: |
+            AhB_linux_*.tar.gz
+            AhB_linux_*.tar.gz.sha256
+
+  publish:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: linux
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: AhB-linux-*
+          merge-multiple: true
+          path: dist-release
+      - name: Publish immutable native Linux bundles
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd dist-release
+          sha256sum -c AhB_linux_amd64.tar.gz.sha256
+          sha256sum -c AhB_linux_arm64.tar.gz.sha256
+          tag="linux-$(echo "$GITHUB_SHA" | cut -c1-12)"
+          gh release create "$tag" AhB_linux_amd64.tar.gz AhB_linux_amd64.tar.gz.sha256 AhB_linux_arm64.tar.gz AhB_linux_arm64.tar.gz.sha256 \
+            --repo "$GITHUB_REPOSITORY" --title "AhB Linux AMD64/ARM64 — $tag" \
+            --notes "Native Linux AhB with separate 512 MiB defaults. Android Termux package published independently."
