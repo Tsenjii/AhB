@@ -92,10 +92,16 @@ type providerView struct {
 }
 
 func New(cfg config.Config) *Hub {
+	// A single-resident-provider VPS benefits from a smaller idle socket pool.
+	// Android's relaxed profile retains the original higher throughput.
+	maxIdle, maxHostIdle := 128, 32
+	if cfg.Resources.MaxRunningSidecars == 1 {
+		maxIdle, maxHostIdle = 16, 4
+	}
 	transport := &http.Transport{
 		Proxy:                 http.ProxyFromEnvironment,
-		MaxIdleConns:          128,
-		MaxIdleConnsPerHost:   32,
+		MaxIdleConns:          maxIdle,
+		MaxIdleConnsPerHost:   maxHostIdle,
 		IdleConnTimeout:       90 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ResponseHeaderTimeout: 0,
