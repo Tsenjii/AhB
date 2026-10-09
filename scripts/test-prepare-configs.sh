@@ -99,7 +99,7 @@ printf 'OLD_COOKIE_DO_NOT_CONVERT\n' > "$LEGACY/data/freebuff/tokens.json"
       and .binary == "./bin/freebuff2api"
       and .ui_url == "" and .env.FREEBUFF_CREDENTIALS_DIR == "./credentials"
       and (.headers.Authorization | startswith("Bearer "))))
-    and (any(.providers[]; .id == "copilot" and .enabled == false))
+    and (any(.providers[]; .id == "copilot" and .enabled == true and .start_mode == "on_demand"))
     and (any(.providers[]; .id == "grok" and .enabled == true))
     and (any(.providers[]; .id == "kiro" and .enabled == true))
   ' config.json >/dev/null
