@@ -28,6 +28,7 @@ type Hub struct {
 	cfg       config.Config
 	providers map[string]*runtimeProvider
 	client    *http.Client
+	modelCache *modelCatalogCache
 	balance   fallbackBalancer
 	runWG     sync.WaitGroup
 	controlToken string
@@ -114,6 +115,7 @@ func New(cfg config.Config) *Hub {
 		cfg:       cfg,
 		providers: make(map[string]*runtimeProvider),
 		client:    &http.Client{Transport: transport},
+		modelCache: newModelCatalogCache(),
 	}
 	// Ephemeral page-bound CSRF token. Never persist or log the token.
 	var nonce [32]byte
@@ -491,7 +493,15 @@ func (h *Hub) handleModels(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		if h.onDemand(p) && p.snapshot().PID == 0 {
-			result.Warnings[id] = "sleeping in 512 MB mode; wake from dashboard or send provider/model request"
+			// Surface only previously verified, time-bounded metadata. A cached
+			// entry never establishes current account/quota or process readiness.
+			cached, lastSeen := h.modelCache.sleeping(id)
+			if len(cached) > 0 {
+				result.Data = append(result.Data, cached...)
+				result.Warnings[id] = "sleeping; cached models last discovered " + lastSeen.UTC().Format(time.RFC3339) + "; inference must revalidate"
+			} else {
+				result.Warnings[id] = "sleeping; no recent model catalog (wake from dashboard or send provider/model request)"
+			}
 			continue
 		}
 		if !providerUsableForRouting(id, p.cfg.Kind, p.snapshot(), p.accounts.snapshot()) {
@@ -530,6 +540,9 @@ func (h *Hub) handleModels(w http.ResponseWriter, r *http.Request) {
 	})
 	available := make(map[string]struct{}, len(result.Data))
 	for _, model := range result.Data {
+		// Cached entries are discoverable for direct routing, but must not
+		// falsely advertise a live virtual route alias.
+		if cached, _ := model["x_cached"].(bool); cached { continue }
 		if id, _ := model["id"].(string); id != "" {
 			available[id] = struct{}{}
 		}
@@ -609,6 +622,9 @@ func (h *Hub) fetchModels(ctx context.Context, cfg config.ProviderConfig) ([]map
 		copyModel["x_provider_name"] = cfg.DisplayName
 		copyModel["x_upstream_id"] = upstreamID
 		out = append(out, copyModel)
+	}
+	if p := h.providers[cfg.ID]; p != nil && h.onDemand(p) {
+		h.modelCache.record(cfg, out)
 	}
 	return out, nil
 }
