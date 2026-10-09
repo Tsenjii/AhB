@@ -1,0 +1,215 @@
+{
+  "listen": "127.0.0.1:8317",
+  "allow_lan": false,
+  "providers": [
+    {
+      "id": "opencode",
+      "display_name": "OpenCode Free",
+      "description": "OpenCode Zen / Zen Go gateway",
+      "enabled": true,
+      "kind": "sidecar",
+      "base_url": "http://127.0.0.1:8401",
+      "ui_url": "http://127.0.0.1:8404/",
+      "docs_url": "https://github.com/jasonxu114514/opencode2api",
+      "binary": "./bin/opencode2api",
+      "args": [
+        "-config",
+        "config.json"
+      ],
+      "work_dir": "./data/opencode",
+      "env": {
+        "GODEBUG": "netdns=cgo"
+      },
+      "headers": {
+        "Authorization": "Bearer __AIHUB_SERVER_KEY__"
+      },
+      "health_path": "/healthz",
+      "models_path": "/v1/models",
+      "max_restarts": 3,
+      "startup_timeout_seconds": 60,
+      "start_mode": "on_demand"
+    },
+    {
+      "id": "freebuff",
+      "display_name": "FreeBuff",
+      "description": "Freebuff local Node.js bearer/CLI bridge (yutian81), requires explicit authorized device login",
+      "enabled": true,
+      "kind": "sidecar",
+      "base_url": "http://127.0.0.1:8402",
+      "ui_url": "",
+      "docs_url": "https://github.com/yutian81/freebuff2api",
+      "binary": "./bin/freebuff2api",
+      "work_dir": "./data/freebuff",
+      "env": {
+        "HOST": "127.0.0.1",
+        "PORT": "8402",
+        "FREEBUFF_CREDENTIALS_DIR": "./credentials",
+        "FREEBUFF_API_KEY": "__AIHUB_SERVER_KEY__",
+        "FREEBUFF_DEBUG": "false"
+      },
+      "health_path": "/healthz",
+      "models_path": "/v1/models",
+      "max_restarts": 3,
+      "headers": {
+        "Authorization": "Bearer __AIHUB_SERVER_KEY__"
+      },
+      "startup_timeout_seconds": 60,
+      "start_mode": "on_demand"
+    },
+    {
+      "id": "agent2api",
+      "display_name": "Agent2API",
+      "description": "WorkBuddy CN/Intl / KukuAI / CodeArts / Qoder / Cline / Trae / Loomy and more",
+      "enabled": true,
+      "kind": "sidecar",
+      "base_url": "http://127.0.0.1:8403",
+      "ui_url": "http://127.0.0.1:8403/",
+      "docs_url": "https://github.com/aimod-cc/agent2api",
+      "binary": "./bin/agent2api-server",
+      "work_dir": "./data/agent2api",
+      "env": {
+        "AGENT2API_HOST": "127.0.0.1",
+        "AGENT2API_PROXY_PORT": "8403",
+        "AGENT2API_PROXY_HOME": ".",
+        "AGENT2API_UI_DIR": "./ui",
+        "AGENT2API_ALLOW_NO_KEY": "1"
+      },
+      "health_path": "/health",
+      "models_path": "/v1/models",
+      "max_restarts": 3,
+      "startup_timeout_seconds": 60,
+      "start_mode": "on_demand"
+    },
+    {
+      "id": "deepseek",
+      "display_name": "DeepSeek Web",
+      "description": "DeepSeek Web multi-account gateway via Deepseek2API",
+      "enabled": true,
+      "kind": "sidecar",
+      "base_url": "http://127.0.0.1:8405",
+      "ui_url": "http://127.0.0.1:8405/admin",
+      "docs_url": "https://github.com/zengtao227/Deepseek2API",
+      "binary": "./bin/deepseek2api",
+      "work_dir": "./data/deepseek2api",
+      "env": {
+        "PORT": "8405",
+        "Deepseek2API_CONFIG_PATH": "config.json",
+        "Deepseek2API_STATIC_ADMIN_DIR": "static/admin",
+        "Deepseek2API_ADMIN_KEY": "__AIHUB_DEEPSEEK_ADMIN_KEY__",
+        "GODEBUG": "netdns=cgo",
+        "NO_PROXY": "127.0.0.1,localhost"
+      },
+      "headers": {
+        "Authorization": "Bearer __AIHUB_SERVER_KEY__"
+      },
+      "health_path": "/healthz",
+      "models_path": "/v1/models",
+      "max_restarts": 3,
+      "startup_timeout_seconds": 60,
+      "start_mode": "on_demand"
+    },
+    {
+      "id": "grok",
+      "display_name": "Grok",
+      "description": "Grok Build / Web / Console multi-account gateway via Grok2API",
+      "enabled": true,
+      "kind": "sidecar",
+      "base_url": "http://127.0.0.1:8407",
+      "ui_url": "http://127.0.0.1:8407/",
+      "docs_url": "https://github.com/chenyme/grok2api",
+      "binary": "./bin/grok2api",
+      "args": [
+        "--config",
+        "config.yaml",
+        "--listen",
+        "127.0.0.1:8407"
+      ],
+      "work_dir": "./data/grok2api",
+      "headers": {
+        "Authorization": "Bearer __AIHUB_GROK_CLIENT_KEY__"
+      },
+      "health_path": "/readyz",
+      "models_path": "/v1/models",
+      "max_restarts": 3,
+      "startup_timeout_seconds": 90,
+      "env": {
+        "GODEBUG": "netdns=cgo"
+      },
+      "start_mode": "on_demand"
+    },
+    {
+      "id": "kiro",
+      "display_name": "Kiro",
+      "description": "Kiro multi-account gateway via Kiro-Go",
+      "enabled": true,
+      "kind": "sidecar",
+      "base_url": "http://127.0.0.1:8408",
+      "ui_url": "http://127.0.0.1:8408/admin",
+      "docs_url": "https://github.com/Quorinex/Kiro-Go",
+      "binary": "./bin/kiro-go",
+      "work_dir": "./data/kiro-go",
+      "env": {
+        "CONFIG_PATH": "config.json",
+        "ADMIN_PASSWORD": "__AIHUB_KIRO_ADMIN_PASSWORD__",
+        "GODEBUG": "netdns=cgo"
+      },
+      "headers": {
+        "Authorization": "Bearer __AIHUB_SERVER_KEY__"
+      },
+      "health_path": "/health",
+      "models_path": "/v1/models",
+      "max_restarts": 3,
+      "startup_timeout_seconds": 60,
+      "start_mode": "on_demand"
+    },
+    {
+      "id": "copilot",
+      "display_name": "GitHub Copilot (optional)",
+      "description": "Optional lightweight single-account Copilot OAuth gateway. Quota eligibility must be checked separately.",
+      "enabled": true,
+      "kind": "sidecar",
+      "base_url": "http://127.0.0.1:8410",
+      "ui_url": "",
+      "docs_url": "https://github.com/whtsky/copilot2api",
+      "binary": "./bin/copilot2api",
+      "args": [
+        "-host",
+        "127.0.0.1",
+        "-port",
+        "8410",
+        "-token-dir",
+        "."
+      ],
+      "work_dir": "./data/copilot2api",
+      "env": {
+        "GODEBUG": "netdns=cgo"
+      },
+      "health_path": "/v1/models",
+      "models_path": "/v1/models",
+      "max_restarts": 3,
+      "startup_timeout_seconds": 90,
+      "start_mode": "on_demand"
+    }
+  ],
+  "routes": [],
+  "routing": {
+    "route_aliases_enabled": false,
+    "same_model_fallback": {
+      "enabled": false,
+      "mode": "balanced",
+      "providers": [
+        "opencode",
+        "agent2api",
+        "freebuff",
+        "deepseek",
+        "grok",
+        "kiro",
+        "copilot"
+      ]
+    }
+  },
+  "resources": {
+    "max_running_sidecars": 1,
+    "idle_stop_seconds": 120
+  }
+}
