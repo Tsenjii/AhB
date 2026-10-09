@@ -218,6 +218,25 @@ func (h *Hub) wakeProvider(w http.ResponseWriter,r *http.Request) {
  defer cancel()
  release,err:=h.acquireOnDemand(ctx,p)
  if err!=nil {http.Error(w,"Unable to start provider: "+err.Error(),http.StatusServiceUnavailable);return}
- release()
- writeJSON(w,http.StatusOK,map[string]string{"status":"started","id":id,"message":"Provider running. It may require account login before model access."})
+ defer release()
+ // A dashboard wake is an explicit request to load the model catalog, not
+ // just start the process. This uses the safe metadata endpoint only (no
+ // chat, no session creation) and holds the process lease until it finishes.
+ result:=map[string]any{"status":"started","id":id,"model_discovery":"unavailable","model_count":0}
+ if !providerUsableForRouting(p.cfg.ID,p.cfg.Kind,p.snapshot(),p.accounts.snapshot()) {
+  result["message"]="Provider running but has no confirmed account/readiness. Log in with its original management UI."
+ } else {
+  modelsCtx,modelsCancel:=context.WithTimeout(r.Context(),8*time.Second)
+  models,modelsErr:=h.fetchModels(modelsCtx,p.cfg)
+  modelsCancel()
+  if modelsErr!=nil {
+   result["model_discovery"]="failed"
+   result["message"]="Provider running; model discovery failed. Existing metadata cache, if any, remains marked unverified."
+  } else {
+   result["model_discovery"]="ok"
+   result["model_count"]=len(models)
+   result["message"]="Model metadata discovered; availability/quota must still be verified by inference."
+  }
+ }
+ writeJSON(w,http.StatusOK,result)
 }
