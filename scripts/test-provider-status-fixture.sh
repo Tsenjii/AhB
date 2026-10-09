@@ -24,8 +24,8 @@ cat >"$tmp/providers.json" <<'JSON'
  {"id":"opencode","enabled":true,"state":"HEALTHY","provider_ready":true,"last_request_http_status":200,"account_total":null},
  {"id":"agent2api","enabled":true,"state":"HEALTHY","provider_ready":true,"account_total":2,"account_usable_count":2,"last_request_http_status":503,"private_key":"MUST_NOT_LEAK"},
  {"id":"freebuff","enabled":false,"state":"DISABLED","provider_ready":false,"account_total":null},
- {"id":"geminiweb","enabled":true,"state":"HEALTHY","provider_ready":false,"account_total":1,"account_usable_count":0,"last_request_http_status":429},
- {"id":"duckai","enabled":true,"state":"HEALTHY","provider_ready":true,"account_total":null,"last_request_http_status":200}
+ {"id":"geminiweb","enabled":true,"start_mode":"on_demand","process_alive":true,"state":"HEALTHY","provider_ready":false,"account_total":1,"account_usable_count":0,"last_request_http_status":429},
+ {"id":"duckai","enabled":true,"start_mode":"on_demand","process_alive":false,"state":"HEALTHY","provider_ready":true,"account_total":null,"last_request_http_status":200}
 ]}
 JSON
 cat >"$tmp/models.json" <<'JSON'
@@ -38,6 +38,7 @@ grep -q 'freebuff.*OFF' "$tmp/output"
 grep -q 'grok.*MISSING' "$tmp/output"
 grep -q 'geminiweb.*429' "$tmp/output"
 grep -q 'duckai.*200' "$tmp/output"
-grep -q 'duckai.*1.*200' "$tmp/output"
+grep -q 'geminiweb.*1.*429' "$tmp/output"
+grep -q 'duckai.*SLEEP.*200' "$tmp/output"
 ! grep -q 'MUST_NOT_LEAK' "$tmp/output"
 echo "provider inventory fixture passed; nine bundled sources including Gemini Web and Duck.ai"
