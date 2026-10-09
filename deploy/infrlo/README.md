@@ -1,5 +1,22 @@
 # AhB — Infrlo 512 MiB cloud trial
 
+## Alternative: editable Build Command + Run Command (Infrlo Step 3)
+
+The signed-in Infrlo interface may show **only two editable commands**, not a Dockerfile selector. In that case, on `main` after PR merge (or use branch `deploy/infrlo-custom-commands` for preview):
+
+- **Build Command:** `python3 deploy/infrlo/install-command.py`
+- **Run Command:** `python3 deploy/infrlo/run-command.py`
+- Repository: `https://github.com/Tsenjii/AhB`; branch as chosen.
+
+The Build Command uses only Python's standard library to download and SHA-256 verify the existing native Linux AMD64/ARM64 release. It uses **neither pip requirements nor the Dockerfile**. The Run Command publishes a small **Python-only authenticated** listener on the platform-provided `PORT` (default 8080), with the original Go Hub and OpenCode on localhost. This **proof of concept enables OpenCode only**; the other eight installed providers remain disabled. No Node.js is needed for this smoke test.
+
+To activate external API use, configure `AHB_PUBLIC_TOKEN` as a **private** environment variable containing at least 32 random characters, using an Infrlo application secret/settings page if offered, then restart. `AHB_PUBLIC_USER` defaults to `ahb`. Never put an API secret in the Build/Run Command, repo URL, Git commit, public chat, or screenshot. **Until the secret exists, the app is deliberately locked:** `GET /healthz` responds `{"status":"setup_required"}` and all other API requests return 503. If Infrlo provides no private variable support, use this only to test that an app can be started; do not expose upstream accounts.
+
+This source-host path is experimental and still depends on Infrlo's **actual** OS, GitHub release download access, runtime persistence, and the port it forwards. It needs glibc compatible with the published Ubuntu 24.04 native Linux release. A GitHub CI success on Ubuntu cannot guarantee Infrlo's runtime, disk limits, or idle/ephemeral storage support. Avoid importing credentials until those facts are verified.
+
+---
+
+
 The publicly advertised free allocation is 512 MB RAM and 2 GB storage. We could not inspect the authenticated /create/app screen: **use these instructions only if it supports GitHub + Dockerfile builds and an HTTPS public domain**.
 
 ## App settings
