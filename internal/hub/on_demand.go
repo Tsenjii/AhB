@@ -58,14 +58,7 @@ func (h *Hub) demandIdle() time.Duration {
  return time.Duration(n)*time.Second
 }
 
-func (h *Hub) stopDemand(p *runtimeProvider, done chan struct{}, cancel context.CancelFunc) {
- cancel()
- select {
- case <-done:
- case <-time.After(6*time.Second):
-  // Never start a second process while the original is still stopping.
-  return
- }
+func (h *Hub) finishDemand(p *runtimeProvider, done chan struct{}) {
  h.demandMu.Lock()
  if p.demand!=nil && p.demand.done==done {
   p.demand.running=false
@@ -75,6 +68,22 @@ func (h *Hub) stopDemand(p *runtimeProvider, done chan struct{}, cancel context.
   p.demand.users=0
  }
  h.demandMu.Unlock()
+}
+
+func (h *Hub) stopDemand(p *runtimeProvider, done chan struct{}, cancel context.CancelFunc) {
+ cancel()
+ select {
+ case <-done:
+  h.finishDemand(p,done)
+ case <-time.After(6*time.Second):
+  // Keep the old process counted until it really exits. If stopping takes
+  // longer than six seconds, eventually clear its closing state instead of
+  // leaving this provider permanently unavailable until a full Hub restart.
+  go func() {
+   <-done
+   h.finishDemand(p,done)
+  }()
+ }
 }
 
 func (h *Hub) acquireOnDemand(ctx context.Context, p *runtimeProvider) (func(),error) {
