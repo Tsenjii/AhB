@@ -98,7 +98,7 @@ func TestLiveDiscoveryCachesOnlyAfterRealModelResponse(t *testing.T) {
     if _,err:=exec.LookPath("sleep");err!=nil{t.Skip("requires sleep")}
     modelsSource:=httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
         switch r.URL.Path {
-        case "/healthz": w.WriteHeader(http.StatusOK)
+        case "/healthz": _,_ = w.Write([]byte(`{"keys":{"anonymous":true,"total":0}}`))
         case "/v1/models":
             _=json.NewEncoder(w).Encode(map[string]any{"data":[]any{
                 map[string]any{"id":"meta/muse","object":"model","context_window":12345},
