@@ -6,7 +6,7 @@ trap 'rm -rf "$TMP"' EXIT
 mkdir -p "$TMP/AhB/scripts" "$TMP/AhB/configs" "$TMP/AhB/data/grok2api/data"
 cp "$ROOT/scripts/prepare-configs.sh" "$TMP/AhB/scripts/"
 cp "$ROOT/config.example.json" "$TMP/AhB/"
-cp "$ROOT/configs/"* "$TMP/AhB/configs/"
+cp "$ROOT/configs/"*.json "$ROOT/configs/"*.yaml "$TMP/AhB/configs/"
 cat > "$TMP/AhB/config.json" <<'JSON'
 {
   "listen":"127.0.0.1:8317",
@@ -57,7 +57,7 @@ LEGACY="$TMP/legacy/AhB"
 mkdir -p "$LEGACY/scripts" "$LEGACY/configs" "$LEGACY/data/opencode" "$LEGACY/data/freebuff"
 cp "$ROOT/scripts/prepare-configs.sh" "$LEGACY/scripts/"
 cp "$ROOT/config.example.json" "$LEGACY/"
-cp "$ROOT/configs/"* "$LEGACY/configs/"
+cp "$ROOT/configs/"*.json "$ROOT/configs/"*.yaml "$LEGACY/configs/"
 cat > "$LEGACY/config.json" <<'JSON'
 {
   "listen": "127.0.0.1:8317",
