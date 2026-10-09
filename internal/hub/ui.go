@@ -445,7 +445,9 @@ async function loadNativeConsoles(){
    const actions=document.createElement('div');actions.className='console-actions';
    const safeURL=nativeConsoleURL(item.url);
    const visit=document.createElement('a');visit.className='btn';visit.textContent='開啟原生 UI';
-   if(safeURL){
+   // Docker/remote clients have their *own* 127.0.0.1, not the container's
+   // private Gateway ports. Never link to a misleading or unrelated service.
+   if(safeURL&&ahbProviderControlAvailable){
     visit.href=safeURL;visit.target='_blank';visit.rel='noopener noreferrer';
     // Open the tab while the tap gesture is still active. On-demand
     // Gateways sleep by default, so opening their native UI must first wake
