@@ -126,3 +126,36 @@ func TestFreebuffDashboardRejectsUnsafeUpstreamURLAndKeepsOldFiles(t *testing.T)
  }
  if countFreebuffCredentials(root)!=0{t.Fatal("rejected URL wrote credentials")}
 }
+
+
+func TestFreebuffCancelNeverTurnsLateAuthorizationIntoSavedCredential(t *testing.T) {
+ root:=t.TempDir()
+ ctx,cancel:=context.WithCancel(context.Background())
+ session:=&freebuffLoginSession{state:"waiting",link:"https://www.codebuff.com/auth/cli?auth_code=temp",cancel:cancel}
+ session.stop()
+ // A response might have been received immediately before cancellation.
+ // It must not create credentials or turn the UI back to done.
+ session.commitToken(ctx,root,"late-valid-bearer-token-from-upstream")
+ session.set("done","","late network response")
+ snapshot:=session.view(countFreebuffCredentials(root))
+ if snapshot["state"]!="cancelled"||snapshot["url"]!=""{
+  t.Fatalf("late callback changed cancelled OAuth state: %+v",snapshot)
+ }
+ if countFreebuffCredentials(root)!=0 {
+  t.Fatal("cancelled OAuth wrote credentials")
+ }
+ session.stop() // idempotent
+ if session.view(0)["state"]!="cancelled" {t.Fatal("second cancel changed terminal status")}
+}
+func TestFreebuffSuccessfulLoginCannotBeCancelledAfterPrivateCommit(t *testing.T) {
+ root:=t.TempDir()
+ ctx,cancel:=context.WithCancel(context.Background())
+ defer cancel()
+ session:=&freebuffLoginSession{state:"waiting",cancel:cancel}
+ session.commitToken(ctx,root,"authorized-client-token-xyz-01234567")
+ session.stop()
+ if session.view(countFreebuffCredentials(root))["state"]!="done"{
+  t.Fatal("cancelled a completed and persisted authorization")
+ }
+ if countFreebuffCredentials(root)!=1{t.Fatal("completed authorization was not persisted")}
+}
