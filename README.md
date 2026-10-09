@@ -23,7 +23,8 @@ providers consume no child-process RSS, and switching to a sleeping backend
 can release an idle sidecar. Long-running SSE requests hold an active lease.
 
 **Bundled:** OpenCode2API (Go), FreeBuff2API (Node), Agent2API (Rust),
-DeepSeek2API (Go), Grok2API (Go), Kiro-Go (Go), Copilot2API (Go).
+DeepSeek2API (Go), Grok2API (Go), Kiro-Go (Go), Copilot2API (Go),
+Gemini Web2API (Go), DuckDuckGo AI2API (Go).
 Each requires its own legitimate account/authorization and may have
 different quota and model capabilities.
 
@@ -63,7 +64,9 @@ lmarena/<model>
 windsurf/<model>
 qwen/<model>
 kimi/<model>
-gemini/<model>
+geminiweb/<model>
+duckai/<model>
+gemini/<model> # only if attached externally
 claude/<model>
 <custom-id>/<model> # only after connecting that local bridge
 ```
