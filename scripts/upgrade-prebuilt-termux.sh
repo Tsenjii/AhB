@@ -93,6 +93,35 @@ echo "Stopping AhB before taking a consistent account/database snapshot..."
 # are cleanly stopped before account databases are copied.
 bash "$DEST/scripts/stop-termux.sh"
 
+# Old stop helpers sometimes checked only hubd.pid; foreground processes
+# could continue running after the helper returned success. Check TCP listeners
+# before copying any account/SQLite data. External bridges are excluded.
+mapfile -t stop_ports < <(
+  jq -r '
+    [(.listen // "127.0.0.1:8317"),
+     (.providers[]? | select(.enabled == true and .kind == "sidecar") | .base_url // empty),
+     "127.0.0.1:8404"] | .[] | strings
+    | (capture(":(?<port>[0-9]+)(/|$)")? | .port)
+  ' "$DEST/config.json" | sort -nu
+)
+still_bound=""
+for attempt in 1 2 3 4 5; do
+  still_bound=""
+  for port in "${stop_ports[@]}"; do
+    if (exec 3<>"/dev/tcp/127.0.0.1/$port") 2>/dev/null; then
+      still_bound="$still_bound $port"
+    fi
+  done
+  [ -z "$still_bound" ] && break
+  sleep 1
+done
+if [ -n "$still_bound" ]; then
+  echo "ERROR: old AhB listeners still active on local port(s):$still_bound" >&2
+  echo "No account data was copied, moved or replaced." >&2
+  echo "Stop foreground AhB sessions before retrying." >&2
+  exit 1
+fi
+
 # Only after the sidecars stop is it safe to copy on-disk account databases.
 # The full original install is retained unchanged for rollback.
 cp -a "$DEST/data/." "$NEW/data/"
