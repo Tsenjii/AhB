@@ -44,7 +44,14 @@ for id in opencode freebuff agent2api deepseek grok kiro copilot geminiweb ducka
   last="$(jq -r 'if .last_request_transport_error then "NETWORK" elif (.last_request_http_status // 0) > 0 then (.last_request_http_status|tostring) else "NOT_TESTED" end' <<< "$status")"
   count="UNKNOWN"
   if [ "$models_known" = true ]; then
-    count="$(jq -r --arg id "$id" '[.data[] | select(.x_provider == $id)] | length' "$tmp/models")"
+    # Model discovery deliberately skips sleeping on-demand processes. Zero
+    # advertised entries while asleep is NOT evidence the models were removed.
+    sleeping="$(jq -r '(.start_mode == "on_demand") and (.process_alive != true)' <<< "$status")"
+    if [ "$enabled" = "YES" ] && [ "$sleeping" = "true" ]; then
+      count="SLEEP"
+    else
+      count="$(jq -r --arg id "$id" '[.data[] | select(.x_provider == $id)] | length' "$tmp/models")"
+    fi
   fi
   printf '%-11s %-8s %-10s %-9s %-10s %-8s %-10s\n' "$id" "$enabled" "$state" "$ready" "$accounts" "$count" "$last"
 done
