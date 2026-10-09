@@ -262,6 +262,7 @@ func (h *Hub) providerViews() []providerView {
 			Enabled:     p.cfg.Enabled,
 			Kind:        p.cfg.Kind,
 			StartMode: p.cfg.StartMode,
+			ProxyConfigured: p.cfg.ProxyURL != "",
 			UIURL:       p.cfg.UIURL,
 			DocsURL:     p.cfg.DocsURL,
 			State:       provider.StateDisabled,
