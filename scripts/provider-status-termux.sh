@@ -48,7 +48,10 @@ for id in opencode freebuff agent2api deepseek grok kiro copilot geminiweb ducka
     # advertised entries while asleep is NOT evidence the models were removed.
     sleeping="$(jq -r '(.start_mode == "on_demand") and (.process_alive != true)' <<< "$status")"
     if [ "$enabled" = "YES" ] && [ "$sleeping" = "true" ]; then
-      count="SLEEP"
+      # On-demand discovery is optionally cached; annotate it instead of
+      # claiming the sleeping process has a live catalog or zero models.
+      cached="$(jq -r --arg id "$id" '[.data[] | select(.x_provider == $id and .x_cached == true)] | length' "$tmp/models")"
+      if [ "$cached" -gt 0 ]; then count="CACHE:$cached"; else count="SLEEP"; fi
     else
       count="$(jq -r --arg id "$id" '[.data[] | select(.x_provider == $id)] | length' "$tmp/models")"
     fi
