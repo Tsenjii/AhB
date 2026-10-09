@@ -95,4 +95,21 @@ if bash "$ROOT/scripts/upgrade-prebuilt-termux.sh" > "$TMP/failed.txt" 2>&1; the
 fi
 test ! -e "$AIHUB_TEST_STOP_MARKER"
 test "$(cat "$OLD/data/opencode/account.txt")" = "secret account state"
+# A pre-AhB or damaged install with no stop helper must abort safely,
+# rather than copying account DBs from possibly still-running processes.
+(
+  cd "$TMP/assets"
+  sha256sum AhB_android_arm64.tar.gz > AhB_android_arm64.tar.gz.sha256
+)
+mv "$OLD/scripts/stop-termux.sh" "$OLD/scripts/stop-termux.sh.temporarily-missing"
+rm -f "$AIHUB_TEST_STOP_MARKER"
+if bash "$ROOT/scripts/upgrade-prebuilt-termux.sh" > "$TMP/missing-stop.txt" 2>&1; then
+  echo "expected unrecognized old layout to fail before replacing original data" >&2
+  exit 1
+fi
+test ! -e "$AIHUB_TEST_STOP_MARKER"
+test -f "$OLD/config.json"
+test "$(cat "$OLD/data/opencode/account.txt")" = "secret account state"
+mv "$OLD/scripts/stop-termux.sh.temporarily-missing" "$OLD/scripts/stop-termux.sh"
+
 echo "upgrade-prebuilt fixture tests passed"
