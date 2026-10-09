@@ -2,7 +2,7 @@
 
 A lightweight Android/Termux AI gateway that supervises mature provider adapters and exposes one local API.
 
-## Actual Android ARM64 package (512 MiB-ready development mode)
+## Two maintained editions: Android Termux and Linux VPS
 
 **Only seven** provider adapters are bundled with the Android prebuilt:
 [OpenCode2API](https://github.com/jasonxu114514/opencode2api) (Go),
@@ -35,7 +35,7 @@ adapters are necessary. DeepSeek's older upstream is discontinued; a more
 recent Rust replacement is being evaluated separately. Do not move accounts
 or change backends without real authorized-inference tests.
 
-See [512 MiB deployment notes](docs/512MB-DEPLOYMENT.md). This branch is
+See [512 MiB Linux deployment notes](docs/512MB-DEPLOYMENT.md). This branch is
 not a published release until CI, Android compilation and device tests pass.
 
 ## Unified API
