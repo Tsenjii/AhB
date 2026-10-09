@@ -41,8 +41,18 @@ func (j *copilotLoginSession) update(state,url,code,detail string) {
  if detail!="" {j.Detail=detail}
 }
 func copilotHasLocalCredentials(root string) bool {
- f,err:=os.Stat(filepath.Join(root,"data","copilot2api","credentials.json"))
- return err==nil && f.Mode().IsRegular() && f.Size()>0
+ path:=filepath.Join(root,"data","copilot2api","credentials.json")
+ st,err:=os.Lstat(path)
+ if err!=nil||!st.Mode().IsRegular() {return false}
+ raw,err:=os.ReadFile(path)
+ if err!=nil||len(raw)>256*1024 {return false}
+ var doc map[string]json.RawMessage
+ if json.Unmarshal(raw,&doc)!=nil{return false}
+ var githubToken string
+ if json.Unmarshal(doc["github_token"],&githubToken)!=nil{return false}
+ // Nonempty valid-format field only; actual upstream entitlement is checked
+ // by Copilot at startup and by a real model request.
+ return len(strings.TrimSpace(githubToken))>12
 }
 
 func (h *Hub) handleCopilotLogin(w http.ResponseWriter,r *http.Request) {
