@@ -673,7 +673,23 @@ document.getElementById('copyBridge').addEventListener('click',async function(){
 });
 updateBridgeCommand();
 document.getElementById('baseUrl').textContent=location.origin+'/v1';
-refresh();setInterval(refresh,10000);
+refresh();
+// Refresh RAM separately: avoid re-probing all upstream model lists merely
+// to update the memory gauge on a 512 MiB VPS.
+setInterval(()=>{
+ if(document.visibilityState==='hidden')return;
+ getJSON('/api/runtime').then(r=>{
+  const total=r.system_total_bytes||0,used=r.system_used_bytes||0;
+  const pct=total?Math.min(100,Math.round(used/total*100)):0;
+  document.getElementById('systemRamSummary').textContent=total?'RAM '+pct+'% 已使用':'系統 RAM 尚無可用數據';
+  document.getElementById('systemRamValue').textContent=total?fmtBytes(used)+' / '+fmtBytes(total):'未取得';
+  document.getElementById('availableRamValue').textContent=total?fmtBytes(r.system_available_bytes||0):'未取得';
+  document.getElementById('ahbRamValue').textContent=fmtBytes(r.ahb_rss_bytes);
+  document.getElementById('ramMeter').style.width=pct+'%';
+  document.getElementById('runtime').textContent='AhB RSS '+fmtBytes(r.ahb_rss_bytes)+' · 按需 '+(r.running_on_demand??0)+'/'+(r.max_running_sidecars||1)+' · '+(r.goos||'?')+'/'+(r.goarch||'?');
+ }).catch(()=>{});
+},5000);
+setInterval(()=>{if(document.visibilityState!=='hidden')refresh()},30000);
 </script>
 </body>
 </html>`
