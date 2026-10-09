@@ -13,6 +13,15 @@ on:
       - "configs/**"
       - "scripts/**"
       - ".github/workflows/build-android-arm64.yml"
+  pull_request:
+    paths:
+      - "go.mod"
+      - "cmd/**"
+      - "internal/**"
+      - "config.example.json"
+      - "configs/**"
+      - "scripts/**"
+      - ".github/workflows/build-android-arm64.yml"
 
 permissions:
   contents: write
@@ -354,6 +363,7 @@ jobs:
             AhB_android_arm64_binaries.sha256
 
       - name: Publish public prebuilt branch
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: bash
         run: |
           set -euo pipefail
