@@ -209,7 +209,7 @@
     }
   },
   "resources": {
-    "max_running_sidecars": 1,
-    "idle_stop_seconds": 120
+    "max_running_sidecars": 3,
+    "idle_stop_seconds": 900
   }
 }
