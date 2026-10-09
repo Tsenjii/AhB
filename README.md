@@ -2,24 +2,41 @@
 
 A lightweight Android/Termux AI gateway that supervises mature provider adapters and exposes one local API.
 
-## What V1 does
+## Actual Android ARM64 package (512 MiB-ready development mode)
 
-Default providers:
+**Only seven** provider adapters are bundled with the Android prebuilt:
+[OpenCode2API](https://github.com/jasonxu114514/opencode2api) (Go),
+[FreeBuff2API](https://github.com/yutian81/freebuff2api) (Node),
+[Agent2API](https://github.com/aimod-cc/agent2api) (Rust),
+[DeepSeek2API](https://github.com/zengtao227/Deepseek2API) (Go),
+[Grok2API](https://github.com/chenyme/grok2api) (Go),
+[Kiro-Go](https://github.com/Quorinex/Kiro-Go) (Go), and
+[Copilot2API](https://github.com/whtsky/copilot2api) (Go).
 
-- **OpenCode Free** via `opencode2api v1.3.7`
-- **FreeBuff** via `Freebuff2API v0.10.3`
+**Fresh installations:** all seven are `enabled=true` but start **on demand**
+and stop after 120 seconds idle. The one-process default limits memory
+pressure on a 512 MiB host. A long-running response holds its provider alive,
+and another backend is not started until an idle one can stop. Sleeping
+providers do not populate `/v1/models` until explicitly woken by their
+dashboard card; clients with known `provider/model` IDs wake the backend
+when sending an inference request. This is a process-count limit, not an
+exact 512 MiB RSS guarantee. Existing user settings and account files remain
+preserved by migration.
 
-Optional provider pack:
+**Not bundled:** LMArena, Windsurf, Qwen, Gemini, Claude and Kimi Web.
+Any of these can be connected via the optional generic localhost bridge
+*only after the user installs a compatible third-party service separately*.
+The legacy Python Kimi installer remains available for existing installations,
+but Kimi is no longer falsely listed as an installed provider.
 
-- **Agent2API v2.9.7 (next build; previously published 91c8da4 remains v2.9.6)** — adds a mature UI and adapters for personal WorkBuddy domestic/international, CodeArts, Qoder, Cline, Trae, Loomy, KukuAI and other supported accounts without reimplementing those protocols in this repo.
-- **DeepSeek2API** — optional DeepSeek Web multi-account sidecar with its original admin UI, OpenAI/Anthropic/Responses compatibility, tool calling and provider-internal account pooling.
-- **Grok2API** — optional Grok Build / Web / Console multi-account sidecar with its original management UI, quota/model sync, OpenAI/Anthropic/Responses support and media features.
-- **Kiro-Go** — optional Kiro multi-account sidecar with its original Web admin, automatic token refresh, OpenAI/Anthropic/Responses endpoints and account-level proxy support.
-- **GitHub Copilot (new opt-in Go sidecar)** — native ARM64 build wired to the bundle; use your own authorized GitHub Copilot Device Flow login, then enable. The binary has no built-in API-key authentication, so it remains localhost only. Real Android inference verification still required.
-- **Kimi Web (new optional Termux installer)** — `chopper1026/kimi2api` account-pool backend and WebUI with local-only credentials and explicit opt-in; Python/Node dependencies are installed *only on request*, not in the base archive. Android installation/login/inference unverified.
-- **External localhost bridges** — a universal attach tool and phone-first connection wizard for **LMArena, WindsurfAPI, Qwen2API, Kimi2API, Gemini2API, Claude2API**, and any custom local OpenAI-compatible service. These run separately; AhB connects to their local HTTP APIs but does not claim to install or operate the external bridge.
+Agent2API stays intact as one highly capable Rust provider for WorkBuddy,
+Qoder, Cline, CodeArts, Trae and other accounts. No duplicate per-platform
+adapters are necessary. DeepSeek's older upstream is discontinued; a more
+recent Rust replacement is being evaluated separately. Do not move accounts
+or change backends without real authorized-inference tests.
 
-The Hub itself stays small. Provider-specific login, account pools, quota logic, proxy settings and diagnostics remain inside the upstream adapters.
+See [512 MiB deployment notes](docs/512MB-DEPLOYMENT.md). This branch is
+not a published release until CI, Android compilation and device tests pass.
 
 ## Unified API
 
@@ -73,7 +90,7 @@ It shows provider status, process RSS, restart counts, model counts and the unif
 Each healthy provider has a **管理原本 UI** button:
 
 - OpenCode: `http://127.0.0.1:8404/`
-- FreeBuff: `http://127.0.0.1:8402/ui`
+- FreeBuff: no WebUI in the bundled Node adapter
 - Agent2API when installed: `http://127.0.0.1:8403/`
 - DeepSeek2API when enabled: `http://127.0.0.1:8405/admin`
 - Grok2API when enabled: `http://127.0.0.1:8407/`
