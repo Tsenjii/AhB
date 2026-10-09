@@ -192,6 +192,26 @@ func (s *Supervisor) startProcess(ctx context.Context) (<-chan error, func(), er
 		cmd.Dir = s.spec.WorkDir
 	}
 	cmd.Env = mergedEnv(os.Environ(), s.spec.Env)
+	// Best-effort process-wide egress default. Native provider account proxy
+	// pools still take precedence if their implementation supports them.
+	// Explicitly exclude local Hub/admin ports and OAuth callback addresses.
+	if s.spec.ProxyURL != "" {
+		overrides := map[string]string{
+			"HTTP_PROXY":s.spec.ProxyURL, "HTTPS_PROXY":s.spec.ProxyURL, "ALL_PROXY":s.spec.ProxyURL,
+			"http_proxy":s.spec.ProxyURL, "https_proxy":s.spec.ProxyURL, "all_proxy":s.spec.ProxyURL,
+		}
+		noProxy := "localhost,127.0.0.1,::1,[::1]"
+		for _,entry:=range cmd.Env {
+			if strings.HasPrefix(strings.ToLower(entry),"no_proxy=") {
+				parts:=strings.SplitN(entry,"=",2)
+				if len(parts)==2&&parts[1]!="" {noProxy+=","+parts[1]}
+				break
+			}
+		}
+		overrides["NO_PROXY"]=noProxy
+		overrides["no_proxy"]=noProxy
+		cmd.Env = mergedEnv(cmd.Env, overrides)
+	}
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
 
