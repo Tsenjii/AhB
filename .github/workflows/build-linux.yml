@@ -297,6 +297,54 @@ jobs:
             cp LICENSE "$GITHUB_WORKSPACE/dist/AhB/LICENSE.duck2api"
           )
 
+      - name: Smoke-test new native gateways on loopback (no accounts)
+        shell: bash
+        run: |
+          set -euo pipefail
+          TMP="$(mktemp -d)"
+          cleanup() {
+            for var in GEMINI_PID DUCK_PID; do
+              pid="${!var:-}"
+              if [ -n "$pid" ]; then kill -TERM "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true; fi
+            done
+            rm -rf "$TMP"
+          }
+          trap cleanup EXIT
+          mkdir -p "$TMP/gemini" "$TMP/duck"
+          cp configs/geminiweb.json "$TMP/gemini/config.json"
+          (
+            cd "$TMP/gemini"
+            API_KEY="ci-local-test-key" ADMIN_TOKEN="ci-local-admin-key"               "$GITHUB_WORKSPACE/dist/AhB/bin/gemini-web2api-go" --config config.json --port 18413               > "$TMP/gemini.log" 2>&1
+          ) &
+          GEMINI_PID=$!
+          (
+            cd "$TMP/duck"
+            SERVER_HOST=127.0.0.1 SERVER_PORT=18414 Authorization="ci-local-test-key"               "$GITHUB_WORKSPACE/dist/AhB/bin/duck2api" > "$TMP/duck.log" 2>&1
+          ) &
+          DUCK_PID=$!
+          for target in "18413:status" "18414:pong"; do
+            port="${target%%:*}"
+            expected="${target#*:}"
+            path="/"
+            if [ "$port" = "18414" ]; then path="/ping"; fi
+            ready=0
+            for i in $(seq 1 80); do
+              if curl -fsS --max-time 2 "http://127.0.0.1:$port$path" | grep -q "$expected"; then ready=1; break; fi
+              sleep 0.25
+            done
+            if [ "$ready" -ne 1 ]; then
+              echo "Native gateway failed loopback smoke test on port $port" >&2
+              tail -n 25 "$TMP/gemini.log" "$TMP/duck.log" >&2
+              exit 1
+            fi
+          done
+          # Access control: unauthenticated model discovery must not succeed.
+          gemini_status="$(curl -s -o /dev/null -w '%{http_code}' --max-time 3 http://127.0.0.1:18413/v1/models)"
+          duck_status="$(curl -s -o /dev/null -w '%{http_code}' --max-time 3 http://127.0.0.1:18414/v1/models)"
+          test "$gemini_status" = 401
+          test "$duck_status" = 401
+          echo "Gemini + Duck native Linux loopback and access-control smoke passed"
+
       - name: Assemble native Linux bundle
         shell: bash
         run: |
