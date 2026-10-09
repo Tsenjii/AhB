@@ -7,9 +7,9 @@ This page describes provider **integration**, not proof of live account or infer
 | `opencode/` | [opencode2api v1.3.7](https://github.com/jasonxu114514/opencode2api) | yes | enabled | `127.0.0.1:8404/` |
 | `freebuff/` | [yutian81/freebuff2api](https://github.com/yutian81/freebuff2api) pinned e0d8c9d (Node >=20) | yes | enabled; requires fresh CLI/Bearer login | no management UI; `scripts/freebuff-login-termux.sh` |
 | `agent2api/` | [Agent2API v2.9.8 pinned source](https://github.com/aimod-cc/agent2api) | yes | enabled by prebuilt installer when complete | `127.0.0.1:8403/` |
-| `deepseek/` | [Deepseek2API](https://github.com/zengtao227/Deepseek2API) pinned source | yes | disabled | `127.0.0.1:8405/admin` |
-| `grok/` | [Grok2API v3.1.6](https://github.com/chenyme/grok2api/releases/tag/v3.1.6), pinned to 2026-09-30 upstream SHA | yes | disabled; **P0 to test** | `127.0.0.1:8407/` |
-| `kiro/` | [Kiro-Go](https://github.com/Quorinex/Kiro-Go) pinned source | yes | disabled | `127.0.0.1:8408/admin` |
+| `deepseek/` | [Deepseek2API](https://github.com/zengtao227/Deepseek2API) pinned source | yes | configured enabled/on demand; real account inference unverified | `127.0.0.1:8405/admin` |
+| `grok/` | [Grok2API v3.1.6](https://github.com/chenyme/grok2api/releases/tag/v3.1.6), pinned to 2026-09-30 upstream SHA | yes | configured enabled/on demand; **P0 to test account readiness** | `127.0.0.1:8407/` |
+| `kiro/` | [Kiro-Go](https://github.com/Quorinex/Kiro-Go) pinned source | yes | configured enabled/on demand; real account inference unverified | `127.0.0.1:8408/admin` |
 | `copilot/` | [copilot2api pinned](https://github.com/whtsky/copilot2api) | yes; no verified account-backed phone inference | configured enabled, authorized OAuth required | device login via AhB dashboard |
 | `geminiweb/` | [zexadev/gemini-web2api-go](https://github.com/zexadev/gemini-web2api-go) | yes, native Go ARM64 | on demand; account auth/inference unverified | upstream-dependent |
 | `duckai/` | [aurora-develop/Duck2api](https://github.com/aurora-develop/Duck2api) | yes, native Go ARM64 | on demand; live inference unverified | upstream-dependent |
