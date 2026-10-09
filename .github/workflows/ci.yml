@@ -15,6 +15,9 @@ jobs:
       - name: Validate Termux scripts
         run: bash -n scripts/*.sh
 
+      - name: Verify AhB stop helper isolates Node and Python services
+        run: bash scripts/test-stop-termux.sh
+
       - name: Test safe and idempotent config migration
         run: bash scripts/test-prepare-configs.sh
 
