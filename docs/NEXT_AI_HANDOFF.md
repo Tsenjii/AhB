@@ -9,12 +9,19 @@
 - Hub UI: `http://127.0.0.1:8317/ui`; local API: `http://127.0.0.1:8317/v1`. Loopback-only by default.
 - Two **native** distributions from one codebase: Android Termux ARM64 (`prebuilt` branch) and GNU/Linux AMD64/ARM64 (independent release). Never interchange packages.
 
-## Exact published baseline
+## Latest development checkpoint — 2026-10-09
 
-- Merged main commit: `5841235cde0465fc29bec06fc584d4526d971c47` (2026-10-09).
-- [Source CI success](https://github.com/Tsenjii/AhB/actions/runs/37921364712).
-- [Android ARM64 build success](https://github.com/Tsenjii/AhB/actions/runs/37921364600); `prebuilt/source-commit.txt` matches this exact commit.
-- [Linux AMD64/ARM64 build success](https://github.com/Tsenjii/AhB/actions/runs/37921364637); [native Linux release](https://github.com/Tsenjii/AhB/releases/tag/linux-5841235cde04) is published, with checksums.
+- [PR #17](https://github.com/Tsenjii/AhB/pull/17) was merged as `4e31217b06d780e9e47e10b6e06ca7433816855d`. Main CI, Android ARM64 and native Linux build passed; the Android `prebuilt/source-commit.txt` moved to that SHA and Linux release `linux-4e31217b06d7` was published.
+- [PR #18](https://github.com/Tsenjii/AhB/pull/18) adds bounded, private **model metadata only** caching to support sleeping on-demand providers. Its explicit dashboard **逐一載入全部模型** action wakes providers one-by-one, discovers models inside the lease, and leaves the 512 MiB one-process ceiling intact. `GET /v1/models` does NOT wake everything; a sleeping provider reports `x_cached: true`, `x_cache_state: sleeping_unverified` if a successful model listing is cached within six hours, otherwise remains unavailable to discovery. Models marked cached must still pass runtime/account checks on inference and cannot make an unverified `route/*` alias routable. Read-only Termux status prints `CACHE:n` versus `SLEEP`. Cache file `data/hub-model-catalog.json` is owner-only, atomic, capped at 2 MiB, with allowlisted metadata and no credentials.
+- **Release gate for PR #18:** Check the latest *exact head* GitHub CI and both ARM64 + Linux build workflows. Only after merger verify new `main`, Android prebuilt source SHA and matching Linux release tag. Do not confuse PR packaging, deployed phone version, available Muse upstream models, authenticated FreeBuff or 512 MiB real OOM/SSE/tool testing.
+- Never delete previous AhB backups, change upstream repositories or expose credentials. Keep OpenCode at its pinned, separately tested upstream commit unless a deliberate migration is approved.
+
+## Previous published baseline (before PR #18)
+
+- Previously verified merged main commit: `4e31217b06d780e9e47e10b6e06ca7433816855d` (2026-10-09).
+- [Source CI success](https://github.com/Tsenjii/AhB/actions/runs/37929299383).
+- [Android ARM64 build success](https://github.com/Tsenjii/AhB/actions/runs/37929299453); `prebuilt/source-commit.txt` matches this exact commit.
+- [Linux AMD64/ARM64 build success](https://github.com/Tsenjii/AhB/actions/runs/37929299387); [native Linux release](https://github.com/Tsenjii/AhB/releases/tag/linux-4e31217b06d7) is published, with checksums.
 - Device state remains **UNVERIFIED** for this exact release: no evidence the user's phone has already upgraded or the 512 MiB VPS has been deployed and survived OOM/peak-RSS tests. Build green ≠ account eligible ≠ real chat/SSE/tool completion.
 
 ## Actual packaging / architecture
