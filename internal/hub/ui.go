@@ -527,7 +527,7 @@ document.getElementById('providers').addEventListener('click',async e=>{
   const input=area&&area.querySelector('input[data-provider-proxy-url]');
   if(!input)return;
   const proxy=input.value.trim();
-  if(proxy&&!/^(https?|socks5):\\/\\//i.test(proxy)){
+  if(proxy&&!(proxy.startsWith('http://')||proxy.startsWith('https://')||proxy.startsWith('socks5://'))){
    controlNotice('Proxy URL 只接受 http://、https:// 或 socks5://，且不能包含帳密。');return
   }
   if(!confirm((proxy?'設定':'清除')+' '+id+' 的程序出站 Proxy？這會重啟整個 AhB，請先結束推論。帳號級 Proxy 應優先使用來源原生介面。'))return;
