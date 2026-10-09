@@ -229,7 +229,9 @@ def main():
     server = ThreadingHTTPServer(("0.0.0.0", PORT), Gateway)
     server.daemon_threads = True
     def shutdown(*_):
-        server.shutdown()
+        # BaseServer.shutdown must run from another thread, or signal handling
+        # in serve_forever's main thread can deadlock the hosting service.
+        threading.Thread(target=server.shutdown, daemon=True).start()
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)
     print("AhB command-mode gateway started on platform PORT", PORT, flush=True)
