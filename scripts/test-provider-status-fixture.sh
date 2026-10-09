@@ -23,16 +23,21 @@ cat >"$tmp/providers.json" <<'JSON'
 {"providers":[
  {"id":"opencode","enabled":true,"state":"HEALTHY","provider_ready":true,"last_request_http_status":200,"account_total":null},
  {"id":"agent2api","enabled":true,"state":"HEALTHY","provider_ready":true,"account_total":2,"account_usable_count":2,"last_request_http_status":503,"private_key":"MUST_NOT_LEAK"},
- {"id":"freebuff","enabled":false,"state":"DISABLED","provider_ready":false,"account_total":null}
+ {"id":"freebuff","enabled":false,"state":"DISABLED","provider_ready":false,"account_total":null},
+ {"id":"geminiweb","enabled":true,"state":"HEALTHY","provider_ready":false,"account_total":1,"account_usable_count":0,"last_request_http_status":429},
+ {"id":"duckai","enabled":true,"state":"HEALTHY","provider_ready":true,"account_total":null,"last_request_http_status":200}
 ]}
 JSON
 cat >"$tmp/models.json" <<'JSON'
-{"data":[{"id":"opencode/alpha","x_provider":"opencode"},{"id":"agent2api/alpha","x_provider":"agent2api"}]}
+{"data":[{"id":"opencode/alpha","x_provider":"opencode"},{"id":"agent2api/alpha","x_provider":"agent2api"},{"id":"geminiweb/alpha","x_provider":"geminiweb"},{"id":"duckai/alpha","x_provider":"duckai"}]}
 JSON
 export PATH="$tmp/bin:$PATH" FIXTURE_DIR="$tmp"
 bash "$ROOT/scripts/provider-status-termux.sh" > "$tmp/output"
 grep -q 'agent2api.*503' "$tmp/output"
 grep -q 'freebuff.*OFF' "$tmp/output"
 grep -q 'grok.*MISSING' "$tmp/output"
+grep -q 'geminiweb.*429' "$tmp/output"
+grep -q 'duckai.*200' "$tmp/output"
+grep -q 'duckai.*1.*200' "$tmp/output"
 ! grep -q 'MUST_NOT_LEAK' "$tmp/output"
-echo "provider inventory fixture passed; safe metadata-only states for bundled sources"
+echo "provider inventory fixture passed; nine bundled sources including Gemini Web and Duck.ai"
