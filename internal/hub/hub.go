@@ -38,6 +38,8 @@ type Hub struct {
 	controlPending bool
 	copilotLoginMu sync.Mutex
 	copilotLogin *copilotLoginSession
+	demandMu sync.Mutex
+	demandContext context.Context
 }
 
 type runtimeProvider struct {
@@ -47,6 +49,7 @@ type runtimeProvider struct {
 	accounts accountProbeState
 	lastRequest requestResultState
 	load     providerLoad
+	demand *demandState
 }
 
 func (p *runtimeProvider) hasRuntime() bool {
@@ -81,6 +84,7 @@ type providerView struct {
 	PID            int            `json:"pid,omitempty"`
 	RSSBytes       int64          `json:"rss_bytes,omitempty"`
 	Restarts       int            `json:"restarts"`
+	StartMode string `json:"start_mode,omitempty"`
 	LastError      string         `json:"last_error,omitempty"`
 	LastRequestStatus int         `json:"last_request_http_status,omitempty"`
 	LastRequestAt string          `json:"last_request_at,omitempty"`
@@ -128,8 +132,13 @@ func New(cfg config.Config) *Hub {
 // Start launches the provider workers. The caller must cancel ctx and call
 // Wait before exiting so child processes are reaped during clean shutdown.
 func (h *Hub) Start(ctx context.Context) {
+	h.demandMu.Lock()
+	h.demandContext = ctx
+	h.demandMu.Unlock()
+	h.runWG.Add(1)
+	go func(){defer h.runWG.Done(); h.reapDemand(ctx)}()
 	for _, p := range h.providers {
-		if p.sup != nil {
+		if p.sup != nil && !h.onDemand(p) {
 			h.runWG.Add(1)
 			go func(p *runtimeProvider) {
 				defer h.runWG.Done()
@@ -168,6 +177,7 @@ func (h *Hub) Handler() http.Handler {
 	mux.HandleFunc("/api/control/update", h.handleControlUpdate)
 	mux.HandleFunc("/api/control/provider/", h.handleControlProvider)
 	mux.HandleFunc("/api/control/login/copilot", h.handleCopilotLogin)
+	mux.HandleFunc("/api/control/wake/", h.wakeProvider)
 	mux.HandleFunc("/v1/models", h.handleModels)
 	mux.HandleFunc("/v1/chat/completions", h.handleProxy)
 	mux.HandleFunc("/v1/completions", h.handleProxy)
@@ -216,6 +226,7 @@ func (h *Hub) providerViews() []providerView {
 			Description: p.cfg.Description,
 			Enabled:     p.cfg.Enabled,
 			Kind:        p.cfg.Kind,
+			StartMode: p.cfg.StartMode,
 			UIURL:       p.cfg.UIURL,
 			DocsURL:     p.cfg.DocsURL,
 			State:       provider.StateDisabled,
@@ -450,6 +461,10 @@ func (h *Hub) handleModels(w http.ResponseWriter, r *http.Request) {
 		if !p.cfg.Enabled || !p.hasRuntime() {
 			continue
 		}
+		if h.onDemand(p) && p.snapshot().PID == 0 {
+			result.Warnings[id] = "sleeping in 512 MB mode; wake from dashboard or send provider/model request"
+			continue
+		}
 		if !providerUsableForRouting(id, p.cfg.Kind, p.snapshot(), p.accounts.snapshot()) {
 			result.Warnings[id] = "provider not currently usable"
 			continue
@@ -618,6 +633,12 @@ func (h *Hub) handleProxy(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "unknown_provider", "provider is not enabled")
 		return
 	}
+	lease, startupErr := h.acquireOnDemand(r.Context(),p)
+	if startupErr!=nil {
+		writeError(w,http.StatusServiceUnavailable,"provider_start_unavailable",startupErr.Error())
+		return
+	}
+	defer lease() // Keep sidecar alive until the final SSE byte is copied.
 	snap := p.snapshot()
 	if !providerUsableForRouting(providerID, p.cfg.Kind, snap, p.accounts.snapshot()) {
 		assessment := assessProviderHealth(providerID, p.cfg.Kind, snap, p.accounts.snapshot())
