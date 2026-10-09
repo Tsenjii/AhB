@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        AHB_RELEASE_TAG: ${AHB_RELEASE_TAG:-linux-5b3d0e8f08ef}
+        AHB_RELEASE_TAG: ${AHB_RELEASE_TAG:-linux-570ef0e7af7e}
     image: ahb:local
     container_name: ahb
     restart: unless-stopped

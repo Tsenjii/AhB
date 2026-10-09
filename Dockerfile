@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates curl jq python3 tar coreutils bash \
     && rm -rf /var/lib/apt/lists/*
 ARG TARGETARCH
-ARG AHB_RELEASE_TAG=linux-5b3d0e8f08ef
+ARG AHB_RELEASE_TAG=linux-570ef0e7af7e
 RUN set -eux; \
     case "${TARGETARCH:-$(uname -m)}" in amd64|x86_64) arch=amd64 ;; arm64|aarch64) arch=arm64 ;; *) exit 1 ;; esac; \
     case "$AHB_RELEASE_TAG" in linux-????????????) ;; *) exit 1 ;; esac; \

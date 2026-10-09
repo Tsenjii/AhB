@@ -31,7 +31,7 @@ The private `/state/AhB/config.json` allows changing `resources.max_running_side
 
 ## Package updates
 
-The image verifies the published Linux release checksums and defaults to `linux-5b3d0e8f08ef`. To use a newer **published** release, set `AHB_RELEASE_TAG=linux-<12-character-revision>` in your local `.env` and rerun `docker compose up -d --build`. Check the Linux assets actually exist. Never substitute Android Termux binaries.
+The image verifies the published Linux release checksums and defaults to `linux-570ef0e7af7e`. To use a newer **published** release, set `AHB_RELEASE_TAG=linux-<12-character-revision>` in your local `.env` and rerun `docker compose up -d --build`. Check the Linux assets actually exist. Never substitute Android Termux binaries.
 
 ## Platform direction
 
