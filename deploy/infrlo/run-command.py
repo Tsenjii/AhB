@@ -21,7 +21,8 @@ import time
 
 REPO = Path(__file__).resolve().parents[2]
 STAGED = REPO / ".infrlo-native" / "AhB"
-PORT = int(os.environ.get("PORT", "8080"))
+# Infrlo public Python/JS examples listen on 5000. Honor an explicit platform PORT.
+PORT = int(os.environ.get("PORT") or "5000")
 SECRET = os.environ.get("AHB_PUBLIC_TOKEN", "")
 USERNAME = os.environ.get("AHB_PUBLIC_USER", "ahb")
 MAX_REQUEST = 8 * 1024 * 1024
