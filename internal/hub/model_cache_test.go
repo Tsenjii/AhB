@@ -109,7 +109,7 @@ func TestLiveDiscoveryCachesOnlyAfterRealModelResponse(t *testing.T) {
     defer modelsSource.Close()
     pCfg:=config.ProviderConfig{
       ID:"opencode",DisplayName:"OpenCode",Enabled:true,Kind:"sidecar",StartMode:"on_demand",
-      Binary:"sleep",Args:[]string{"35"},BaseURL:modelsSource.URL,HealthPath:"/healthz",
+      Binary:"sleep",Args:[]string{"35"},BaseURL:modelsSource.URL,HealthPath:"/healthz",ModelsPath:"/v1/models",
       StartupTimeoutSeconds:5,HealthIntervalSeconds:1,MaxRestarts:1,
     }
     h:=New(config.Config{Listen:"127.0.0.1:8317",Providers:[]config.ProviderConfig{pCfg},
