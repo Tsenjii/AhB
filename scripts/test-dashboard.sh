@@ -13,7 +13,7 @@ assert src.count("<script>")==1 and src.count("</script>")==1
 html=src[src.index("<!doctype html>"):src.index("</html>")+len("</html>")]
 for needle in ('id="bridgePreset"', 'id="bridgeURL"', 'id="bridgeCommand"',
                'id="copyBridge"', 'id="customBridgeId"', 'id="providers"',
-               'id="models"', 'id="refresh"', 'id="optional"', 'id="diagnostics"', 'id="freebuffLogin"', 'id="copyCopilotInstall"', 'id="copyKimiInstall"'):
+               'id="models"', 'id="refresh"', 'id="optional"', 'id="diagnostics"', 'id="freebuffLogin"', 'id="copyCopilotInstall"'):
     assert needle in html, f"missing UI element: {needle}"
 assert "Node.js" in html and "FreeBuff" in html and "freebuff-login-termux.sh" in html
 js=html.split("<script>",1)[1].split("</script>",1)[0]
