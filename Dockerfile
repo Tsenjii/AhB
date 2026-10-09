@@ -1,11 +1,11 @@
-# Infrlo adapter: use the checksum-verified prebuilt Linux release, not on-host Rust/Go builds.
+# Portable AhB Docker image (Linux amd64/arm64). Never build Rust/Go inside the small runtime.
 # Debian trixie has new enough glibc for Linux executables compiled on Ubuntu 24.04.
 FROM node:22-trixie-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates curl jq python3 tar coreutils bash \
     && rm -rf /var/lib/apt/lists/*
 ARG TARGETARCH
-ARG AHB_RELEASE_TAG=linux-16bf4fd6593e
+ARG AHB_RELEASE_TAG=linux-570ef0e7af7e
 RUN set -eux; \
     case "${TARGETARCH:-$(uname -m)}" in amd64|x86_64) arch=amd64 ;; arm64|aarch64) arch=arm64 ;; *) exit 1 ;; esac; \
     case "$AHB_RELEASE_TAG" in linux-????????????) ;; *) exit 1 ;; esac; \
@@ -19,8 +19,8 @@ RUN set -eux; \
     test -x /opt/AhB/bin/hubd; \
     jq -e '.resources.max_running_sidecars == 1 and (.providers | length) == 9' /opt/AhB/config.example.json; \
     rm -rf /tmp/ahb-release
-COPY deploy/infrlo/auth-gateway.mjs /usr/local/bin/ahb-auth-gateway.mjs
-COPY deploy/infrlo/entrypoint.sh /usr/local/bin/ahb-infrlo-entrypoint
+COPY deploy/docker/auth-gateway.mjs /usr/local/bin/ahb-auth-gateway.mjs
+COPY deploy/docker/entrypoint.sh /usr/local/bin/ahb-infrlo-entrypoint
 RUN chmod 755 /usr/local/bin/ahb-infrlo-entrypoint /usr/local/bin/ahb-auth-gateway.mjs \
  && chown -R node:node /opt/AhB \
  && mkdir -p /state && chown node:node /state

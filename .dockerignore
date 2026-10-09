@@ -1,6 +1,6 @@
 **
 !Dockerfile
 !deploy/
-!deploy/infrlo/
-!deploy/infrlo/auth-gateway.mjs
-!deploy/infrlo/entrypoint.sh
+!deploy/docker/
+!deploy/docker/auth-gateway.mjs
+!deploy/docker/entrypoint.sh

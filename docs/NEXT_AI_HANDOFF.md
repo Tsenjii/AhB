@@ -9,9 +9,16 @@
 - Hub UI: `http://127.0.0.1:8317/ui`; local API: `http://127.0.0.1:8317/v1`. Loopback-only by default.
 - Two **native** distributions from one codebase: Android Termux ARM64 (`prebuilt` branch) and GNU/Linux AMD64/ARM64 (independent release). Never interchange packages.
 
-## Current workstream: core reliability (after Infrlo trial)
+## Verified release checkpoint — 2026-10-09
 
-- User chose to **stop work on Infrlo hosting** after repeated platform Buildpack/image failures. The previous command-mode and Docker adapters are historical test options, not a currently working cloud deployment. Keep the native Android/Termux and Linux distributions as the active product.
+- [PR #24](https://github.com/Tsenjii/AhB/pull/24) merged into main `570ef0e7af7eceb06bf428f71a5d76259782acb8`: local single-Gateway recovery with 45s cooldown and active-SSE rejection; credentialless best-effort per-sidecar egress Proxy setting and mobile UI. CI, Android ARM64, native Linux AMD64/ARM64 all passed; Android `prebuilt/source-commit.txt` matches exactly; [Linux release](https://github.com/Tsenjii/AhB/releases/tag/linux-570ef0e7af7e) includes checksums.
+- Agent2API is pinned at **v2.9.8** `f82308a9549ee4760f27e393058c3482056ec514` in both native builds, currently matching upstream main/release. Do not replace native per-account proxy pools with a Hub-level duplicate.
+- Portable Docker/Compose is Linux AMD64/ARM64 using this published release, private ingress credentials and persistent `/state`. See [Docker guide](DOCKER.md). macOS and Windows are Docker Desktop compatible for the Linux image; there are **no verified native Darwin or Windows AhB binaries**.
+- GitHub source/packaging checks are green; the user's actual Android phone update, account quota, end-to-end OpenCode/Muse, FreeBuff login and full real-tool SSE/RSS remain **unverified**.
+
+## Current workstream: core reliability and portable Docker
+
+- All temporary platform-specific Python runners and workflows are removed; generic Docker Compose with verified Linux release, local ingress auth and persistent state is the supported portable container path. See [Docker guide](DOCKER.md).
 - Core reliability change: plain `GET /v1/models` must **not wake** a sleeping gateway, but probing an already running gateway must hold an existing-process lease until its model response completes; this prevents idle reaping or one-provider-cap eviction during a list request. See `internal/hub/on_demand.go` and `internal/hub/model_probe_lease_test.go`.
 - Added Hub-level synthetic regression for a **native two-turn structured Tool Calling flow**, preserving nested upstream model IDs, tool call IDs and matching tool result; and synthetic full SSE `[DONE]` under `max_running_sidecars=1`, which must keep the active source alive. These tests are protocol/lease fixtures, **not proof that upstream OpenCode/Muse quotas or device authentication work**.
 - Continue to prioritize actual OpenCode on-device chat, SSE finish and two-turn native tools first, FreeBuff fresh authorized CLI/Bearer login second, other nine bundled sources later. Preserve existing phone credentials and backups. A cloud build/test is not a real phone or 512 MiB VPS RSS acceptance test.

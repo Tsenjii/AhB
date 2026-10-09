@@ -1,0 +1,54 @@
+name: Portable Docker Smoke
+on:
+  push:
+    paths:
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'compose.yaml'
+      - 'deploy/docker/**'
+      - '.github/workflows/docker-container.yml'
+  pull_request:
+    paths:
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'compose.yaml'
+      - 'deploy/docker/**'
+      - '.github/workflows/docker-container.yml'
+jobs:
+  docker:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test HTTP auth, SSE and entrypoint shell
+        run: |
+          node --check deploy/docker/auth-gateway.mjs
+          bash -n deploy/docker/entrypoint.sh
+          node --test deploy/docker/test-auth.mjs
+      - name: Validate Docker Compose
+        env:
+          AHB_PUBLIC_TOKEN: ci-test-token-long-enough-1234567890abcdef
+        run: docker compose config --quiet
+      - name: Build pinned native Linux image
+        run: docker build -t ahb:ci .
+      - name: Smoke cold-start in 512 MiB container
+        run: |
+          set -euo pipefail
+          docker run -d --name ahb-smoke --memory 512m \
+            -e AHB_PUBLIC_TOKEN='ci-test-token-long-enough-1234567890abcdef' \
+            -p 127.0.0.1:18080:8080 ahb:ci
+          trap 'docker logs ahb-smoke || :; docker rm -f ahb-smoke || :' EXIT
+          ready=0
+          for _ in $(seq 1 50); do
+            if curl -fsS --max-time 2 http://127.0.0.1:18080/healthz | jq -e '.status=="ok"' >/dev/null 2>&1; then ready=1; break; fi
+            sleep 1
+          done
+          [ "$ready" = 1 ] || { echo 'Native Linux Hub did not start'; exit 1; }
+          [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18080/v1/models)" = 401 ]
+          curl -fsS -H 'Authorization: Bearer ci-test-token-long-enough-1234567890abcdef' \
+            http://127.0.0.1:18080/api/providers | jq -e '(.providers|length)==9' >/dev/null
+          [ "$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+            -H 'Authorization: Bearer ci-test-token-long-enough-1234567890abcdef' \
+            http://127.0.0.1:18080/api/control/restart)" = 403 ]
+          [ "$(docker inspect -f '{{.State.OOMKilled}}' ahb-smoke)" = false ]
+          echo 'Portable Linux Docker cold-start/auth smoke passed'
