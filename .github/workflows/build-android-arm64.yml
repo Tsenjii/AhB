@@ -160,8 +160,8 @@ jobs:
           CARGO_BUILD_JOBS: "2"
         run: |
           set -euo pipefail
-          # Pinned *released* Agent2API v2.9.7 (annotated tag resolves to this commit).
-          AGENT_SHA="3618f6413610ca04b72991987c0b6589dc2fe54b"
+          # Pinned Agent2API v2.9.8 upstream source (2026-10-08); built as Android headless.
+          AGENT_SHA="f82308a9549ee4760f27e393058c3482056ec514"
           git init /tmp/agent2api
           git -C /tmp/agent2api remote add origin https://github.com/aimod-cc/agent2api.git
           git -C /tmp/agent2api fetch --depth 1 origin "$AGENT_SHA"
