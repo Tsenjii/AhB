@@ -36,6 +36,8 @@ type Hub struct {
 	controlConfigPath string
 	controlMu sync.Mutex
 	controlPending bool
+	copilotLoginMu sync.Mutex
+	copilotLogin *copilotLoginSession
 }
 
 type runtimeProvider struct {
@@ -165,6 +167,7 @@ func (h *Hub) Handler() http.Handler {
 	mux.HandleFunc("/api/control/restart", h.handleControlRestart)
 	mux.HandleFunc("/api/control/update", h.handleControlUpdate)
 	mux.HandleFunc("/api/control/provider/", h.handleControlProvider)
+	mux.HandleFunc("/api/control/login/copilot", h.handleCopilotLogin)
 	mux.HandleFunc("/v1/models", h.handleModels)
 	mux.HandleFunc("/v1/chat/completions", h.handleProxy)
 	mux.HandleFunc("/v1/completions", h.handleProxy)
