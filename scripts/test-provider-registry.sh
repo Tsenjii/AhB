@@ -21,14 +21,14 @@ for c in src["candidates"]:
     assert c["last_reviewed"] and c["notes"]
 for p in cfg["providers"]:
     assert p["id"] in ids, f"config provider missing in source registry: {p['id']}"
-# Fresh 512 MiB installs expose ONLY adapters actually compiled into the
+# Android installs expose ONLY adapters actually compiled into the
 # Android bundle, with all seven enabled but resident only on demand.
 installed={"opencode","freebuff","agent2api","deepseek","grok","kiro","copilot"}
 assert {p["id"] for p in cfg["providers"]} == installed
 for p in cfg["providers"]:
     assert p["kind"]=="sidecar" and p["enabled"] is True
     assert p["start_mode"]=="on_demand"
-assert cfg["resources"]["max_running_sidecars"]==1
+assert cfg["resources"]["max_running_sidecars"]==3\nassert cfg["resources"]["idle_stop_seconds"]==900\nlinux=json.loads(Path("configs/profiles/linux-512mb.json").read_text())\nassert {p["id"] for p in linux["providers"]}==installed\nassert linux["resources"]["max_running_sidecars"]==1\nassert linux["resources"]["idle_stop_seconds"]==120
 assert Path("scripts/login-copilot2api.sh").is_file()
 assert Path("scripts/enable-copilot2api.sh").is_file()
 assert Path("scripts/install-kimiweb-termux.sh").is_file()
