@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-mkdir -p data/opencode data/freebuff/credentials data/agent2api data/deepseek2api data/grok2api/frontend data/grok2api/data data/kiro-go/web data/copilot2api logs bin
+mkdir -p data/geminiweb data/duckai data/opencode data/freebuff/credentials data/agent2api data/deepseek2api data/grok2api/frontend data/grok2api/data data/kiro-go/web data/copilot2api logs bin
 
 if [ ! -f config.json ]; then
   cp config.example.json config.json
@@ -14,6 +14,9 @@ if [ ! -f data/opencode/config.json ]; then
 fi
 if [ ! -f data/freebuff/config.json ]; then
   cp configs/freebuff2api.json data/freebuff/config.json
+fi
+if [ ! -f data/geminiweb/config.json ]; then
+  cp configs/geminiweb.json data/geminiweb/config.json
 fi
 if [ ! -f data/deepseek2api/config.json ]; then
   cp configs/deepseek2api.json data/deepseek2api/config.json
@@ -53,7 +56,7 @@ if command -v jq >/dev/null 2>&1 && [ -f config.json ]; then
       # Existing user-selected on/off flags stay untouched. Newly installed
       # providers are enabled but sleep until used, respecting this bundle\x27s profile.
       | .providers |= map(
-          if (.id as $id | ["opencode","freebuff","agent2api","deepseek","grok","kiro","copilot"] | index($id)) != null
+          if (.id as $id | ["opencode","freebuff","agent2api","deepseek","grok","kiro","copilot","geminiweb","duckai"] | index($id)) != null
           then .start_mode = (.start_mode // "on_demand")
           else . end
         )
