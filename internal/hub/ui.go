@@ -206,6 +206,25 @@ button,.btn{touch-action:manipulation}button:focus-visible,a:focus-visible,input
 @media(max-width:960px){.overview{grid-template-columns:1fr}.summary{min-width:0;width:100%}}
 @media(max-width:820px),(hover:none) and (pointer:coarse){main{padding-bottom:calc(116px + env(safe-area-inset-bottom))}.anchor-nav{position:fixed;top:auto;bottom:0;left:0;right:0;margin:0;padding:8px max(8px,env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-right));border-top:1px solid #4a596a;border-bottom:0;background:#1b242f;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;z-index:30;box-shadow:0 -4px 24px #0005}.anchor-nav button,.anchor-nav .nav-play{padding:9px 2px;min-height:46px;font-size:12px;min-width:0}.summary{grid-template-columns:repeat(2,minmax(0,1fr))}.summary-item:nth-child(3){border-left:0;border-top:1px solid var(--line)}.summary-item:nth-child(4){border-top:1px solid var(--line)}.card-top{grid-template-columns:1fr}.overview-title{font-size:21px}}
 @media(max-width:390px){.anchor-nav button,.anchor-nav .nav-play{font-size:11px}}@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
+/* Desktop workspace: persistent sidebar and generous data density. */
+@media(min-width:1024px){
+ main{width:auto;max-width:1560px;margin:0 28px 0 258px;padding:26px 24px 76px}
+ .anchor-nav{position:fixed;left:0;top:0;bottom:0;width:240px;margin:0;padding:100px 16px 80px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;overflow-x:hidden;border:0;border-right:1px solid var(--line);border-radius:0;background:#141c26;box-shadow:none;z-index:30}
+ .anchor-nav::before{content:'AhB  /  WORKSPACE';position:absolute;top:37px;left:26px;color:#b8d4f2;font-size:12px;font-weight:790;letter-spacing:.13em}
+ .anchor-nav::after{content:'LOCALHOST  ·  PRIVATE';position:absolute;bottom:24px;left:26px;color:var(--subtle);font-size:10px;letter-spacing:.12em}
+ .anchor-nav button,.anchor-nav .nav-play{display:flex;justify-content:flex-start;flex:0 0 auto;text-align:left;min-height:47px;width:100%;padding:12px 15px;border-radius:10px;font-size:14px}
+ .anchor-nav button.selected{background:#32465c;border-color:#627e9c;box-shadow:inset 3px 0 #b6d4f4}
+ .anchor-nav .nav-play{color:#c6dfff;background:#22364a;border-color:#364e67;margin-top:12px}
+ .anchor-nav .nav-play:hover{background:#304761}
+ header{padding-bottom:20px}.overview{grid-template-columns:minmax(320px,1fr) minmax(440px,.98fr)}
+ .summary{width:100%;min-width:0}.summary-item{padding:17px 14px}.summary-item b{font-size:23px}
+ .card-top{grid-template-columns:minmax(210px,1.6fr) minmax(160px,.8fr) minmax(260px,auto);gap:20px}
+ .provider-actions{max-width:345px;flex-wrap:wrap;justify-content:flex-end}
+ .provider-actions .btn{min-width:110px}.provider-name{font-size:15px}
+ .quick-connect{grid-template-columns:minmax(250px,.85fr) minmax(380px,1.3fr);gap:32px;padding:25px}
+ .table-wrap{max-height:560px;overflow:auto}th{z-index:1}
+}
+@media(min-width:1700px){main{margin-left:max(258px,calc((100vw - 1450px) / 2 + 90px));margin-right:auto;max-width:1450px}}
 </style>
 </head>
 <body>
