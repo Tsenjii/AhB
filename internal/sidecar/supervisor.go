@@ -41,6 +41,9 @@ type Supervisor struct {
 	lastHealthBody   []byte
 
 	client *http.Client
+	// Installed once before Run. Hub may veto health-triggered restarts while
+	// an on-demand request still owns a streaming or model-discovery lease.
+	mayRestartOnFailedHealth func() bool
 }
 
 func New(spec config.ProviderConfig) *Supervisor {
@@ -49,6 +52,13 @@ func New(spec config.ProviderConfig) *Supervisor {
 		state: provider.StateStopped,
 		client: &http.Client{Timeout: 5 * time.Second},
 	}
+}
+
+// SetHealthRestartGuard is configured before Run starts. A false result
+// defers a health-triggered restart without marking an active stream dead.
+// The caller must not mutate the guard once the supervisor is running.
+func (s *Supervisor) SetHealthRestartGuard(guard func() bool) {
+	s.mayRestartOnFailedHealth = guard
 }
 
 func (s *Supervisor) Snapshot() Snapshot {
@@ -140,9 +150,15 @@ func (s *Supervisor) Run(ctx context.Context) {
 					failures++
 					s.setState(provider.StateDegraded, err.Error())
 					if failures >= 3 {
+						// A health endpoint may become temporarily unresponsive while
+						// a model is already streaming. Never interrupt its leased
+						// response solely to restart this still-running process.
+						if s.mayRestartOnFailedHealth != nil && !s.mayRestartOnFailedHealth() {
+							continue
+						}
 						healthTicker.Stop()
 						cleanup()
-						s.incrementRestart(fmt.Errorf("health endpoint unreachable 3 times: %w", err))
+						s.incrementRestart(fmt.Errorf("health endpoint unreachable at least 3 times: %w", err))
 						restart = true
 					}
 					continue
@@ -366,6 +382,11 @@ func mergedEnv(base []string, overrides map[string]string) []string {
 func backoff(attempt int) time.Duration {
 	if attempt < 1 {
 		attempt = 1
+	}
+	// Avoid overflowing Duration for configurations with a large restart
+	// count. The cap is reached well before the shift gets large.
+	if attempt >= 6 {
+		return 30 * time.Second
 	}
 	d := time.Second << (attempt - 1)
 	if d > 30*time.Second {
