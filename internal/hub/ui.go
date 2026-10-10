@@ -449,14 +449,17 @@ async function loadNativeConsoles(){
    // private Gateway ports. Never link to a misleading or unrelated service.
    if(safeURL&&ahbProviderControlAvailable){
     visit.href=safeURL;visit.target='_blank';visit.rel='noopener noreferrer';
-    // Open the tab while the tap gesture is still active. On-demand
-    // Gateways sleep by default, so opening their native UI must first wake
-    // the process or the browser shows ERR_CONNECTION_REFUSED.
+    // Never open an empty new tab while the phone is waiting for a sleeping
+    // Gateway to wake: Android may suspend the original tab and never
+    // navigate the blank page. Running providers use the real user tap as a
+    // normal link; sleeping providers first wake then offer a direct tap.
     visit.addEventListener('click',async event=>{
-     if(!ahbProviderControlAvailable)return;
+     const cached=lastProviders.find(p=>p.id===item.id);
+     if(visit.dataset.ready==='yes'||(cached&&cached.enabled&&cached.process_alive))return;
      event.preventDefault();
-     const tab=window.open('about:blank','_blank');
-     visit.textContent='準備原生 UI…';
+     if(visit.dataset.waking==='yes')return;
+     visit.dataset.waking='yes';
+     visit.textContent='正在啟動…';
      try{
       const status=await getJSON('/api/providers');
       const provider=(status.providers||[]).find(p=>p.id===item.id);
@@ -470,15 +473,14 @@ async function loadNativeConsoles(){
        });
        if(!started.ok)throw new Error('無法啟動 Gateway：'+(await started.text()).trim().slice(0,130));
       }
-      // Never navigate to a server-supplied URL; only the allowlisted
-      // loopback native address from this source's console metadata.
-      if(tab&&!tab.closed)tab.location.href=safeURL;
-      else consoleStatus.textContent='瀏覽器阻擋了分頁，服務已啟動，請再次點「開啟原生 UI」。';
+      visit.dataset.ready='yes';
+      visit.textContent='已啟動，點此開啟';
+      consoleStatus.textContent=item.name+' 原生 UI 已準備好；請再次點擊按鈕開啟本機管理頁。';
       await refresh();
      }catch(err){
-      if(tab&&!tab.closed){try{tab.close()}catch(_){}}
+      visit.textContent='開啟原生 UI';
       consoleStatus.textContent=item.name+'：'+err.message;
-     }finally{visit.textContent='開啟原生 UI'}
+     }finally{delete visit.dataset.waking}
     });
    }
    else{visit.classList.add('disabled');visit.removeAttribute('href')}
