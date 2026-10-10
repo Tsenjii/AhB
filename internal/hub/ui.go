@@ -520,7 +520,7 @@ const freebuffCount=document.getElementById('freebuffAccountCount');
 const freebuffLinkArea=document.getElementById('freebuffLoginLinkArea');
 const freebuffLink=document.getElementById('freebuffLoginLink');
 const freebuffReload=document.getElementById('reloadFreebuff');
-let freebuffTimer=null,freebuffAuthTab=null,freebuffOpenedLink='';
+let freebuffTimer=null;
 freebuffStart.disabled=!ahbProviderControlAvailable;
 function freebuffOfficialURL(raw){
  try {
@@ -529,13 +529,22 @@ function freebuffOfficialURL(raw){
  }catch(_){return ''}
 }
 async function freebuffLoginAction(action){
- const res=await fetch('/api/control/login/freebuff',{
-  method:'POST',credentials:'same-origin',cache:'no-store',
-  headers:{'X-AhB-Control-Token':ahbControlToken,'Content-Type':'application/json'},
-  body:JSON.stringify({action})
- });
- if(!res.ok)throw new Error((await res.text()).trim().slice(0,140)||'HTTP '+res.status);
- return res.json();
+ // Localhost requests should finish immediately; a browser that suspends
+ // an old tab must never leave an unbounded spinner or a disabled button.
+ const controller=new AbortController();
+ const timeout=setTimeout(()=>controller.abort(),15000);
+ try{
+  const res=await fetch('/api/control/login/freebuff',{
+   method:'POST',credentials:'same-origin',cache:'no-store',signal:controller.signal,
+   headers:{'X-AhB-Control-Token':ahbControlToken,'Content-Type':'application/json'},
+   body:JSON.stringify({action})
+  });
+  if(!res.ok)throw new Error((await res.text()).trim().slice(0,140)||'HTTP '+res.status);
+  return res.json();
+ }catch(err){
+  if(err.name==='AbortError')throw new Error('本機 AhB 回應逾時，請確認服務是否仍在執行');
+  throw err;
+ }finally{clearTimeout(timeout)}
 }
 function showFreebuffLogin(data){
  const state=data.state||'idle';
@@ -544,8 +553,8 @@ function showFreebuffLogin(data){
  freebuffCount.textContent='本機已保存 '+count+' 個 CLI 帳號 · 不代表有可用額度';
  freebuffFeedback.style.display=state==='idle'?'none':'block';
  freebuffMessage.textContent=data.detail||({
-  starting:'正在向官方要求一次性授權網址…',
-  waiting:'請在 Codebuff 官方網站登入；AhB 正在等待授權完成…',
+  starting:'正在取得官方授權網址，請稍候…',
+  waiting:'授權網址已準備好。請按下方「開啟 FreeBuff 官方授權頁」完成登入；AhB 會自動確認。',
   done:'已完成授權並安全保存到手機。',
   expired:'授權逾時，請重新開始。',
   cancelled:'授權已取消。',
@@ -553,14 +562,11 @@ function showFreebuffLogin(data){
  }[state]||'尚未開始');
  const url=state==='waiting'?freebuffOfficialURL(data.url||''):'';
  freebuffLinkArea.style.display=url?'block':'none';
- if(url){
-  freebuffLink.href=url;
-  if(freebuffAuthTab&&freebuffOpenedLink!==url){
-   try {freebuffAuthTab.location.href=url;freebuffOpenedLink=url;}
-   catch(_){ /* Popup was blocked or closed; keep the manual link. */ }
-  }
- }
- if(state!=='starting'&&state!=='waiting'){freebuffAuthTab=null;freebuffOpenedLink=''}
+ if(url){freebuffLink.href=url}
+ else{freebuffLink.removeAttribute('href')}
+ // Never create an empty popup. On Android, Chrome often switches focus to
+ // that blank tab and freezes the original page before OAuth polling yields
+ // the real official URL. A direct user-tapped HTTPS link is more reliable.
  freebuffCancel.style.display=(state==='starting'||state==='waiting')?'inline-flex':'none';
  freebuffReload.style.display=state==='done'?'inline-flex':'none';
  freebuffStart.disabled=!ahbProviderControlAvailable||state==='starting'||state==='waiting';
@@ -568,24 +574,28 @@ function showFreebuffLogin(data){
  if(state==='starting'||state==='waiting'){
   freebuffTimer=setTimeout(async()=>{
    try{showFreebuffLogin(await freebuffLoginAction('status'))}
-   catch(err){freebuffMessage.textContent='無法確認授權：'+err.message;freebuffStart.disabled=false}
+   catch(err){
+    freebuffMessage.textContent='無法確認授權：'+err.message+'。可以重新整理頁面再查看狀態。';
+    freebuffStart.disabled=false;
+    // Keep the official link usable even if one status poll fails.
+    // Do not start a fresh authorization without user action.
+    freebuffTimer=setTimeout(async()=>{
+     try{showFreebuffLogin(await freebuffLoginAction('status'))}
+     catch(_){freebuffStart.disabled=false}
+    },4000)
+   }
   },1500);
  }
 }
 freebuffStart.addEventListener('click',async()=>{
  if(!ahbProviderControlAvailable)return;
  freebuffStart.disabled=true;
- // Opening the tab synchronously retains the user gesture in mobile browsers.
- // If blocked, users can use the explicit official URL shown below.
- freebuffAuthTab=window.open('about:blank','_blank');
- try{if(freebuffAuthTab)freebuffAuthTab.document.title='FreeBuff 官方授權載入中…';}catch(_){}
- freebuffOpenedLink='';
+ // Step 1 obtains the official authorization URL. Step 2 is a direct
+ // user-initiated HTTPS link; never open a blank tab during an async fetch.
  freebuffFeedback.style.display='block';
- freebuffMessage.textContent='正在取得官方 Google 授權網址…';
+ freebuffMessage.textContent='正在向官方取得一次性登入網址…';
  try{showFreebuffLogin(await freebuffLoginAction('start'))}
  catch(err){
-  if(freebuffAuthTab){try{freebuffAuthTab.close()}catch(_){}}
-  freebuffAuthTab=null;
   freebuffStart.disabled=false;
   freebuffMessage.textContent='無法開始 FreeBuff 登入：'+err.message;
  }
