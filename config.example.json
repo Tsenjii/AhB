@@ -265,7 +265,7 @@
     }
   },
   "resources": {
-    "max_running_sidecars": 3,
+    "max_running_sidecars": 9,
     "idle_stop_seconds": 900
   }
 }
