@@ -285,8 +285,8 @@ button,.btn{touch-action:manipulation}button:focus-visible,a:focus-visible,input
   </div>
   <div class="command-panel">
    <div class="eyebrow">On-demand sidecars</div>
-   <div class="resource-presets" role="group" aria-label="快速資源設定"><button type="button" data-resource-preset="stable">穩定優先 · 2 個 / 10 分鐘</button><button type="button" data-resource-preset="lean">省資源 · 1 個 / 2 分鐘</button><button type="button" data-resource-preset="performance">多來源 · 3 個 / 15 分鐘</button></div>
-   <div class="command-help">快速預設只填入建議值，按「儲存資源設定」才會生效。多個 Gateway 同時運行可降低切換等待，但會增加 RAM；小 VPS 請先確認可用記憶體。</div>
+   <div class="resource-presets" role="group" aria-label="快速資源設定"><button type="button" data-resource-preset="stable">穩定優先 · 2 個 / 10 分鐘</button><button type="button" data-resource-preset="lean">省資源 · 1 個 / 2 分鐘</button><button type="button" data-resource-preset="performance">多來源 · 3 個 / 15 分鐘</button><button type="button" data-resource-preset="all">全來源 · 9 個 / 24 小時</button></div>
+   <div class="command-help">快速預設只填入建議值，按「儲存資源設定」才會生效。「全來源」允許九個 Gateway 同時運作，但不會自動啟動尚未使用的來源；你已在手機量到低占用，仍建議觀察實際推論峰值。Linux 小 VPS 可保留省資源模式。</div>
    <div class="field"><label for="maxResident">同時最多常駐幾個轉接器？</label><input id="maxResident" type="number" min="1" max="16" step="1" inputmode="numeric" value="1"></div>
    <div class="field"><label for="idleTimeout">閒置多久自動關閉？（秒）</label><input id="idleTimeout" type="number" min="30" max="86400" step="1" inputmode="numeric" value="120"></div>
    <div class="command-actions"><button type="button" id="saveResourceSettings" disabled>儲存資源設定</button></div>
@@ -887,7 +887,7 @@ document.getElementById('providers').addEventListener('click',async e=>{
 let resourceSettingsDirty=false;
 document.querySelector(".resource-presets").addEventListener("click",e=>{
  const preset=e.target.closest("button[data-resource-preset]");if(!preset)return;
- const values={stable:[2,600],lean:[1,120],performance:[3,900]}[preset.dataset.resourcePreset];if(!values)return;
+ const values={stable:[2,600],lean:[1,120],performance:[3,900],all:[9,86400]}[preset.dataset.resourcePreset];if(!values)return;
  document.getElementById("maxResident").value=values[0];document.getElementById("idleTimeout").value=values[1];
  resourceSettingsDirty=true;
  controlNotice("已套用資源預設（尚未儲存）。請確認 RAM 需求，再按『儲存資源設定』。");
