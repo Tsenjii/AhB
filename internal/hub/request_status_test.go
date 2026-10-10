@@ -10,6 +10,8 @@ import (
  "time"
 
  "github.com/Tsenjii/AhB/internal/config"
+ "github.com/Tsenjii/AhB/internal/provider"
+ "github.com/Tsenjii/AhB/internal/sidecar"
 )
 
 func TestRecentRequestStatusDoesNotConflateHTTPWithQuotaOrLeakSecrets(t *testing.T) {
@@ -67,5 +69,34 @@ func TestTransportErrorsAreNotPretendedSuccessful(t *testing.T){
  view:=h.providerViews()[0]
  if !view.LastRequestTransportError || view.LastRequestStatus!=0 {
   t.Fatalf("transport error falsely healthy: %#v",view)
+ }
+}
+
+func TestDuckAI418NotMisreportedHealthyFromLocalPing(t *testing.T){
+ h:=New(config.Config{Providers:[]config.ProviderConfig{{
+  ID:"duckai",Enabled:true,Kind:"external",BaseURL:"http://127.0.0.1:8414",
+ }}})
+ p:=h.providers["duckai"]
+ p.external.set(sidecar.Snapshot{ID:"duckai",State:provider.StateHealthy,HealthHTTPStatus:200})
+ p.lastRequest.record(http.StatusTeapot,false)
+ view:=h.providerViews()[0]
+ if view.State!=provider.StateDegraded||view.ProviderReady||view.LastRequestStatus!=418 {
+  t.Fatalf("Duck.ai upstream HTTP 418 was falsely shown HEALTHY: %+v",view)
+ }
+ if !strings.Contains(view.LastError,"HTTP 418")||strings.Contains(view.LastError,"127.0.0.1:8414") {
+  t.Fatalf("Duck.ai diagnosis is missing/contains local endpoint: %q",view.LastError)
+ }
+ p.lastRequest.record(http.StatusOK,false)
+ view=h.providerViews()[0]
+ if view.State!=provider.StateHealthy||!view.ProviderReady||view.LastRequestStatus!=200{
+  t.Fatalf("actual later HTTP 200 did not clear Duck.ai degraded inference status: %+v",view)
+ }
+ // A stale historic refusal must not be treated as an ongoing block.
+ p.lastRequest.mu.Lock()
+ p.lastRequest.last=requestResult{Status:418,At:time.Now().Add(-30*time.Minute)}
+ p.lastRequest.mu.Unlock()
+ view=h.providerViews()[0]
+ if view.State!=provider.StateHealthy {
+  t.Fatalf("stale HTTP 418 still forced DEGRADED: %+v",view)
  }
 }
