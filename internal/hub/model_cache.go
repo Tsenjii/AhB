@@ -58,6 +58,7 @@ func safeCachedModel(cfg config.ProviderConfig, original map[string]any) (map[st
 		"id": id, "object": "model", "x_provider": cfg.ID,
 		"x_provider_name": cfg.DisplayName,
 		"x_upstream_id": strings.TrimPrefix(id, cfg.ID+"/"),
+		"x_catalog_only": true,
 	}
 	for _, key := range []string{"context_window", "context_length", "max_input", "max_output"} {
 		switch v := original[key].(type) {
