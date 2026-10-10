@@ -20,6 +20,8 @@ func TestBackoff(t *testing.T) {
 		{2, 2 * time.Second},
 		{3, 4 * time.Second},
 		{10, 30 * time.Second},
+		{63, 30 * time.Second},
+		{100000, 30 * time.Second},
 	}
 	for _, tc := range cases {
 		if got := backoff(tc.attempt); got != tc.want {

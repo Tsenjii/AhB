@@ -20,6 +20,28 @@ A one-process on-demand cap prevents loading all nine gateways simultaneously,
 but does not guarantee that a given upstream process will always fit in
 512 MiB RAM. Avoid local browser automation or extra heavyweight apps.
 
+## Stability-first mode (when RAM can exceed 512 MiB)
+
+The strict 512 MiB profile remains available and is **not changed during
+upgrade**. If your host has more memory, prefer the control center's
+**Settings → Resources → 穩定優先** preset: **2 resident gateways / 600 seconds
+idle**. For a larger measured host, **多來源** uses **3 / 900 seconds**.
+Both presets only fill the form; the user explicitly saves and confirms the
+AhB restart. Existing account files and custom settings are preserved.
+
+Keeping two independently requested gateways warm reduces cold-start churn
+and avoids the deliberate HTTP 503 capacity conflict when another Gateway has
+an active SSE stream. The tradeoff is greater actual RSS, which depends on the
+upstream provider and is not bounded by the numeric process count.
+Use `/api/runtime` to inspect real RAM before increasing the limit.
+
+A health probe losing its connection does not forcibly restart an on-demand
+Gateway while an inference/model-discovery lease is active. After the request
+finishes, repeated failed health probes can restart that process. An upstream
+that accepts a connection but never sends response headers is cut off after
+120 seconds; after headers arrive, streaming inference may continue longer.
+
+
 ## System dependencies
 
 On a suitable Ubuntu server, install the small *runtime* dependencies

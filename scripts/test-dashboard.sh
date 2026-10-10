@@ -24,6 +24,8 @@ assert "實驗版 DeepSeek Web 已移除舊 /admin 管理台" in html
 assert 'data-copilot-auth' in html
 assert 'Copilot2API 沒有獨立 WebUI' in html
 assert "copilotLoginAction('status').then(showCopilotLogin)" in html
+assert 'data-resource-preset="stable"' in html and 'data-resource-preset="lean"' in html and 'data-resource-preset="performance"' in html
+assert 'resourceSettingsDirty=true' in html and 'const values={stable:[2,600],lean:[1,120],performance:[3,900]}' in html
 assert "'/api/control/resources'" in html and "'/api/runtime'" in html
 assert "x_cached" in html and "休眠快取" in html
 assert "'/api/control/wake/'" in html and "scanAllModels" in html

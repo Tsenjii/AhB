@@ -115,7 +115,9 @@ func New(cfg config.Config) *Hub {
 		MaxIdleConnsPerHost:   maxHostIdle,
 		IdleConnTimeout:       90 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,
-		ResponseHeaderTimeout: 0,
+		// Timeout only before the first upstream headers: bound hung requests without
+		// limiting long-running SSE streams after headers arrive.
+		ResponseHeaderTimeout: 120 * time.Second,
 		DialContext: (&net.Dialer{
 			Timeout:   10 * time.Second,
 			KeepAlive: 30 * time.Second,
@@ -148,6 +150,16 @@ func New(cfg config.Config) *Hub {
 			case "external":
 				rp.external = newExternalProbe(p)
 			}
+		}
+		if rp.sup != nil && p.StartMode == "on_demand" {
+			// A leased SSE stream must not be killed because the local health
+			// endpoint briefly times out under heavy inference load. Defer only
+			// health-triggered restarts; actual process exits are still handled.
+			rp.sup.SetHealthRestartGuard(func() bool {
+				h.demandMu.Lock()
+				defer h.demandMu.Unlock()
+				return rp.demand == nil || rp.demand.users == 0
+			})
 		}
 		h.providers[p.ID] = rp
 	}
