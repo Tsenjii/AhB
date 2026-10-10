@@ -109,7 +109,7 @@ function metric(code,ttft,total){
 }
 async function getJSON(path){const r=await fetch(path,{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}
 async function reload(){
- const last=provider.value;
+ const last=provider.value||new URLSearchParams(location.search).get('provider')||'';
  statusBox.className='status';
  statusBox.textContent='讀取模型中（不會喚醒休眠來源）…';
  try{
