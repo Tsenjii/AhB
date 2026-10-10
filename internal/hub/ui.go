@@ -363,6 +363,7 @@ th,td{font-size:12px}
   <div class="quick-form">
    <div class="fieldrow">
     <div class="field"><label for="bridgePreset">來源</label><select id="bridgePreset">
+      <option value="cliproxy">CLIProxyAPI · Antigravity / Codex / Claude / Muse（需自行安裝）</option>
       <option value="custom">自訂已安裝的本機 API</option>
      </select></div>
     <div class="field"><label for="bridgeURL">本機 API 地址</label><input id="bridgeURL" type="url" inputmode="url" spellcheck="false" value="http://127.0.0.1:8418" placeholder="http://127.0.0.1:8418"></div>
@@ -995,7 +996,7 @@ document.getElementById('copyBase').addEventListener('click',async()=>{
 });
 // No secrets are requested in the browser: bridge keys are configured locally
 // through the script's private environment, never embedded into a URL or page.
-const bridgeDefaults={custom:8418};
+const bridgeDefaults={cliproxy:8416,custom:8418};
 let previousPreset='lmarena';
 function updateBridgeCommand(){
  const preset=document.getElementById('bridgePreset').value;
