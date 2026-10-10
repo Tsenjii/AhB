@@ -327,6 +327,14 @@ jobs:
             # Rust 1.95's equivalent std::sync::LazyLock in the fetched
             # pinned crate, without changing Cargo.lock or browser features.
             cargo fetch --locked --target aarch64-linux-android
+            # QuickJS v0.14 does not ship pre-generated Android ARM64
+            # bindings. Use upstream's official bindgen feature for only
+            # this native Android build (no external browser runtime).
+            # The added optional bindgen dependency needs an ephemeral
+            # Cargo.lock resolution, then the actual build remains --locked.
+            python3 -c 'from pathlib import Path; p=Path("Cargo.toml"); s=p.read_text(); old="rquickjs = { version = \"0.14\", features = [\"full\"] }"; new="rquickjs = { version = \"0.14\", features = [\"full\", \"bindgen\"] }"; assert s.count(old)==1, "Pinned QuickJS feature contract changed"; p.write_text(s.replace(old,new))'
+            export BINDGEN_EXTRA_CLANG_ARGS="--target=aarch64-linux-android24 --sysroot=$ANDROID_TOOLCHAIN/../sysroot"
+            cargo fetch --target aarch64-linux-android
             # Bash's nested shell block makes indented heredoc delimiters
             # invalid after YAML's block indentation is removed. Use -c instead.
             python3 -c 'from pathlib import Path; paths=list((Path.home()/".cargo/registry/src").glob("*/dlopen2-0.9.0/src/raw/unix.rs")); assert len(paths)==1, "dlopen2 0.9.0 source contract changed"; p=paths[0]; s=p.read_text(); old="once_cell::sync::Lazy"; assert s.count(old)==1, "dlopen2 Lazy import contract changed"; p.write_text(s.replace(old, "std::sync::LazyLock as Lazy")); print("Android-only dlopen2 LazyLock compatibility shim applied")'
