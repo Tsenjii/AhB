@@ -928,8 +928,8 @@ let scanningAllModels=false;
 async function getJSON(path){const r=await fetch(path,{cache:'no-store'});if(!r.ok)throw new Error(path+' HTTP '+r.status);return r.json()}
 function modelCounts(models){const out={};for(const m of models){const p=m.x_provider||'';out[p]=(out[p]||0)+1}return out}
 function accountLabel(x){
+ if(x.id==='deepseek'&&x.account_total>0&&x.account_usable==null)return '待實測 '+x.account_total+' 組';
  if(x.account_total!==null&&x.account_total!==undefined)return String(x.account_usable_count||0)+'/'+String(x.account_total);
- if(x.id==='deepseek'&&x.account_total>0&&x.account_usable===null)return '待實測 '+x.account_total+' 組';
  if(x.id==='opencode'&&x.account_usable===true)return 'ANON';
  return x.account_usable===true?'YES':(x.account_usable===false?'NO':'UNKNOWN');
 }
