@@ -185,6 +185,7 @@ func (h *Hub) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", h.handleRoot)
 	mux.HandleFunc("/ui", h.handleUI)
+	mux.HandleFunc("/playground", h.handlePlaygroundUI)
 	mux.HandleFunc("/healthz", h.handleHealth)
 	mux.HandleFunc("/api/providers", h.handleProviders)
 	mux.HandleFunc("/api/runtime", h.handleRuntime)
