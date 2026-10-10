@@ -29,6 +29,9 @@ type Hub struct {
 	providers map[string]*runtimeProvider
 	client    *http.Client
 	modelCache *modelCatalogCache
+	// Shared across all /v1/models callers, so concurrent dashboards cannot
+	// multiply upstream probes and memory use beyond the machine's budget.
+	modelProbeSlots chan struct{}
 	balance   fallbackBalancer
 	runWG     sync.WaitGroup
 	controlToken string
@@ -118,11 +121,18 @@ func New(cfg config.Config) *Hub {
 			KeepAlive: 30 * time.Second,
 		}).DialContext,
 	}
+	// On the 512 MiB profile, only one model discovery HTTP request may be
+	// active at a time. Android and larger hosts retain four-way discovery.
+	probeLimit := 4
+	if cfg.Resources.MaxRunningSidecars == 1 {
+		probeLimit = 1
+	}
 	h := &Hub{
 		cfg:       cfg,
 		providers: make(map[string]*runtimeProvider),
 		client:    &http.Client{Transport: transport},
 		modelCache: newModelCatalogCache(),
+		modelProbeSlots: make(chan struct{}, probeLimit),
 	}
 	// Ephemeral page-bound CSRF token. Never persist or log the token.
 	var nonce [32]byte
@@ -512,7 +522,6 @@ func (h *Hub) handleModels(w http.ResponseWriter, r *http.Request) {
 		err error
 	}
 	results := make(chan modelFetchResult, len(h.providers))
-	slots := make(chan struct{}, 4)
 	var probes sync.WaitGroup
 	for id, p := range h.providers {
 		if !p.cfg.Enabled || !p.hasRuntime() {
@@ -537,21 +546,23 @@ func (h *Hub) handleModels(w http.ResponseWriter, r *http.Request) {
 		probes.Add(1)
 		go func(id string, p *runtimeProvider) {
 			defer probes.Done()
-			// An already-running on-demand sidecar must stay resident while
-			// its model list is requested. This lease cannot start a sleeper.
+			// Acquire a Hub-wide slot *before* a process lease. An inactive
+			// provider must not be pinned in RAM while other dashboard requests
+			// are still probing their models.
+			select {
+			case h.modelProbeSlots <- struct{}{}:
+				defer func() { <-h.modelProbeSlots }()
+			case <-r.Context().Done():
+				results <- modelFetchResult{id: id, err: r.Context().Err()}
+				return
+			}
+			// A sleeping sidecar is never started by passive model discovery.
 			release, leased := h.leaseRunningDemand(p)
 			if !leased {
 				results <- modelFetchResult{id: id, err: fmt.Errorf("provider stopped before model discovery")}
 				return
 			}
 			defer release()
-			select {
-			case slots <- struct{}{}:
-				defer func() { <-slots }()
-			case <-r.Context().Done():
-				results <- modelFetchResult{id: id, err: r.Context().Err()}
-				return
-			}
 			ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 			models, err := h.fetchModels(ctx, p.cfg)
 			cancel()

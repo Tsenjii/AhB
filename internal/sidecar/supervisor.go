@@ -178,7 +178,7 @@ func (s *Supervisor) startProcess(ctx context.Context) (<-chan error, func(), er
 		return nil, nil, fmt.Errorf("create logs directory: %w", err)
 	}
 	logPath := filepath.Join("logs", s.spec.ID+".log")
-	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
+	logFile, err := openCappedLogFile(logPath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("open sidecar log: %w", err)
 	}
