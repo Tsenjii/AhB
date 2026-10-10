@@ -869,6 +869,7 @@ function accountLabel(x){
 function lastRequestLabel(x){
  if(!x.last_request_at)return 'NOT TESTED';
  if(x.last_request_transport_error)return 'NETWORK ERROR';
+ if(x.id==='duckai'&&x.last_request_http_status===418)return 'HTTP 418 · Duck.ai 拒絕請求';
  return x.last_request_http_status===503?'HTTP 503 · 上游失敗／額度待查':(x.last_request_http_status?'HTTP '+x.last_request_http_status:'UNKNOWN');
 }
 function renderModels(){
@@ -934,6 +935,8 @@ async function refresh(){
       (enabled&&x.start_mode==='on_demand'&&!x.process_alive?'<button type="button" class="btn" data-provider-wake="'+esc(x.id)+'" '+(!ahbProviderControlAvailable?'disabled':'')+'>啟動並載入模型</button>':'')+
       (enabled&&x.start_mode==='on_demand'&&x.process_alive?'<button type="button" class="btn" data-provider-recover="'+esc(x.id)+'" '+(!ahbProviderControlAvailable?'disabled':'')+'>單獨重啟</button>':'')+
       actionLink(x.ui_url,'管理原本 UI',true,enabled&&manageable)+actionLink(x.docs_url,'上游文件',false,true)+'</div>'+
+      (x.id==='duckai'&&x.last_request_http_status===418?'<div class="provider-error">Duck.ai 最近的實際推論被上游拒絕（HTTP 418）。/ping 成功不代表可用；暫停使用並確認官方服務狀態，請勿連續重啟或反覆請求。這不代表 IP 已永久被封鎖。</div>':'')+
+      (x.id==='deepseek'&&x.enabled&&(x.account_total===0||x.account_usable===false)?'<div class="provider-recovery-note">DeepSeek Web 需要先在原生 /admin 設定自己的網頁帳號或有效登入憑證。AhB 管理 Token 只用來進管理台，不是 DeepSeek Web 登入；目前沒有已驗證可用的帳號。</div>':'')+
       ((x.last_request_http_status===503||x.last_request_http_status===502)?'<div class="provider-recovery-note">最近回應 '+esc(x.last_request_http_status)+'：先確認登入與額度，程序卡住時再嘗試單獨重啟（不自動重送）。</div>':'')+
       (x.kind==='sidecar'?'<details class="proxy-config"><summary>程序出站 Proxy · '+(x.proxy_configured?'已設定':'未設定')+'</summary><div class="proxy-input-row"><input type="url" data-provider-proxy-url placeholder="http://127.0.0.1:7890（留白清除）" spellcheck="false" autocomplete="off" aria-label="'+esc(x.id)+' 出站 Proxy URL"><button type="button" class="btn" data-provider-proxy="'+esc(x.id)+'" '+(!ahbProviderControlAvailable?'disabled':'')+'>儲存 Proxy</button></div><div class="proxy-help">只作用於該 Gateway 的 HTTP_PROXY / HTTPS_PROXY 等程序環境變數，可能受上游實作影響；Agent2API 等來源的帳號代理池仍由原生管理介面負責。儲存會重新啟動 AhB。</div></details>':'')+
    '</div></article>';
