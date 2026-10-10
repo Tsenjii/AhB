@@ -929,6 +929,7 @@ async function getJSON(path){const r=await fetch(path,{cache:'no-store'});if(!r.
 function modelCounts(models){const out={};for(const m of models){const p=m.x_provider||'';out[p]=(out[p]||0)+1}return out}
 function accountLabel(x){
  if(x.account_total!==null&&x.account_total!==undefined)return String(x.account_usable_count||0)+'/'+String(x.account_total);
+ if(x.id==='deepseek'&&x.account_total>0&&x.account_usable===null)return '待實測 '+x.account_total+' 組';
  if(x.id==='opencode'&&x.account_usable===true)return 'ANON';
  return x.account_usable===true?'YES':(x.account_usable===false?'NO':'UNKNOWN');
 }
@@ -944,7 +945,7 @@ function renderModels(){
  const shown=rows.slice(0,modelLimit);
  document.getElementById('modelCount').textContent=rows.length===lastModels.length?lastModels.length+' 個模型':rows.length+' / '+lastModels.length+' 個模型';
  document.getElementById('models').innerHTML=shown.length?shown.map(m=>
- '<tr><td><code>'+esc(m.id)+'</code>'+(m.x_cached?'<span class="muted"> · 休眠快取</span>':'')+'</td><td>'+esc(m.x_provider_name||m.x_provider||'—')+'</td><td><code>'+esc(m.x_upstream_id||'—')+'</code></td></tr>'
+ '<tr><td><code>'+esc(m.id)+'</code>'+(m.x_cached?'<span class="muted"> · 休眠快取</span>':'')+'<span class="muted"> · 僅目錄／未實測</span>'+'</td><td>'+esc(m.x_provider_name||m.x_provider||'—')+'</td><td><code>'+esc(m.x_upstream_id||'—')+'</code></td></tr>'
  ).join(''):'<tr><td colspan="3" class="muted">沒有符合的模型</td></tr>';
  const more=document.getElementById('showMoreModels');more.hidden=rows.length<=modelLimit;
  more.textContent='顯示更多模型 · '+shown.length+' / '+rows.length;
