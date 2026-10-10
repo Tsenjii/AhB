@@ -74,7 +74,7 @@ button.primary{background:#dceafb;color:#182636}button:hover:not(:disabled),.btn
 <section class="card input-card" aria-label="測試輸入"><div class="card-label">01 / 請求設定</div>
  <div class="row">
   <div class="field"><label for="provider">Gateway</label><select id="provider"><option value="">載入來源中…</option></select></div>
-  <div class="field"><label for="model">模型（可自行輸入）</label><input id="model" list="modelHints" spellcheck="false" autocomplete="off" placeholder="輸入上游模型名稱"><datalist id="modelHints"></datalist></div>
+  <div class="field"><label for="modelSelect">從清單選擇模型（非實測通過清單）</label><select id="modelSelect"><option value="">選擇 Gateway 後載入</option></select><label for="model" style="display:block;margin-top:9px">或手動輸入模型 ID</label><input id="model" spellcheck="false" autocomplete="off" placeholder="也可以自行輸入"></div>
  </div>
  <div id="providerInfo" class="provider-info" role="status">選擇 Gateway 後顯示程序狀態與認證提醒。</div>
  <div class="field"><label for="prompt">測試問題</label><textarea id="prompt" maxlength="6000" spellcheck="false">請用一句話介紹自己，然後回答 2 + 3 = ?</textarea><div class="preset-row" aria-label="快速測試問題"><button type="button" data-preset="chat">一般聊天</button><button type="button" data-preset="reason">邏輯測試</button><button type="button" data-preset="format">JSON 格式</button></div></div>
@@ -82,8 +82,8 @@ button.primary{background:#dceafb;color:#182636}button:hover:not(:disabled),.btn
   <div class="field"><label for="maxTokens">最大 Tokens</label><input id="maxTokens" type="number" min="1" max="1024" value="256"></div>
   <div><label class="check"><input id="stream" type="checkbox" checked>測試 SSE 串流</label><label class="check"><input id="toolTest" type="checkbox">傳送模擬 Tool Calling</label></div>
  </div>
- <div class="actions"><button id="send" type="button" class="primary" disabled>送出測試</button><button id="cancel" type="button" disabled>停止</button><button id="reload" type="button">更新來源／模型</button></div>
- <p class="note">睡眠來源的模型清單可能是快取；不知道模型時可先回管理頁面掃描。Playground 會按需啟動已啟用 Gateway，但**不會替你登入、不會自動重試、不會執行模擬工具**。</p>
+ <div class="actions"><button id="send" type="button" class="primary" disabled>送出測試</button><button id="cancel" type="button" disabled>停止</button><button id="reload" type="button">更新來源／模型</button><button id="loadModels" type="button" disabled>啟動並載入此來源模型</button></div>
+ <p class="note">模型目錄並非可用性驗證；休眠來源的資料可能是快取。下方「啟動並載入」僅處理選定的 Gateway，沒有清單時仍可手動輸入。Playground 會按需啟動已啟用 Gateway，但**不會替你登入、不會自動重試、不會執行模擬工具**。</p>
 </section>
 <section class="card results-card" aria-label="測試結果"><div class="result-head"><div class="card-label">02 / 真實回應</div><div class="result-actions"><button type="button" id="copyResponse" disabled>複製回答</button><button type="button" id="clearResponse">清除畫面</button></div></div>
  <div class="status" id="status" role="status" aria-live="polite">尚未測試</div>
@@ -97,9 +97,9 @@ button.primary{background:#dceafb;color:#182636}button:hover:not(:disabled),.btn
 const controlToken="__AHB_CONTROL_TOKEN__";
 const controlsAvailable=__AHB_PROVIDER_CONTROL_AVAILABLE__;
 const el=id=>document.getElementById(id);
-const provider=el('provider'),model=el('model'),hints=el('modelHints'),statusBox=el('status');
+const provider=el('provider'),model=el('model'),modelSelect=el('modelSelect'),loadModels=el('loadModels'),statusBox=el('status');
 const output=el('output'),raw=el('raw'),send=el('send'),cancel=el('cancel');
-let providers=[],models=[],active=null;
+let providers=[],models=[],active=null,lastProvider='';
 const copyResponse=el('copyResponse'),clearResponse=el('clearResponse');
 function metric(code,ttft,total){
  el('metrics').replaceChildren();
@@ -129,17 +129,49 @@ async function reload(){
 }
 function chooseModels(){
  const chosen=providers.find(p=>p.id===provider.value);
- el('providerInfo').textContent=chosen?(chosen.display_name||chosen.id)+' · '+(chosen.process_alive?'程序運作中':'目前休眠／未啟動')+' · '+(chosen.provider_ready?'端點已就緒':'仍需確認帳號與可用性'):'尚未選擇來源';
- const items=models.filter(m=>m.x_provider===provider.value&&m.x_upstream_id);
- hints.replaceChildren();
- for(const item of items){
+ const changed=lastProvider!==provider.value;lastProvider=provider.value;
+ const experimental=provider.value==='deepseek';
+ const items=models.filter(m=>m.x_provider===provider.value&&typeof m.x_upstream_id==='string'&&m.x_upstream_id.trim());
+ const unique=new Map();
+ for(const item of items)if(!unique.has(item.x_upstream_id))unique.set(item.x_upstream_id,item);
+ modelSelect.replaceChildren();
+ const placeholder=document.createElement('option');placeholder.value='';
+ placeholder.textContent=experimental?'DeepSeek 靜態模型目錄未經實測，請手動輸入':unique.size?'請選擇模型':'尚無模型目錄，請點下方載入';
+ modelSelect.appendChild(placeholder);
+ // Experimental DeepSeek can advertise invalid static names; do not
+ // present them as ready-to-use choices.
+ if(!experimental)for(const item of unique.values()){
   const option=document.createElement('option');option.value=item.x_upstream_id;
-  option.label=(item.x_cached?'休眠快取 · ':'')+item.x_upstream_id;hints.appendChild(option);
+  option.textContent=item.x_upstream_id+(item.x_cached?'（快取／未驗證）':'（僅宣告／未驗證）');
+  modelSelect.appendChild(option);
  }
- if(!items.some(m=>m.x_upstream_id===model.value))model.value=items.length?items[0].x_upstream_id:'';
- model.placeholder=items.length?'選擇或輸入模型':'請手動輸入真實模型 ID';
+ if(changed)model.value='';
+ modelSelect.value=!experimental&&unique.has(model.value)?model.value:'';
+ model.placeholder=experimental?'輸入已自行確認的 DeepSeek 模型 ID':'輸入模型 ID，或從上面選取';
+ el('providerInfo').textContent=chosen?(chosen.display_name||chosen.id)+' · '+(chosen.process_alive?'運作中':'休眠／未啟動')+' · '+(chosen.provider_ready?'端點就緒':'帳號與可用性待查')+
+ (experimental?' · 可能失效的靜態模型目錄已隱藏':unique.size?' · 宣告 '+unique.size+' 個模型（未實測）':' · 尚無模型目錄'):'尚未選擇來源';
+ loadModels.disabled=!controlsAvailable||!chosen||!!active;
 }
 provider.addEventListener('change',chooseModels);
+modelSelect.addEventListener('change',()=>{if(modelSelect.value)model.value=modelSelect.value});
+model.addEventListener('input',()=>{modelSelect.value=Array.from(modelSelect.options).some(o=>o.value===model.value)?model.value:''});
+loadModels.addEventListener('click',async()=>{
+ const id=provider.value,p=providers.find(item=>item.id===id);
+ if(!controlsAvailable||!p||active)return;
+ loadModels.disabled=true;statusBox.className='status';statusBox.textContent='正在讀取 '+id+' 的模型目錄…';
+ try{
+  if(p.start_mode==='on_demand'){
+   const response=await fetch('/api/control/wake/'+encodeURIComponent(id),{
+    method:'POST',credentials:'same-origin',cache:'no-store',
+    headers:{'X-AhB-Control-Token':controlToken,'Content-Type':'application/json'},body:'{}'
+   });
+   if(!response.ok)throw new Error('啟動失敗 HTTP '+response.status+'：'+(await response.text()).slice(0,180));
+  }
+  await reload();
+  statusBox.textContent='已刷新模型清單；模型仍須經實際推論驗證。';
+ }catch(err){statusBox.className='status bad';statusBox.textContent='模型載入失敗：'+err.message}
+ finally{loadModels.disabled=!controlsAvailable||!provider.value}
+});
 const presets={chat:'請用一句話介紹自己，然後回答 2 + 3 = ?',reason:'有三個盒子，各裝著紅球、藍球或混合球，且標籤全部貼錯。請說明最少抽幾顆球能判斷標籤。',format:'請只輸出合法 JSON，包含 status 為 ok、answer 為 5 兩個欄位。'};
 document.querySelector('.preset-row').addEventListener('click',e=>{const b=e.target.closest('button[data-preset]');if(b&&presets[b.dataset.preset])el('prompt').value=presets[b.dataset.preset]});
 el('prompt').addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();if(!send.disabled)send.click()}});
