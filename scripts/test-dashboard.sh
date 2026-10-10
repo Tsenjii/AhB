@@ -25,6 +25,8 @@ assert "'/api/control/wake/'" in html and "scanAllModels" in html
 assert "'/api/control/console-access'" in html and "nativeConsoleRequest" in html
 # Mobile OAuth: never open a blank tab before obtaining the official link.
 assert "window.open('about:blank'" not in html
+assert "visit.dataset.waking='yes'" in html
+assert "已啟動，點此開啟" in html
 assert "freebuffLink.href=url" in html
 assert "freebuffLink.removeAttribute('href')" in html
 assert "signal:controller.signal" in html
