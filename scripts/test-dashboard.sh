@@ -39,4 +39,23 @@ Path(sys.argv[1]).write_text(js,encoding="utf-8")
 PY
 
 node --check "$TMP/dashboard.js"
-echo "dashboard markup and JavaScript syntax passed"
+
+# Workbench is independently rendered but uses the same private Hub auth.
+# Confirm its JavaScript is parseable and key controls do not silently vanish.
+python3 - "$TMP/playground.js" <<'PY'
+from pathlib import Path
+import sys
+src=Path("internal/hub/playground_ui.go").read_text(encoding="utf-8")
+html=src[src.index("<!doctype html>"):src.index("</html>")+len("</html>")]
+for needle in ('id="provider"', 'id="model"', 'id="prompt"', 'id="stream"',
+               'id="toolTest"', 'id="send"', 'id="cancel"', 'id="status"',
+               "X-AhB-Control-Token", "'/api/control/playground'", "[DONE]",
+               "data:","418","503"):
+    assert needle in html, f"Playground missing: {needle}"
+assert 'window.open(' not in html, "Playground must not open empty OAuth tabs"
+assert "innerHTML=" not in html, "Playground should render model text without HTML injection"
+js=html.split("<script>",1)[1].split("</script>",1)[0]
+Path(sys.argv[1]).write_text(js,encoding="utf-8")
+PY
+node --check "$TMP/playground.js"
+echo "dashboard + Playground markup and JavaScript syntax passed"
