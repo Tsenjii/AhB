@@ -37,9 +37,29 @@ These are connection presets, **not bundled binaries or independently tested ups
 | `gemini` | [xwteam/gemini2api](https://github.com/xwteam/gemini2api), Python service with a primary OpenAI-compatible prefix of `/openai/v1`; the script maps `/v1/...` automatically. | `./scripts/connect-bridge.sh gemini http://127.0.0.1:5918` |
 | `claude` | [yushangxiao/claude2api](https://github.com/yushangxiao/claude2api), external Go service, maintains its own credentials. | `./scripts/connect-bridge.sh claude http://127.0.0.1:8080` |
 | `codex` | [dvcrn/codex-oauth-proxy](https://github.com/dvcrn/codex-oauth-proxy), locally authenticated Codex service that exposes Chat/Responses and separate MCP `/mcp`. A user-authorized Codex CLI login and separately launched API bridge are prerequisites. This is **not ChatGPT browser-Web API**, nor an auto-installer. | `./scripts/connect-bridge.sh codex http://127.0.0.1:9879` |
+| `cliproxy` | [router-for-me/CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI), independently installed OAuth-capable multi-account gateway covering Antigravity, Gemini CLI, Codex, Claude Code, Muse Code and other supported sources. **Not bundled**; no guaranteed Termux ARM64 binary. Give it its own local API key; its default port **8317 conflicts with AhB**, so configure `server.host: 127.0.0.1` and `server.port: 8416` in its private `config.yaml` first. Its own management key and provider OAuth stay in CLIProxyAPI. | `./scripts/connect-bridge.sh cliproxy http://127.0.0.1:8416` |
 | any local API | Bring your own legitimate OpenAI-compatible gateway. ID must be lowercase ASCII (e.g. `mybridge`), length 2–31. | `./scripts/connect-bridge.sh mybridge http://127.0.0.1:8560` |
 
 The matching connector can also be configured from the **Connect** wizard on the Hub homepage. The wizard produces a safe local terminal command rather than asking for your private API key in browser JavaScript.
+
+### CLIProxyAPI source (optional, no binary bundled)
+
+If CLIProxyAPI is **already installed and running** on the same host, configure it privately with the v8 YAML fields:
+
+```yaml
+server:
+  host: "127.0.0.1"
+  port: 8416
+management:
+  allow-remote: false
+  secret-key: "<your-private-management-key>"
+access:
+  api-keys: ["<your-private-API-key>"]
+```
+
+These are **illustrative fields, not a complete config**. Copy its official `config.example.yaml` and retain its other settings. Do not commit real keys or paste them into chat. CLIProxyAPI's API key is entered **privately in Termux** when running `./scripts/connect-bridge.sh cliproxy http://127.0.0.1:8416`. The connector checks only the already-running source's `/v1/models`; it does not install CLIProxyAPI, handle upstream OAuth, guarantee plan entitlement, or validate real inference. A compatible Android executable must be separately verified; Linux ARM64 packages are **not** assumed to run on Termux.
+
+When you want to check Antigravity or other CLIProxyAPI models, use AhB [Playground](../README.md) or a direct inference request; a model listing is not proof of an account being able to answer. Prefer the original CLIProxyAPI manager for its own login, quota and per-account proxy controls instead of duplicating them in AhB.
 
 ### Custom upstream API paths
 
