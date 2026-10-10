@@ -1007,7 +1007,9 @@ async function refresh(){
       '<label class="ui-toggle"><input type="checkbox" data-provider-toggle="'+esc(x.id)+'" '+(x.enabled?'checked ':'')+(!ahbProviderControlAvailable?'disabled ':'')+' aria-label="'+esc(x.display_name||x.id)+' 啟用或停用"><span>'+(x.enabled?'已開啟':'已關閉')+'</span></label>'+
       (enabled&&x.start_mode==='on_demand'&&!x.process_alive?'<button type="button" class="btn" data-provider-wake="'+esc(x.id)+'" '+(!ahbProviderControlAvailable?'disabled':'')+'>啟動並載入模型</button>':'')+
       (enabled&&x.start_mode==='on_demand'&&x.process_alive?'<button type="button" class="btn" data-provider-recover="'+esc(x.id)+'" '+(!ahbProviderControlAvailable?'disabled':'')+'>單獨重啟</button>':'')+
-      (x.id==='copilot'?'<button type="button" class="btn primary" data-copilot-auth>GitHub 授權登入</button>':actionLink(x.ui_url,'管理原本 UI',true,enabled&&manageable))+actionLink(x.docs_url,'上游文件',false,true)+'</div>'+
+      (x.id==='copilot'?'<button type="button" class="btn primary" data-copilot-auth>GitHub 授權登入</button>':actionLink(x.ui_url,'管理原本 UI',true,enabled&&manageable))+
+       (enabled?'<a class="btn" href="/playground?provider='+encodeURIComponent(x.id)+'">直接測試</a>':'')+
+       actionLink(x.docs_url,'上游文件',false,true)+'</div>'+
       (x.id==='copilot'?'<div class="provider-recovery-note">Copilot2API 沒有網頁管理台。請先使用「GitHub 授權登入」，完成後再啟動並在 Playground 實測；/v1/models 不代表有額度。</div>':'')+
        (x.id==='duckai'&&x.last_request_http_status===418?'<div class="provider-error">Duck.ai 最近的實際推論被上游拒絕（HTTP 418）。/ping 成功不代表可用；暫停使用並確認官方服務狀態，請勿連續重啟或反覆請求。這不代表 IP 已永久被封鎖。</div>':'')+
       (x.id==='deepseek'&&x.enabled&&(x.account_total===0||x.account_usable===false)?'<div class="provider-recovery-note">實驗版 DeepSeek Web 已移除舊 /admin 管理台。請將自己授權的 Web 帳號憑證放入本機私有 data/deepseek2api/accounts.txt（權限 0600），然後使用 Playground 檢查真實回覆。舊版管理密碼無法登入新版本。</div>':'')+
