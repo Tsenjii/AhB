@@ -46,6 +46,8 @@ jobs:
         run: bash scripts/test-upgrade-prebuilt.sh
       - name: Test universal localhost bridge connector
         run: bash scripts/test-connect-bridge.sh
+      - name: Check Agent2API revision parity and optional CLIProxy preset
+        run: bash scripts/test-agent2api-cliproxy-fixture.sh
       - name: Validate embedded dashboard script
         run: bash scripts/test-dashboard.sh
 

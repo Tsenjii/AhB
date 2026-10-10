@@ -153,8 +153,8 @@ jobs:
           CARGO_BUILD_JOBS: "2"
         run: |
           set -euo pipefail
-          # Pinned Agent2API v2.9.8 upstream source (2026-10-08); built as native Linux headless.
-          AGENT_SHA="f82308a9549ee4760f27e393058c3482056ec514"
+          # Pinned Agent2API v2.9.9 upstream source (2026-10-09); built as native Linux headless.
+          AGENT_SHA="cd97bce9912225e055cc79761d96a3f0b77e26f8"
           git init /tmp/agent2api
           git -C /tmp/agent2api remote add origin https://github.com/aimod-cc/agent2api.git
           git -C /tmp/agent2api fetch --depth 1 origin "$AGENT_SHA"

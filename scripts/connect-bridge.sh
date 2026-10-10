@@ -17,6 +17,7 @@ Examples:
   ./scripts/connect-bridge.sh lmarena http://127.0.0.1:5102
   ./scripts/connect-bridge.sh windsurf http://127.0.0.1:3003
   ./scripts/connect-bridge.sh codex http://127.0.0.1:9879
+  ./scripts/connect-bridge.sh cliproxy http://127.0.0.1:8416
   ./scripts/connect-bridge.sh kimi http://127.0.0.1:8000
   ./scripts/connect-bridge.sh gemini http://127.0.0.1:5918
   ./scripts/connect-bridge.sh mybridge http://127.0.0.1:8560
@@ -31,7 +32,8 @@ HELP
 if [ "${1:-}" = "--list" ]; then
   printf '%s\n' "lmarena  LMArena (bring your own local bridge)" "windsurf WindsurfAPI" \
     "qwen     Qwen2API_Go" "kimi     Kimi2API" "gemini   Gemini2API" \
-    "claude   Claude2API" "codex    Codex OAuth API/MCP (user-run)" "custom   Any localhost OpenAI-compatible API"
+    "claude   Claude2API" "codex    Codex OAuth API/MCP (user-run)" \
+    "cliproxy CLIProxyAPI (optional, Antigravity/Codex/Claude/Muse)" "custom   Any localhost OpenAI-compatible API"
   exit 0
 fi
 
@@ -77,6 +79,7 @@ case "$id" in
   gemini) title="Gemini2API"; docs="https://github.com/xwteam/gemini2api" ;;
   claude) title="Claude2API"; docs="https://github.com/yushangxiao/claude2api" ;;
   codex) title="Codex OAuth API Bridge"; docs="https://github.com/dvcrn/codex-oauth-proxy" ;;
+  cliproxy) title="CLIProxyAPI"; docs="https://github.com/router-for-me/CLIProxyAPI" ;;
   *) title="$id Bridge"; docs="" ;;
 esac
 

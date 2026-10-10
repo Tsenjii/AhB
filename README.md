@@ -247,16 +247,19 @@ cd ~/AhB
 ./scripts/connect-bridge.sh lmarena http://127.0.0.1:5102
 ```
 
-It privately asks for an optional local bridge API key, verifies `GET /v1/models`, and only then enables the local route. Restart AhB to apply it. Supported named presets include `windsurf`, `qwen`, `kimi`, `gemini`, and `claude`; custom IDs work for other OpenAI-compatible localhost services.
+It privately asks for an optional local bridge API key, verifies `GET /v1/models`, and only then enables the local route. Restart AhB to apply it. Supported named presets include `windsurf`, `qwen`, `kimi`, `gemini`, `claude` and **optional `cliproxy`** for a separately running [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) instance with Antigravity/Codex/Claude/Muse OAuth. Configure it to **127.0.0.1:8416** first: its original 8317 listener collides with AhB. Native Android binary/login are not yet validated; this is **only an opt-in connector**, not an extra bundled daemon.
 
 ```sh
 ./scripts/connect-bridge.sh --list
 ./scripts/connect-bridge.sh windsurf http://127.0.0.1:3003
 ./scripts/connect-bridge.sh kimi http://127.0.0.1:8000
 ./scripts/connect-bridge.sh gemini http://127.0.0.1:5918
+./scripts/connect-bridge.sh cliproxy http://127.0.0.1:8416
 ```
 
 The bridge must itself be installed, running, and legitimately usable. The presets are **connectors, not bundled upstream implementations**. No browser-session bypass, CAPTCHA solving, anti-bot evasion, or bulk account creation is included. See [External bridge guide](docs/BRIDGES.md) for project links, custom API paths, precise limits and troubleshooting.
+
+**Agent2API pin:** the reviewed upstream [v2.9.9](https://github.com/aimod-cc/agent2api/releases/tag/v2.9.9) commit `cd97bce9912225e055cc79761d96a3f0b77e26f8` is used by Android ARM64/Linux AMD64/ARM64 native build workflows and the optional Termux source installer. This version fixes crash and SSE-close handling and improves Qoder / account limits. Publishing new binaries and actual phone acceptance require separate successful build gates.
 
 
 ### Optional Grok2API provider

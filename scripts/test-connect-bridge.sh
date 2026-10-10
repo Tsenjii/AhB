@@ -45,6 +45,10 @@ AIHUB_BRIDGE_API_KEY="" bash ./scripts/connect-bridge.sh lmarena http://127.0.0.
 test "$(jq '[.providers[] | select(.id=="lmarena")] | length' config.json)" -eq 1
 jq -e '.providers[] | select(.id=="lmarena").headers.Authorization=="Bearer private-key"' config.json >/dev/null
 
+# CLIProxyAPI is opt-in, uses separate 8416 (not AhB's 8317) and must
+# preserve locally supplied API authentication; no account data is imported.
+AIHUB_BRIDGE_API_KEY="cliproxy-test-local-key" bash ./scripts/connect-bridge.sh cliproxy http://127.0.0.1:8416
+jq -e '.providers[] | select(.id=="cliproxy" and .kind=="external" and .enabled==true and .base_url=="http://127.0.0.1:8416" and .headers.Authorization=="Bearer cliproxy-test-local-key" and .docs_url=="https://github.com/router-for-me/CLIProxyAPI")' config.json >/dev/null
 bash ./scripts/connect-bridge.sh mybridge http://127.0.0.1:8560
 jq -e '.providers[] | select(.id=="mybridge" and .kind=="external" and .enabled==true)' config.json >/dev/null
 test "$(jq '[.routing.same_model_fallback.providers[] | select(.=="mybridge")] | length' config.json)" -eq 1

@@ -4,8 +4,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SRC="$ROOT/.build/agent2api"
 BIN_DIR="$ROOT/bin"
-VERSION="v2.9.7"
-EXPECTED_SHA="3618f6413610ca04b72991987c0b6589dc2fe54b"
+VERSION="v2.9.9"
+EXPECTED_SHA="cd97bce9912225e055cc79761d96a3f0b77e26f8"
 
 if ! command -v pkg >/dev/null 2>&1; then
   echo "This script must run inside Termux."
