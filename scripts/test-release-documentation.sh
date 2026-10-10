@@ -8,6 +8,6 @@ grep -Fq "defaults to \`$tag\`" docs/DOCKER.md || { echo "Docker guide mismatch"
 grep -Fq "releases/tag/$tag" README.md || { echo "README missing compiled baseline" >&2; exit 1; }
 grep -Fq "DeepSeek Web: no native admin WebUI" README.md || { echo "DeepSeek UI guidance mismatch" >&2; exit 1; }
 if grep -Fq "DeepSeek2API\x27s original management UI" README.md; then echo "obsolete DeepSeek UI" >&2; exit 1; fi
-grep -Fq "v2.9.9" docs/PROVIDERS.md || { echo "Agent2API docs stale" >&2; exit 1; }
+grep -Fq "v3.0.1" docs/PROVIDERS.md || { echo "Agent2API docs stale" >&2; exit 1; }
 grep -Fq "Rust HTTP-only" docs/PROVIDERS.md || { echo "Duck docs stale" >&2; exit 1; }
 echo "release documentation parity: PASS"
