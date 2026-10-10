@@ -1,7 +1,7 @@
 # CURRENT VERIFIED COMPILED RELEASE — 2026-10-10
 
 - Source [`15b2a47`](https://github.com/Tsenjii/AhB/commit/15b2a47dea22a964755e6ed97ef0769b2baa1cda): [CI/race passed](https://github.com/Tsenjii/AhB/actions/runs/38033913231), [Android ARM64 passed and published](https://github.com/Tsenjii/AhB/actions/runs/38033913234), [Linux AMD64/ARM64 passed and published](https://github.com/Tsenjii/AhB/actions/runs/38033913238), [native Linux release](https://github.com/Tsenjii/AhB/releases/tag/linux-15b2a47dea22). Android prebuilt/source-commit.txt matched compiled source at inspection. Check Actions again for later commits.
-- Nine compiled gateways: OpenCode, FreeBuff Node, Agent2API **v2.9.9**, experimental **0xgetz DeepSeek Web Go** (NO old /admin), Grok, Kiro, Copilot, Gemini Web and experimental **Duck Rust HTTP-only**. DeepSeek/Duck disabled on fresh installs; CLIProxyAPI is connector-only.
+- Nine compiled gateways: OpenCode, FreeBuff Node, Agent2API **v3.0.1 (new upstream pin, release gated)**, experimental **0xgetz DeepSeek Web Go** (NO old /admin), Grok, Kiro, Copilot, Gemini Web and experimental **Duck Rust HTTP-only**. DeepSeek/Duck disabled on fresh installs; CLIProxyAPI is connector-only.
 - `/ui` includes one-stop local account/onboarding; `/playground` tests direct real chat and optional SSE without cross-provider fallback. Backups and existing `data/`, `config.json` are preserved; keep `~/AhB.backup-20261008-194847` if still present.
 - **Unverified on phone:** actual new source credentials/quota, DeepSeek chat, Duck HTTP 418 recovery, FreeBuff/Copilot authorization, complete tool continuation, OpenCode intermittent 503, and real 512 MiB peak RSS/OOM. CI and local dummy-account fixtures do not clear these items.
 - Superseding migration guides: [adapter swap](EXPERIMENTAL_ADAPTER_SWAP_2026-10-10.md), [availability](DEEPSEEK_DUCK_AVAILABILITY_2026-10-10.md), [Android acceptance](ANDROID_FINAL_ACCEPTANCE.md). All older source pins and DeepSeek admin references below are historical.
@@ -37,7 +37,7 @@
 ## Verified release checkpoint — 2026-10-09
 
 - [PR #24](https://github.com/Tsenjii/AhB/pull/24) merged into main `570ef0e7af7eceb06bf428f71a5d76259782acb8`: local single-Gateway recovery with 45s cooldown and active-SSE rejection; credentialless best-effort per-sidecar egress Proxy setting and mobile UI. CI, Android ARM64, native Linux AMD64/ARM64 all passed; Android `prebuilt/source-commit.txt` matches exactly; [Linux release](https://github.com/Tsenjii/AhB/releases/tag/linux-570ef0e7af7e) includes checksums.
-- Agent2API is pinned at **v2.9.8** `f82308a9549ee4760f27e393058c3482056ec514` in both native builds, currently matching upstream main/release. Do not replace native per-account proxy pools with a Hub-level duplicate.
+- **Historical 2026-10-10 checkpoint**: Agent2API was previously pinned at v2.9.8. For latest exact pins and release verification see [the 2026-10-11 upstream audit](UPSTREAM_AUDIT_2026-10-11.md). Do not replace native per-account proxy pools with a Hub-level duplicate.
 - Portable Docker/Compose is Linux AMD64/ARM64 using this published release, private ingress credentials and persistent `/state`. See [Docker guide](DOCKER.md). macOS and Windows are Docker Desktop compatible for the Linux image; there are **no verified native Darwin or Windows AhB binaries**.
 - GitHub source/packaging checks are green; the user's actual Android phone update, account quota, end-to-end OpenCode/Muse, FreeBuff login and full real-tool SSE/RSS remain **unverified**.
 
@@ -71,7 +71,7 @@ Nine bundled gateway implementations. DeepSeek Web and Duck.ai are disabled in *
 | --- | --- | --- | --- |
 | `opencode/` | OpenCode2API | Go | Earlier Android real chat and SSE confirmed; new release and complete tool roundtrip need retest |
 | `freebuff/` | yutian81/freebuff2api | Node.js >=20 | **Replaces Rust v0.10.3**; new CLI/Bearer login required; no old Rust WebUI |
-| `agent2api/` | Agent2API pinned v2.9.8 | Rust, unchanged upstream | Previously saw account credentials but insufficient quota; new release untested |
+| `agent2api/` | Agent2API upstream v3.0.1 candidate | Rust, unchanged upstream | Previously saw account credentials but insufficient quota; new release untested |
 | `deepseek/` | DeepSeek2API | Go | Live Android auth/chat/tools not verified |
 | `grok/` | Grok2API | Go | Live Android auth/chat/tools not verified |
 | `kiro/` | Kiro-Go | Go | Live Android auth/chat/tools not verified |
