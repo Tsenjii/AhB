@@ -83,8 +83,8 @@
     {
       "id": "deepseek",
       "display_name": "DeepSeek Web",
-      "description": "Optional: DeepSeek Web multi-account gateway via Deepseek2API",
-      "enabled": true,
+      "description": "DeepSeek Web account bridge (chat.deepseek.com). Disabled until real Web account/session is configured and live inference is tested; admin token is NOT DeepSeek login.",
+      "enabled": false,
       "kind": "sidecar",
       "base_url": "http://127.0.0.1:8405",
       "ui_url": "http://127.0.0.1:8405/admin",
@@ -223,8 +223,8 @@
     {
       "id": "duckai",
       "display_name": "DuckDuckGo AI",
-      "description": "Duck.ai Go bridge (anonymous chat, multimodal endpoints; unofficial)",
-      "enabled": true,
+      "description": "Experimental unofficial Duck.ai gateway; real upstream chats may return HTTP 418. Disabled pending live acceptance; local /ping is not inference success.",
+      "enabled": false,
       "kind": "sidecar",
       "start_mode": "on_demand",
       "base_url": "http://127.0.0.1:8414",
