@@ -439,9 +439,9 @@ func assessProviderHealth(id, kind string, snap sidecar.Snapshot, account accoun
 		if account.Known {
 			// The experimental adapter inventories token lines, not actual
 			// authenticated chat/quotas. Keep candidates UNKNOWN, not YES.
-			if account.Total == 0 {
+			if account.Usable == 0 {
 				a.AccountUsable = boolPtr(false)
-				a.Detail = "no configured DeepSeek credentials"
+				a.Detail = "no configured usable DeepSeek credential candidates"
 			} else {
 				a.Detail = "DeepSeek credentials configured, but live inference unverified"
 			}
