@@ -6,13 +6,13 @@ This page describes provider **integration**, not proof of live account or infer
 |---|---|---|---|---|
 | `opencode/` | [opencode2api v1.3.7](https://github.com/jasonxu114514/opencode2api) | yes | enabled | `127.0.0.1:8404/` |
 | `freebuff/` | [yutian81/freebuff2api](https://github.com/yutian81/freebuff2api) pinned e0d8c9d (Node >=20) | yes | enabled; requires fresh CLI/Bearer login | no management UI; `scripts/freebuff-login-termux.sh` |
-| `agent2api/` | [Agent2API v2.9.8 pinned source](https://github.com/aimod-cc/agent2api) | yes | enabled by prebuilt installer when complete | `127.0.0.1:8403/` |
-| `deepseek/` | [Deepseek2API](https://github.com/zengtao227/Deepseek2API) pinned source | yes | disabled on fresh installs; needs real chat.deepseek.com Web account/session; admin key alone is insufficient | `127.0.0.1:8405/admin` |
+| `agent2api/` | [Agent2API v2.9.9 pinned source](https://github.com/aimod-cc/agent2api) | yes | enabled by prebuilt installer when complete | `127.0.0.1:8403/` |
+| `deepseek/` | [0xgetz/deepseek2api](https://github.com/0xgetz/deepseek2api) experimental pure-Go source | yes | disabled on fresh installs; needs real chat.deepseek.com Web account/session; admin key alone is insufficient | none; private `data/deepseek2api/accounts.txt` instead |
 | `grok/` | [Grok2API v3.1.6](https://github.com/chenyme/grok2api/releases/tag/v3.1.6), pinned to 2026-09-30 upstream SHA | yes | configured enabled/on demand; **P0 to test account readiness** | `127.0.0.1:8407/` |
 | `kiro/` | [Kiro-Go](https://github.com/Quorinex/Kiro-Go) pinned source | yes | configured enabled/on demand; real account inference unverified | `127.0.0.1:8408/admin` |
 | `copilot/` | [copilot2api pinned](https://github.com/whtsky/copilot2api) | yes; no verified account-backed phone inference | configured enabled, authorized OAuth required | device login via AhB dashboard |
 | `geminiweb/` | [zexadev/gemini-web2api-go](https://github.com/zexadev/gemini-web2api-go) | yes, native Go ARM64 | on demand; account auth/inference unverified | upstream-dependent |
-| `duckai/` | [aurora-develop/Duck2api](https://github.com/aurora-develop/Duck2api) | yes, native Go ARM64 | disabled on fresh installs; current upstream may return HTTP 418, so live chat is unverified | upstream-dependent |
+| `duckai/` | [desktop-tools-which-may-be-useful/duckai2api](https://github.com/desktop-tools-which-may-be-useful/duckai2api) Rust HTTP-only | yes, native Rust ARM64 | disabled on fresh installs; current upstream may return HTTP 418, so live chat is unverified | upstream-dependent |
 | `kimiweb/` | [chopper1026/kimi2api pinned](https://github.com/chopper1026/kimi2api) | **installer scripts only** (Python/React not bundled) | disabled; use `install-kimiweb-termux.sh` then `enable-kimiweb-termux.sh` | `127.0.0.1:8412/admin` |
 | `lmarena/` | separate user-supplied localhost bridge | **no bridge bundled** | disabled external slot | depends on bridge |
 
@@ -26,7 +26,7 @@ Android upgrade installs Termux Node.js. The next step is explicit user-initiate
 
 ## Agent2API release pin
 
-The published Android dual release at source `5841235cde0465fc29bec06fc584d4526d971c47` pins upstream Agent2API v2.9.8 source `f82308a9549ee4760f27e393058c3482056ec514`, built headless with the original UI. It is packaged, but real account quota and full Android tool continuation for this release remain unverified. The historical v2.9.6/v2.9.7 notes apply to older archives only.
+The compiled Android/Linux source at `15b2a47dea22a964755e6ed97ef0769b2baa1cda` pins upstream Agent2API v2.9.9 source `cd97bce9912225e055cc79761d96a3f0b77e26f8`, built headless with the original UI. It is packaged, but real account quota and full Android tool continuation for this release remain unverified. The historical v2.9.6/v2.9.7 notes apply to older archives only.
 
 ## What the upstream management UIs own
 

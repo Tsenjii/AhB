@@ -63,6 +63,9 @@ jobs:
       - name: Validate living provider registry
         run: bash scripts/test-provider-registry.sh
 
+      - name: Check release guidance and Docker pin parity
+        run: bash scripts/test-release-documentation.sh
+
       - name: Validate JSON configs
         run: |
           python3 - <<'PY'

@@ -1,3 +1,12 @@
+# CURRENT VERIFIED COMPILED RELEASE — 2026-10-10
+
+- Source [`15b2a47`](https://github.com/Tsenjii/AhB/commit/15b2a47dea22a964755e6ed97ef0769b2baa1cda): [CI/race passed](https://github.com/Tsenjii/AhB/actions/runs/38033913231), [Android ARM64 passed and published](https://github.com/Tsenjii/AhB/actions/runs/38033913234), [Linux AMD64/ARM64 passed and published](https://github.com/Tsenjii/AhB/actions/runs/38033913238), [native Linux release](https://github.com/Tsenjii/AhB/releases/tag/linux-15b2a47dea22). Android prebuilt/source-commit.txt matched compiled source at inspection. Check Actions again for later commits.
+- Nine compiled gateways: OpenCode, FreeBuff Node, Agent2API **v2.9.9**, experimental **0xgetz DeepSeek Web Go** (NO old /admin), Grok, Kiro, Copilot, Gemini Web and experimental **Duck Rust HTTP-only**. DeepSeek/Duck disabled on fresh installs; CLIProxyAPI is connector-only.
+- `/ui` includes one-stop local account/onboarding; `/playground` tests direct real chat and optional SSE without cross-provider fallback. Backups and existing `data/`, `config.json` are preserved; keep `~/AhB.backup-20261008-194847` if still present.
+- **Unverified on phone:** actual new source credentials/quota, DeepSeek chat, Duck HTTP 418 recovery, FreeBuff/Copilot authorization, complete tool continuation, OpenCode intermittent 503, and real 512 MiB peak RSS/OOM. CI and local dummy-account fixtures do not clear these items.
+- Superseding migration guides: [adapter swap](EXPERIMENTAL_ADAPTER_SWAP_2026-10-10.md), [availability](DEEPSEEK_DUCK_AVAILABILITY_2026-10-10.md), [Android acceptance](ANDROID_FINAL_ACCEPTANCE.md). All older source pins and DeepSeek admin references below are historical.
+
+---
 # NEXT AI HANDOFF — AhB (2026-10-09 release checkpoint)
 
 ## Android live failure report — 2026-10-10 (DeepSeek + Duck.ai)
