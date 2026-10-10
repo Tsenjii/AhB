@@ -785,7 +785,7 @@ function switchTab(name){
 }
 document.getElementById('ahbTabs').addEventListener('click',e=>{
  const b=e.target.closest('button[data-tab]');
- if(b)switchTab(b.dataset.tab);
+ if(b){switchTab(b.dataset.tab);if(b.dataset.tab==='home')refresh()}
 });
 function controlNotice(message){
  const el=document.getElementById('controlInfo');
@@ -909,7 +909,7 @@ const fmtBytes=n=>!n?'—':n<1048576?(n/1024).toFixed(1)+' KiB':(n/1048576).toFi
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let lastModels=[];
 let lastProviders=[];
-let modelLimit=120,providerFilter='all',refreshing=false;
+let modelLimit=120,providerFilter='all',refreshing=false,runtimePolling=false;
 let scanningAllModels=false;
 async function getJSON(path){const r=await fetch(path,{cache:'no-store'});if(!r.ok)throw new Error(path+' HTTP '+r.status);return r.json()}
 function modelCounts(models){const out={};for(const m of models){const p=m.x_provider||'';out[p]=(out[p]||0)+1}return out}
@@ -1113,7 +1113,8 @@ refresh();
 // Refresh RAM separately: avoid re-probing all upstream model lists merely
 // to update the memory gauge on a 512 MiB VPS.
 setInterval(()=>{
- if(document.visibilityState==='hidden')return;
+ if(document.visibilityState==='hidden'||runtimePolling)return;
+ runtimePolling=true;
  getJSON('/api/runtime').then(r=>{
   const total=r.system_total_bytes||0,used=r.system_used_bytes||0;
   const pct=total?Math.min(100,Math.round(used/total*100)):0;
@@ -1123,9 +1124,10 @@ setInterval(()=>{
   document.getElementById('ahbRamValue').textContent=fmtBytes(r.ahb_rss_bytes);
   document.getElementById('ramMeter').style.width=pct+'%';
   document.getElementById('runtime').textContent='AhB RSS '+fmtBytes(r.ahb_rss_bytes)+' · 按需 '+(r.running_on_demand??0)+'/'+(r.max_running_sidecars||1)+' · '+(r.goos||'?')+'/'+(r.goarch||'?');
- }).catch(()=>{});
-},5000);
-setInterval(()=>{if(document.visibilityState!=='hidden')refresh()},30000);
+ }).catch(()=>{}).finally(()=>{runtimePolling=false});
+},10000);
+setInterval(()=>{if(document.visibilityState!=='hidden'&&!document.getElementById('providersSection').classList.contains('ahb-tab-hidden'))refresh()},45000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&!document.getElementById('providersSection').classList.contains('ahb-tab-hidden'))refresh()});
 </script>
 </body>
 </html>`
