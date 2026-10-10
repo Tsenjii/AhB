@@ -40,6 +40,30 @@ func (j *copilotLoginSession) update(state,url,code,detail string) {
  if code!="" {j.UserCode=code}
  if detail!="" {j.Detail=detail}
 }
+// Map known startup errors to bounded, user-facing hints. Never expose
+// raw upstream logs or GitHub credentials to the local dashboard.
+func copilotSafeFailureHint(line string) string {
+ lower:=strings.ToLower(line)
+ switch {
+ case strings.Contains(lower,"exec format error"):
+  return "Copilot 執行檔架構不符，請檢查 Android ARM64 安裝包。"
+ case strings.Contains(lower,"no such host")||strings.Contains(lower,"lookup github.com")||strings.Contains(lower,"network is unreachable"):
+  return "Termux 無法連上 GitHub（DNS／網路），請先檢查手機網路。"
+ case strings.Contains(lower,"failed to request device code")||strings.Contains(lower,"failed to initiate device flow"):
+  return "GitHub 裝置授權請求失敗，請檢查 Termux 的網路。"
+ case strings.Contains(lower,"access_denied")||strings.Contains(lower,"authorization declined"):
+  return "GitHub 裝置授權被拒絕，請重新登入。"
+ case strings.Contains(lower,"expired_token")||strings.Contains(lower,"polling timeout"):
+  return "一次性授權碼已過期，請重新取得。"
+ case strings.Contains(lower,"failed to get copilot token")||strings.Contains(lower,"copilot_internal")||strings.Contains(lower,"failed to refresh copilot token"):
+  return "GitHub 已授權，但無法取得 Copilot Token；請檢查帳號使用資格。"
+ case strings.Contains(lower,"failed to get access token")||strings.Contains(lower,"token error"):
+  return "GitHub 裝置授權未完成或已失效，請重新登入。"
+ case strings.Contains(lower,"connection refused")||strings.Contains(lower,"i/o timeout"):
+  return "無法連接 GitHub，請檢查手機網路。"
+ }
+ return ""
+}
 func copilotHasLocalCredentials(root string) bool {
  path:=filepath.Join(root,"data","copilot2api","credentials.json")
  st,err:=os.Lstat(path)
@@ -76,7 +100,7 @@ func (h *Hub) handleCopilotLogin(w http.ResponseWriter,r *http.Request) {
  h.copilotLoginMu.Lock()
  defer h.copilotLoginMu.Unlock()
  if copilotHasLocalCredentials(root) {
-  writeJSON(w,200,map[string]string{"state":"done","detail":"本機 Copilot 授權資料已存在，可以使用首頁開關啟用。"})
+  writeJSON(w,200,map[string]string{"state":"done","detail":"本機已有 GitHub 授權資料；Copilot 模型與額度仍須實際驗證。"})
   return
  }
  if request.Action=="status" {
@@ -90,7 +114,7 @@ func (h *Hub) handleCopilotLogin(w http.ResponseWriter,r *http.Request) {
  h.controlMu.Unlock()
  if busy {http.Error(w,"AhB restart pending",409);return}
  if p,ok:=h.providers["copilot"]; !ok || (p.cfg.Enabled && (!h.onDemand(p) || p.snapshot().PID>0)) {
-  http.Error(w,"Please stop any active Copilot service before interactive device login",409);return
+  http.Error(w,"Copilot 程序正在執行，請先停用此來源再開始裝置授權。",409);return
  }
  if h.copilotLogin!=nil {
   state:=h.copilotLogin.snapshot()["state"]
@@ -123,8 +147,24 @@ func runCopilotLogin(root,binary,credsDir string,job *copilotLoginSession) {
  // Deliberately discard stderr and do not record stdout. The token never
  // appears in the dashboard, terminal logs or AhB's JSON status endpoints.
  cmd.Stderr=io.Discard
- if err:=cmd.Start();err!=nil {job.update("failed","","","Copilot 無法啟動");return}
+ if err:=cmd.Start();err!=nil {
+  hint:=copilotSafeFailureHint(err.Error())
+  if hint==""{hint="Copilot 執行檔無法啟動，請確認 Android ARM64 版本及執行權限。"}
+  job.update("failed","","",hint);return
+ }
 
+ var hintMu sync.Mutex
+ failureHint:=""
+ observe:=func(line string) {
+  if hint:=copilotSafeFailureHint(line);hint!=""{
+   hintMu.Lock();failureHint=hint;hintMu.Unlock()
+  }
+ }
+ safeHint:=func() string {
+  hintMu.Lock();defer hintMu.Unlock()
+  if failureHint!=""{return failureHint}
+  return "登入程序提早結束，請確認裝置授權、Termux 網路與 Copilot 資格。"
+ }
  done:=make(chan struct{})
  go func(){
   defer close(done)
@@ -132,6 +172,7 @@ func runCopilotLogin(root,binary,credsDir string,job *copilotLoginSession) {
   scan.Buffer(make([]byte,4096),64*1024)
   for scan.Scan() {
    line:=strings.TrimSpace(scan.Text())
+   observe(line)
    if strings.HasPrefix(line,"Please visit: ") {
     url:=strings.TrimSpace(strings.TrimPrefix(line,"Please visit: "))
     if url=="https://github.com/login/device" || url=="https://github.com/login/device/" {
@@ -170,7 +211,7 @@ func runCopilotLogin(root,binary,credsDir string,job *copilotLoginSession) {
    if copilotHasLocalCredentials(root) {
     job.update("done","","","GitHub 授權資料已儲存在手機。")
    } else {
-    job.update("failed","","","登入程序提早結束。請確認網路／Copilot 帳號資格後再試。")
+    job.update("failed","","",safeHint())
    }
    return
   case <-ctx.Done():
