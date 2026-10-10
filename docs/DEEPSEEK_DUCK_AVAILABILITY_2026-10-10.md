@@ -1,30 +1,25 @@
-# DeepSeek Web and Duck.ai: availability / login
+# DeepSeek Web / Duck.ai current availability and login (2026-10-10)
 
-Updated 2026-10-10. Packaging and local health checks are not proof of live inference or usable account entitlement.
+**Current compiled source:** [15b2a47](https://github.com/Tsenjii/AhB/commit/15b2a47dea22a964755e6ed97ef0769b2baa1cda). The old DeepSeek admin WebUI and old Go Duck adapter are no longer bundled. Successful compilation is not proof of live inference.
 
-## DeepSeek Web
+## Experimental DeepSeek Web
 
-The bundled [zengtao227/Deepseek2API](https://github.com/zengtao227/Deepseek2API) connects to `chat.deepseek.com` Web service URLs, not the separately paid DeepSeek Platform API.
+- The bundled source is [0xgetz/deepseek2api](https://github.com/0xgetz/deepseek2api) pinned to `41b924e7741e1619433469900625dca132e00d6c`. It is pure Go, serves `deepseek/` at `127.0.0.1:8405`, and does **not** provide the old `/admin` UI.
+- Real authorized Web account credentials must exist in a **private** `~/AhB/data/deepseek2api/accounts.txt`, one per line, permission 0600. The old `admin-key.txt`, previous JSON config and session data do not authenticate this new upstream. `./scripts/enable-deepseek2api.sh` rejects missing/empty accounts; it cannot sign in for the user.
+- This upstream offers model listing and Chat Completions. Do not assume Responses, Anthropic Messages, native tool calling, or SSE compatibility without real validation. Test via AhB `/playground` using **direct provider routing** and no fallback.
+- Fresh installations leave this experimental provider disabled. Existing account files/configs remain preserved for rollback without silently migrating incompatible secrets.
 
-- The local original admin console is `http://127.0.0.1:8405/admin`; its AhB-generated management token is private at `~/AhB/data/deepseek2api/admin-key.txt`.
-- That management token is *not* a DeepSeek Web account. A real authorized DeepSeek Web account/session must also be configured and a content-bearing chat tested in the original console. Empty account pool means it cannot infer.
-- AhB does not have FreeBuff-style one-tap Web OAuth for DeepSeek. Original management options and the actual DeepSeek login are separate.
-- DeepSeek is disabled by default in fresh-install templates until configured and tested. Existing installed `config.json` and accounts remain untouched by upgrade.
+## Experimental Duck.ai
 
-## Duck.ai / 418 I'm a teapot
+- The bundled source is [desktop-tools-which-may-be-useful/duckai2api](https://github.com/desktop-tools-which-may-be-useful/duckai2api), pinned to `d8c6888eeb11daedb71a6ad589095f0a315626eb`, compiled as Rust HTTP-only (`--no-default-features --features http`), without Chromium/Playwright.
+- Android ARM64 and Linux AMD64/ARM64 native builds succeeded, but the user's previous **HTTP 418** has **not** been demonstrated fixed. `/health` only proves the local process is alive; models appearing in `/v1/models` do not prove usable upstream quota.
+- New installs leave Duck disabled. Do not attempt to defeat service restrictions or automate repeated rejected requests; select an authorized supported source if necessary.
 
-The bundled [aurora-develop/Duck2api](https://github.com/aurora-develop/Duck2api) unofficial bridge calls Duck.ai private service endpoints. Upstream source `internal/duckgo/request.go` already retries temporary 418/429 responses; this does not guarantee recovery.
+## Acceptance
 
-- HTTP 418 from a real chat means upstream refused the request. A green local `/ping` only proves the Gateway's process can answer its own health check.
-- AhB now shows recent Duck.ai HTTP 418 as DEGRADED with an explicit warning even if the local health endpoint is green. An actual later successful request or an old error clears that recent-error classification; status code 200 alone still cannot guarantee completed streaming output.
-- 418 is not evidence by itself that a particular IP, device or account is permanently banned. It can have several upstream causes which need provider-side evidence to distinguish.
-- Duck.ai is disabled by default on new installs pending current real inference acceptance. Existing user settings are preserved.
-- Avoid repeatedly restarting or flooding a rejected service; allow the upstream issue to resolve or use a supported official integration.
+1. Verify release SHA, CI, both builds and the Android prebuilt commit.
+2. Upgrade non-destructively and preserve existing private accounts and backups.
+3. On device, confirm a nonempty real chat response, SSE `[DONE]` where available and full tool-result continuation only when the provider supports it.
+4. For Linux 512 MiB, record cold-start, steady and peak RSS and OOM events.
 
-## Validation hierarchy
-
-1. Local process runs, health endpoint works.
-2. Provider account or remote access is usable.
-3. A real request returns meaningful content, complete streaming and structured tool calls where supported.
-
-No real user account/login or source quota was verified by CI. This change fixes misleading status/defaults; it does not claim to repair Duck.ai's upstream HTTP 418 or add DeepSeek account authorization.
+See [adapter migration](EXPERIMENTAL_ADAPTER_SWAP_2026-10-10.md) and [Android acceptance](ANDROID_FINAL_ACCEPTANCE.md).

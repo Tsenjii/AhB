@@ -43,7 +43,7 @@ environment and Node.js for FreeBuff. See
 [512 MB VPS guide](docs/DEPLOY_VPS_512MB.md) and
 [technical constraints](docs/512MB-DEPLOYMENT.md).
 
-**Release status (2026-10-10):** main source `0f48b1165b468658e34ea273f3a9b02ed147b2af` passed full CI/race and Android ARM64/native Linux AMD64/ARM64 bundle builds; the Android `prebuilt/source-commit.txt` matches this SHA and the checksum-verified [native Linux release](https://github.com/Tsenjii/AhB/releases/tag/linux-0f48b1165b46) is published. Android upgrades still require user action; packaging success is not evidence of real account quota, WebUI SSO, or live OAuth on the phone.
+**Verified compiled release (2026-10-10):** source `15b2a47dea22a964755e6ed97ef0769b2baa1cda` passed [CI/race](https://github.com/Tsenjii/AhB/actions/runs/38033913231), [Android ARM64](https://github.com/Tsenjii/AhB/actions/runs/38033913234), and [Linux AMD64/ARM64](https://github.com/Tsenjii/AhB/actions/runs/38033913238). Android `prebuilt/source-commit.txt` matched this compiled source; the [Linux native release](https://github.com/Tsenjii/AhB/releases/tag/linux-15b2a47dea22) includes checksum assets. Check [latest releases](https://github.com/Tsenjii/AhB/releases/latest) after later commits. Android upgrades still require user action; packaging success is not evidence of real account quota, WebUI SSO, or live OAuth on the phone.
 
 ## Unified API
 
@@ -94,7 +94,7 @@ Open the Hub home page:
 http://127.0.0.1:8317/ui
 ```
 
-It shows provider status, process RSS, restart counts, model counts and the unified model list.
+It shows provider status, process RSS, restart counts, model counts and the unified model list. Open **`http://127.0.0.1:8317/playground`** for single-provider chat, HTTP/error diagnostics, optional SSE and a mock tool-call schema. Playground never silently falls back to another provider; real tool-result continuation requires end-to-end testing.
 
 **On-demand model discovery (Android and 512 MiB Linux):** The dashboard's **逐一載入全部模型** button wakes each enabled on-demand gateway **sequentially**, fetches only its model-list metadata, and releases the process before moving on. Plain `GET /v1/models` never wakes all gateways just to enumerate choices. For a successfully discovered gateway that is later asleep, the Hub can return its last six hours of model identifiers and numeric context limits from a private `data/hub-model-catalog.json` cache. Cached rows explicitly carry `x_cached: true`, `x_cache_state: "sleeping_unverified"` and `x_cached_at`; a source with no recent discovery remains **SLEEP**, not zero-model verified. The cache contains no credentials or arbitrary upstream metadata, is limited to 2 MiB, and persists safely through normal upgrades. Cached entries never prove current account entitlements, model availability, quota, tool calling or a healthy process. Every real inference request still rechecks on-demand process/account readiness; cached entries do not enable unverified virtual aliases.
 
@@ -131,7 +131,7 @@ cd ~/AhB
 ./scripts/provider-status-termux.sh
 ```
 
-This reports all nine bundled sources (OpenCode, FreeBuff, Agent2API, DeepSeek Web, Grok, Kiro, GitHub Copilot, Gemini Web and Duck.ai), plus separately the optional Kimi Web, including enabled status, process health, ready/account-count layers, model count and recent upstream HTTP code. **Recent Duck.ai HTTP 418 must be treated as a rejected inference even if local /ping is healthy. DeepSeek Web needs a real Web account; the admin key alone is not an account.** For onboarding details see [DeepSeek/Duck.ai status](docs/DEEPSEEK_DUCK_AVAILABILITY_2026-10-10.md). It **never** reads or prints individual account details/tokens and does **not** spend inference quota. Unknown states remain UNKNOWN; HTTP 200 is not evidence of completed streaming/tools or actual available balance. See [provider stability rollout](docs/PROVIDER_STABILITY_2026-10-09.md).
+This reports all nine bundled sources (OpenCode, FreeBuff, Agent2API, DeepSeek Web, Grok, Kiro, GitHub Copilot, Gemini Web and Duck.ai), plus separately the optional Kimi Web, including enabled status, process health, ready/account-count layers, model count and recent upstream HTTP code. **Recent Duck.ai HTTP 418 is rejected inference even if local /health is healthy. Experimental DeepSeek Web needs a private authorized `accounts.txt`; old admin keys and /admin are not usable.** For onboarding details see [DeepSeek/Duck.ai status](docs/DEEPSEEK_DUCK_AVAILABILITY_2026-10-10.md). It **never** reads or prints individual account details/tokens and does **not** spend inference quota. Unknown states remain UNKNOWN; HTTP 200 is not evidence of completed streaming/tools or actual available balance. See [provider stability rollout](docs/PROVIDER_STABILITY_2026-10-09.md).
 
 **FreeBuff on Android:** the Node.js gateway has no old Rust `/ui` account manager. Instead open AhB Dashboard → **帳號與登入 → FreeBuff** and click **以 Google 登入 FreeBuff** to launch its existing official Codebuff CLI browser authorization; after approval, AhB saves only the authorized token to the private credential directory and offers **重新載入 FreeBuff 帳號**. A manual fallback remains `./scripts/freebuff-login-termux.sh`. Old Web Cookies cannot be reused as new CLI credentials. See [FreeBuff guide](docs/FREEBUFF_ANDROID_LOGIN.md) and [Android final acceptance](docs/ANDROID_FINAL_ACCEPTANCE.md).
 
@@ -161,7 +161,7 @@ The upgrade first verifies the downloaded archive, then preserves `config.json`,
 
 Start the upgraded Hub with `cd ~/AhB && ./scripts/run-termux.sh`. In a second Termux session, run `./scripts/doctor-termux.sh` and `./scripts/smoke.sh`. New optional providers still require setup and real-device account/inference tests; a green CI build does not prove those paths work on Android.
 
-**Release gate verified 2026-10-10:** Android ARM64 `prebuilt/source-commit.txt` matches `0f48b1165b468658e34ea273f3a9b02ed147b2af` ([Android build](https://github.com/Tsenjii/AhB/actions/runs/37973222819)), native Linux AMD64/ARM64 build and release succeeded ([Linux build](https://github.com/Tsenjii/AhB/actions/runs/37973222867)), and [source CI](https://github.com/Tsenjii/AhB/actions/runs/37973223002) passed. This is not a phone installation or real credential/SSO/streaming entitlement test. For the one-time Android update see [final acceptance](docs/ANDROID_FINAL_ACCEPTANCE.md).
+**Build evidence:** [Android ARM64](https://github.com/Tsenjii/AhB/actions/runs/38033913234), [native Linux AMD64/ARM64](https://github.com/Tsenjii/AhB/actions/runs/38033913238) and [source CI](https://github.com/Tsenjii/AhB/actions/runs/38033913231) passed at `15b2a47dea22a964755e6ed97ef0769b2baa1cda`. This does not verify phone account/SSO/streaming entitlement or real quota. This is not a phone installation or real credential/SSO/streaming entitlement test. For the one-time Android update see [final acceptance](docs/ANDROID_FINAL_ACCEPTANCE.md).
 
 The public ARM64 bundle is rebuilt by GitHub Actions from pinned upstream versions and currently contains:
 
@@ -171,7 +171,7 @@ The public ARM64 bundle is rebuilt by GitHub Actions from pinned upstream versio
 - `agent2api-server`
 - Agent2API's original management UI
 - `deepseek2api` (configured on demand; authenticated inference not yet verified)
-- DeepSeek2API's original management UI
+- Experimental DeepSeek Web has **no** native admin UI; authorized private `accounts.txt` is required.
 - `grok2api` (configured on demand; authenticated inference not yet verified)
 - Grok2API's original management UI
 - `kiro-go` and its original management UI
