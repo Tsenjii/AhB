@@ -151,6 +151,16 @@ func New(cfg config.Config) *Hub {
 				rp.external = newExternalProbe(p)
 			}
 		}
+		if rp.sup != nil && p.StartMode == "on_demand" {
+			// A leased SSE stream must not be killed because the local health
+			// endpoint briefly times out under heavy inference load. Defer only
+			// health-triggered restarts; actual process exits are still handled.
+			rp.sup.SetHealthRestartGuard(func() bool {
+				h.demandMu.Lock()
+				defer h.demandMu.Unlock()
+				return rp.demand == nil || rp.demand.users == 0
+			})
+		}
 		h.providers[p.ID] = rp
 	}
 	return h
