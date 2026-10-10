@@ -1,145 +1,70 @@
-# Android AI Hub
+# AhB｜輕量化 AI 帳號與 API 管理中心
 
-A lightweight Android/Termux AI gateway that supervises mature provider adapters and exposes one local API.
+**AhB（Android AI Hub）** 是一個以 Go 開發的輕量級本機 API Hub，整合已安裝的 AI Gateway，提供**多來源帳號管理、服務健康狀態、隨選啟動、模型路由、串流轉送與統一 API**。專案重點不是另一個模型搜尋平台，而是讓你管理自己已獲授權的帳號與本機服務，並透過統一端點使用它們。
 
-## Portable Docker (Linux amd64/arm64)
+- **操作介面：** [`http://127.0.0.1:8317/ui`](http://127.0.0.1:8317/ui)（桌面寬螢幕與手機版面）。
+- **模型 Playground：** [`http://127.0.0.1:8317/playground`](http://127.0.0.1:8317/playground)（指定單一 Gateway，測試聊天、串流及工具格式）。
+- **統一 API：** `http://127.0.0.1:8317/v1`。
+- **原始碼：** [GitHub：Tsenjii/AhB](https://github.com/Tsenjii/AhB)。
 
-See [Docker Compose instructions](docs/DOCKER.md) for a private, persistent, Linux-based API container. On macOS/Windows use Docker Desktop; no native binaries are claimed.
+> **注意：** Gateway「編譯成功／健康檢查成功」不代表帳號可用、具有足夠額度，或實際模型推論成功。每個來源都必須遵守其原有授權與使用條件；AhB 不會替你憑空提供免費模型額度。
 
-## Two editions, one shared codebase
+## 最新版本與編譯狀態
 
-AhB is maintained as **two separate native distributions**. Both build
-the same Go Hub and nine pinned upstream gateways. Agent2API remains
-**unmodified**.
+**目前已發布的原生版本：`0bf0ba3727fd`（2026-10-11 台灣時間核對）**
 
-| Policy | Android Termux | Native Linux VPS |
+| 驗證 | 狀態 | 連結 |
 | --- | --- | --- |
-| Platform | Android ARM64 | Linux AMD64 / ARM64 |
-| Default providers | Nine bundled; DeepSeek Web / Duck.ai disabled pending live verification; others on demand | Nine bundled; DeepSeek Web / Duck.ai disabled pending live verification; others on demand |
-| Startup | On demand | On demand |
-| Maximum resident on-demand providers | **3** | **1** |
-| Idle cleanup | **900 seconds** | **120 seconds** |
-| Release | Android `prebuilt` branch | Independent Linux GitHub Release |
-| GUI toggles | Controlled local restart | Controlled local restart |
+| Go 測試、Race Test、Vet | 已通過 | [CI 紀錄](https://github.com/Tsenjii/AhB/actions/runs/38066931307) |
+| Android ARM64 正式封包 | 已發布 | [Android 編譯](https://github.com/Tsenjii/AhB/actions/runs/38066931268) |
+| Linux AMD64／ARM64 | 已發布 | [Linux 編譯](https://github.com/Tsenjii/AhB/actions/runs/38066931272) |
+| 最新 Linux Release（含 SHA-256） | 已發布 | [`linux-0bf0ba3727fd`](https://github.com/Tsenjii/AhB/releases/tag/linux-0bf0ba3727fd) |
+| Android `prebuilt` | 來源 SHA 與上述版本一致 | [`prebuilt` 分支](https://github.com/Tsenjii/AhB/tree/prebuilt) |
 
-These are concurrency/process caps, **not guaranteed RAM limits**. Disabled
-providers consume no child-process RSS, and switching to a sleeping backend
-can release an idle sidecar. Long-running SSE requests hold an active lease.
+此版本已包含 **Agent2API v3.0.1**、新控制台、低記憶體防護、SSE 傳輸期間的 Gateway 保護，以及上游版本釘選整理。
 
-**Bundled:** OpenCode2API (Go), FreeBuff2API (Node), Agent2API (Rust),
-experimental 0xgetz DeepSeek Web (Go), Grok2API (Go), Kiro-Go (Go), Copilot2API (Go),
-Gemini Web2API (Go), experimental Duck.ai2API (Rust HTTP-only).
-Each requires its own legitimate account/authorization and may have
-different quota and model capabilities.
+如果你是後來才看到這份文件，請先查 [最新 Releases](https://github.com/Tsenjii/AhB/releases/latest) 和 [GitHub Actions](https://github.com/Tsenjii/AhB/actions)；此處的版本紀錄不會自動跟隨未來提交更新。
 
-**Not bundled:** Kimi Web, LMArena, Windsurf, standalone Gemini API bridges or any other
-generic local connector; those are not installed services. Existing Kimi
-data and custom bridges are not discarded by migration. The historical
-Termux Python Kimi installer remains for old installations only.
+## Android 與 Linux 版本差異
 
-The Linux CI builds separate, native ELF binaries; **Android packages are
-not Linux packages**. Linux packages require an appropriate GNU/Linux
-environment and Node.js for FreeBuff. See
-[512 MB VPS guide](docs/DEPLOY_VPS_512MB.md) and
-[technical constraints](docs/512MB-DEPLOYMENT.md).
+AhB 維護兩種**原生封包**，共用 Go Hub 與九個 Gateway 定義。它們不是同一種執行檔，不能互相替換。
 
-**Verified compiled release (2026-10-10):** source `15b2a47dea22a964755e6ed97ef0769b2baa1cda` passed [CI/race](https://github.com/Tsenjii/AhB/actions/runs/38033913231), [Android ARM64](https://github.com/Tsenjii/AhB/actions/runs/38033913234), and [Linux AMD64/ARM64](https://github.com/Tsenjii/AhB/actions/runs/38033913238). Android `prebuilt/source-commit.txt` matched this compiled source; the [Linux native release](https://github.com/Tsenjii/AhB/releases/tag/linux-15b2a47dea22) includes checksum assets. Check [latest releases](https://github.com/Tsenjii/AhB/releases/latest) after later commits. Android upgrades still require user action; packaging success is not evidence of real account quota, WebUI SSO, or live OAuth on the phone.
+| 項目 | Android／Termux | Linux VPS |
+| --- | --- | --- |
+| 處理器 | ARM64 | AMD64、ARM64 |
+| 啟動方式 | 隨選啟動 | 隨選啟動 |
+| 預設最多同時常駐 Gateway | **3 個** | **1 個** |
+| 預設閒置關閉 | **900 秒** | **120 秒** |
+| 下載來源 | GitHub `prebuilt` 分支 | 獨立 Linux Release |
+| 適合環境 | Android 手機 | 輕量伺服器、私有 VPS |
 
-## Unified API
+兩種版本都能從介面的**設定 → 資源**調整常駐數與閒置時間。Linux 可選擇「省記憶體」（1 個／120 秒）、「穩定優先」（2 個／600 秒）或「多來源」（3 個／900 秒）等預設；**選擇預設本身不會套用，必須明確儲存並重新啟動**。
 
-```text
-http://127.0.0.1:8317/v1
-```
+**512 MiB 是部署目標，不是硬性 RAM 保證。** 一個 Gateway 仍可能超過實際可用記憶體；請利用 `/api/runtime` 與系統工具觀察峰值用量。正在執行的 SSE 串流不會因為閒置清理而被主動停止；若設定僅允許一個常駐 Gateway，同時要求其他來源可能回覆 HTTP 503。
 
-Models use explicit provider prefixes:
+## 內建的九個 Gateway
 
-```text
-opencode/<model>
-freebuff/<model>
-agent2api/<model>
-deepseek/<model>
-grok/<model>
-kiro/<model>
-copilot/<model>  # once enabled
-kimiweb/<model>  # after optional Termux install and enable
-lmarena/<model>
-windsurf/<model>
-qwen/<model>
-kimi/<model>
-geminiweb/<model>
-duckai/<model>
-gemini/<model> # only if attached externally
-claude/<model>
-<custom-id>/<model> # only after connecting that local bridge
-```
+| API 前綴 | 來源 | 封包與使用狀態 |
+| --- | --- | --- |
+| `opencode/` | OpenCode2API（Go） | 內建，隨選啟動 |
+| `freebuff/` | FreeBuff2API（Node.js） | 內建，需另外完成有效的 CLI／Bearer 登入 |
+| `agent2api/` | Agent2API（Rust，**v3.0.1**） | 內建，保留上游原始程式與管理方式 |
+| `deepseek/` | DeepSeek Web（實驗版 Go） | **預設停用**；尚未驗證真實推論 |
+| `grok/` | Grok2API（Go） | 內建，需要完成帳號／金鑰初始化 |
+| `kiro/` | Kiro-Go（Go） | 內建，需要有效帳號 |
+| `copilot/` | Copilot2API（Go） | 內建，需 GitHub 授權與相應使用資格 |
+| `geminiweb/` | Gemini Web2API（Go） | 內建，實際可用性需帳號驗證 |
+| `duckai/` | Duck.ai2API（實驗版 Rust HTTP-only） | **預設停用**；曾觀察到上游 HTTP 418 |
 
-Supported proxy endpoints:
+這些 Gateway 由 GitHub Actions 針對不同架構編譯；除 FreeBuff 需要 Node.js 執行環境之外，原生 Go／Rust Gateway 不需要在手機或 VPS 上重新編譯。確切上游版本請參閱 [九個 Gateway 版本稽核](docs/UPSTREAM_AUDIT_2026-10-11.md)。
 
-- `GET /v1/models`
-- `POST /v1/chat/completions`
-- `POST /v1/completions`
-- `POST /v1/embeddings`
-- `POST /v1/images/generations` (JSON pass-through, upstream must support)
-- `POST /v1/audio/speech` (JSON pass-through, upstream must support)
-- `POST /v1/responses`
-- `POST /v1/messages`
-- `POST /v1/messages/count_tokens`
-- `POST /v1/systemone`
+**不隨主封包安裝的服務：** Kimi Web、LMArena、Windsurf、CLIProxyAPI、其他獨立 Gemini／Qwen／Claude 等橋接器。AhB 可以連線至你已經安裝、啟動並授權的本機服務，**但不會假裝它們已經被打包**；現有自訂橋接器與帳號資料也不會因一般升級而故意刪除。
 
-## UI
+## Android／Termux 安裝
 
-Open the Hub home page:
+適用 ARM64 Android 手機。直接安裝官方已編譯封包，**不需要在手機編譯 Rust 或 Go，也不需要登入 GitHub**。
 
-```text
-http://127.0.0.1:8317/ui
-```
-
-It shows provider status, process RSS, restart counts, model counts and the unified model list. Open **`http://127.0.0.1:8317/playground`** for single-provider chat, HTTP/error diagnostics, optional SSE and a mock tool-call schema. Playground never silently falls back to another provider; real tool-result continuation requires end-to-end testing.
-
-**On-demand model discovery (Android and 512 MiB Linux):** The dashboard's **逐一載入全部模型** button wakes each enabled on-demand gateway **sequentially**, fetches only its model-list metadata, and releases the process before moving on. Plain `GET /v1/models` never wakes all gateways just to enumerate choices. For a successfully discovered gateway that is later asleep, the Hub can return its last six hours of model identifiers and numeric context limits from a private `data/hub-model-catalog.json` cache. Cached rows explicitly carry `x_cached: true`, `x_cache_state: "sleeping_unverified"` and `x_cached_at`; a source with no recent discovery remains **SLEEP**, not zero-model verified. The cache contains no credentials or arbitrary upstream metadata, is limited to 2 MiB, and persists safely through normal upgrades. Cached entries never prove current account entitlements, model availability, quota, tool calling or a healthy process. Every real inference request still rechecks on-demand process/account readiness; cached entries do not enable unverified virtual aliases.
-
-Each healthy provider has a **管理原本 UI** button:
-
-- OpenCode: `http://127.0.0.1:8404/`
-- FreeBuff: no WebUI in the bundled Node adapter
-- Agent2API when installed: `http://127.0.0.1:8403/`
-- Experimental DeepSeek Web: no native admin WebUI; authorized account file is required.
-- Grok2API when enabled: `http://127.0.0.1:8407/`
-- Kiro-Go when enabled: `http://127.0.0.1:8408/admin`
-
-The Hub intentionally does not duplicate the upstream management consoles.
-
-### FreeBuff migration (Oct 9, 2026)
-
-The old Rust `lza6/Freebuff-2API v0.10.3` was replaced by a pinned, dependency-free Node.js gateway from [yutian81/freebuff2api](https://github.com/yutian81/freebuff2api). This is **not** proof the upstream accepts every model. The old Web Cookie 409 `chat_moved` path is no longer used, but you must complete a **fresh authorized CLI/Bearer login** after upgrading. Old cookies, account files and SQLite data are preserved intact in the backup; old Cookie tokens are **never** converted or exposed. The freebuff/ prefix and localhost port 8402 remain. The new gateway does **not** offer the old /ui management dashboard.
-
-```sh
-cd ~/AhB
-./scripts/check-freebuff-login.sh
-./scripts/freebuff-login-termux.sh    # only if there are no new CLI tokens
-./scripts/stop-termux.sh && ./scripts/start-termux.sh
-```
-
-Termux Node.js >=20 is installed by the prebuilt install/upgrade scripts. Python 3 is required for the optional interactive device-code login. See [login and migration guide](docs/FREEBUFF_ANDROID_LOGIN.md).
-
-### All bundled sources: read-only readiness inventory
-
-After the new package has been published and safely installed on your own Termux device, run:
-
-```sh
-cd ~/AhB
-./scripts/provider-status-termux.sh
-```
-
-This reports all nine bundled sources (OpenCode, FreeBuff, Agent2API, DeepSeek Web, Grok, Kiro, GitHub Copilot, Gemini Web and Duck.ai), plus separately the optional Kimi Web, including enabled status, process health, ready/account-count layers, model count and recent upstream HTTP code. **Recent Duck.ai HTTP 418 is rejected inference even if local /health is healthy. Experimental DeepSeek Web needs a private authorized `accounts.txt`; old admin keys and /admin are not usable.** For onboarding details see [DeepSeek/Duck.ai status](docs/DEEPSEEK_DUCK_AVAILABILITY_2026-10-10.md). It **never** reads or prints individual account details/tokens and does **not** spend inference quota. Unknown states remain UNKNOWN; HTTP 200 is not evidence of completed streaming/tools or actual available balance. See [provider stability rollout](docs/PROVIDER_STABILITY_2026-10-09.md).
-
-**FreeBuff on Android:** the Node.js gateway has no old Rust `/ui` account manager. Instead open AhB Dashboard → **帳號與登入 → FreeBuff** and click **以 Google 登入 FreeBuff** to launch its existing official Codebuff CLI browser authorization; after approval, AhB saves only the authorized token to the private credential directory and offers **重新載入 FreeBuff 帳號**. A manual fallback remains `./scripts/freebuff-login-termux.sh`. Old Web Cookies cannot be reused as new CLI credentials. See [FreeBuff guide](docs/FREEBUFF_ANDROID_LOGIN.md) and [Android final acceptance](docs/ANDROID_FINAL_ACCEPTANCE.md).
-
-## Fastest Android install
-
-For an ARM64 Android phone, no GitHub login and no on-device Rust/Go compilation are required:
-
-```sh
+```bash
 pkg update
 pkg install -y curl
 curl -fsSL https://raw.githubusercontent.com/Tsenjii/AhB/main/scripts/install-prebuilt-termux.sh | bash
@@ -147,189 +72,266 @@ cd ~/AhB
 ./scripts/run-termux.sh
 ```
 
-The installer downloads the public `prebuilt` branch bundle, verifies its SHA-256 checksum, prepares local secrets, and enables Agent2API when its prebuilt binary is present.
+安裝器會下載公開 `prebuilt` 封包、驗證 SHA-256，並準備本機設定與私有憑證。完成後開啟：
 
-### Updating an existing Termux installation
+- 控制台：`http://127.0.0.1:8317/ui`
+- 測試頁：`http://127.0.0.1:8317/playground`
 
-Do **not** delete `~/AhB` or re-run the first-install script over an existing installation. For an existing prebuilt install, run:
+### 更新既有 Android 安裝
 
-```sh
+**不要刪除 `~/AhB`，也不要用首次安裝腳本覆蓋既有資料。**
+
+```bash
 curl -fsSL https://raw.githubusercontent.com/Tsenjii/AhB/main/scripts/upgrade-prebuilt-termux.sh | bash
 ```
 
-The upgrade first verifies the downloaded archive, then preserves `config.json`, account data, databases, local secrets, and logs. It refreshes bundled upstream WebUI assets, stops the old AhB processes, and swaps the installation. The original directory is retained as `~/AhB.backup-YYYYMMDD-HHMMSS` for rollback. No user data is intentionally deleted.
+更新器會先驗證新封包，再保存 `config.json`、帳號、資料庫、私有金鑰與日誌，並保留 `~/AhB.backup-YYYYMMDD-HHMMSS` 備份目錄。完成後可執行：
 
-Start the upgraded Hub with `cd ~/AhB && ./scripts/run-termux.sh`. In a second Termux session, run `./scripts/doctor-termux.sh` and `./scripts/smoke.sh`. New optional providers still require setup and real-device account/inference tests; a green CI build does not prove those paths work on Android.
+```bash
+cd ~/AhB
+./scripts/run-termux.sh
+./scripts/doctor-termux.sh
+./scripts/smoke.sh
+```
 
-**Build evidence:** [Android ARM64](https://github.com/Tsenjii/AhB/actions/runs/38033913234), [native Linux AMD64/ARM64](https://github.com/Tsenjii/AhB/actions/runs/38033913238) and [source CI](https://github.com/Tsenjii/AhB/actions/runs/38033913231) passed at `15b2a47dea22a964755e6ed97ef0769b2baa1cda`. This does not verify phone account/SSO/streaming entitlement or real quota. This is not a phone installation or real credential/SSO/streaming entitlement test. For the one-time Android update see [final acceptance](docs/ANDROID_FINAL_ACCEPTANCE.md).
+如果需要從原始碼建置 Termux 環境：
 
-The public ARM64 bundle is rebuilt by GitHub Actions from pinned upstream versions and currently contains:
-
-- `hubd`
-- `opencode2api`
-- `freebuff2api` (Node.js launcher; gateway sources under `data/freebuff/gateway/`)
-- `agent2api-server`
-- Agent2API's original management UI
-- `deepseek2api` (configured on demand; authenticated inference not yet verified)
-- Experimental DeepSeek Web has **no** native admin UI; authorized private `accounts.txt` is required.
-- `grok2api` (configured on demand; authenticated inference not yet verified)
-- Grok2API's original management UI
-- `kiro-go` and its original management UI
-- `copilot2api` (requires authorized account login)
-- `gemini-web2api-go` (Gemini Web route)
-- `duck2api` (Duck.ai route)
-
-## Termux install from source
-
-```sh
+```bash
 chmod +x scripts/*.sh
 ./scripts/bootstrap-termux.sh
 ./scripts/run-termux.sh
 ```
 
-The bootstrap generates local-only secrets into ignored files under `data/`; no real key or password belongs in Git.
+詳細說明：[Termux 部署](docs/DEPLOY_TERMUX.md)、[Android 實機驗收](docs/ANDROID_FINAL_ACCEPTANCE.md)。
 
-OpenCode's generated UI password is stored at:
+## Linux VPS 安裝與更新
+
+支援 **Linux AMD64／ARM64**，使用對應 Linux ELF 封包，請勿使用 Android 的二進位檔。建議使用一般使用者（不要以 root 執行），並準備 `curl`、`jq`、`tar`、`python3` 與 FreeBuff 所需的 Node.js 22。
+
+**首次安裝：**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Tsenjii/AhB/main/scripts/install-prebuilt-linux.sh -o "$HOME/ahb-linux-install.sh"
+bash "$HOME/ahb-linux-install.sh"
+cd "$HOME/AhB"
+bash scripts/start-linux.sh
+curl -fsS http://127.0.0.1:8317/healthz
+```
+
+**已安裝版本的升級：**
+
+```bash
+cd "$HOME/AhB"
+bash scripts/upgrade-linux.sh
+bash scripts/start-linux.sh
+```
+
+升級流程採分階段下載與驗證，保存帳號、SQLite、設定及原服務備份；若舊程序仍在執行，會拒絕在不安全情況下複製資料。**不要在確認備份可回復之前手動清除備份目錄。**
+
+如要從自己的電腦管理遠端 VPS，請使用 SSH Tunnel，而不是公開 8317 管理埠：
+
+```bash
+ssh -N -L 8317:127.0.0.1:8317 USER@VPS
+```
+
+然後在電腦瀏覽器開啟 `http://127.0.0.1:8317/ui`。
+
+更多資訊：[512 MiB VPS 部署教學](docs/DEPLOY_VPS_512MB.md)、[記憶體與程序策略](docs/512MB-DEPLOYMENT.md)。
+
+## Docker／Compose（Linux 容器）
+
+使用 Docker Desktop 的 macOS／Windows 可以執行 **Linux 容器版**，但**不代表專案有原生 macOS／Windows 執行檔**。
+
+```bash
+git clone https://github.com/Tsenjii/AhB.git
+cd AhB
+printf 'AHB_PUBLIC_TOKEN=%s\n' "$(openssl rand -hex 32)" > .env
+chmod 600 .env
+docker compose up -d --build
+```
+
+- Docker 控制台：`http://127.0.0.1:8080/ui`，使用 HTTP Basic（帳號 `ahb`；密碼取自私有 `.env` 的 `AHB_PUBLIC_TOKEN`）。
+- API：`http://127.0.0.1:8080/v1`，同一 Token 作為 Bearer／`x-api-key` 憑證。
+- 預設只繫結 `127.0.0.1`，私有資料保存在 `ahb-data` Volume。**不要使用 `docker compose down -v`，除非你確定要刪除 Volume 裡的資料。**
+
+**Docker 版本提醒：** 為維持可重現的容器建置，目前 `Dockerfile`／`compose.yaml` **預設固定較舊的基準發布版** [`linux-15b2a47dea22`](https://github.com/Tsenjii/AhB/releases/tag/linux-15b2a47dea22)，不是本頁上方最新原生版。要使用其他**已發布**的 Linux 版本，需在私有 `.env` 設定 `AHB_RELEASE_TAG`，再重新建置；請先檢查對應 Release 的資產與 SHA-256。
+
+詳情：[Docker 設定教學](docs/DOCKER.md)。
+
+## 統一 API 與 Playground
+
+AhB 透過明確的 `provider/model` 名稱路由請求，避免將不同帳號與 Gateway 的模型混淆。
 
 ```text
-data/opencode/webui-password.txt
+http://127.0.0.1:8317/v1
+
+opencode/<model>
+freebuff/<model>
+agent2api/<model>
+grok/<model>
+kiro/<model>
+copilot/<model>
+geminiweb/<model>
+deepseek/<model>    # 實驗版，預設停用
+duckai/<model>      # 實驗版，預設停用
+route/<alias>       # 必須自行設定並啟用路由別名
 ```
 
-Optional Agent2API pack:
+**目前轉送的 API 路徑：**
 
-```sh
-./scripts/install-agent2api-termux.sh
-```
+| 方法 | 路徑 |
+| --- | --- |
+| GET | `/v1/models` |
+| POST | `/v1/chat/completions`、`/v1/completions` |
+| POST | `/v1/responses` |
+| POST | `/v1/messages`、`/v1/messages/count_tokens` |
+| POST | `/v1/embeddings` |
+| POST | `/v1/images/generations`、`/v1/audio/speech` |
+| POST | `/v1/systemone` |
 
-Then restart the Hub.
+**支援路徑不代表所有 Gateway 都支援該能力。** 圖片／語音等請求採 JSON 轉送，仍要由上游實際實作；工具呼叫、Responses、Anthropic 相容性及 SSE 必須逐一實測。
 
-Optional experimental DeepSeek Web provider (once the updated Android bundle is actually published and installed):
+在 [Playground](http://127.0.0.1:8317/playground) 指定單一 Gateway 與模型，可測試一般對話、串流、HTTP 狀態及部分工具格式。Playground **不會偷偷改用另一個 Gateway**；正式的多輪工具調用需要另外驗證工具結果回傳。
 
-- Source: [0xgetz/deepseek2api](https://github.com/0xgetz/deepseek2api), pure Go, pinned at `41b924e7741e1619433469900625dca132e00d6c`.
-- This adapter has **no** old DeepSeek admin WebUI or automatic OAuth login. An authorized account token must exist in the **private** `data/deepseek2api/accounts.txt` (one per line, mode 0600). Previous upstream admin keys/config/account data remain preserved, but **are not compatible credentials**.
-- Enable with `./scripts/enable-deepseek2api.sh` only after setting up your own authorized Web account. Then check `deepseek/deepseek-chat` directly at `/playground`; process `/health` is not inference proof.
-- Experimental Duck.ai now uses the pinned [Rust HTTP adapter](https://github.com/desktop-tools-which-may-be-useful/duckai2api) (`d8c6888eeb11daedb71a6ad589095f0a315626eb`) with browser mode excluded; it remains **disabled by default** and known HTTP 418 is not claimed fixed. Its localhost `/health` does not prove live inference.
-- Agent2API remains **v2.9.9**, the newest upstream release checked 2026-10-10; no unnecessary re-pin. See [adapter migration](docs/EXPERIMENTAL_ADAPTER_SWAP_2026-10-10.md).
+**模型清單與節省資源：**
 
-## Reliability
+- `GET /v1/models` 不會為了列出模型，就把所有睡眠中的 Gateway 一次喚醒。
+- 控制台的「逐一載入全部模型」會依序喚醒並查詢各來源，再釋放程序。
+- 已成功取得的模型目錄可在本機私有快取中保留最多 6 小時。快取資料會標記 `x_cached: true`，**不代表目前帳號或模型真的可使用**。
+- 512 MiB 模式採全 Hub 共用的模型查詢並行上限，避免多個手機／電腦頁面同時刷新時占用過多資源。
 
-`hubd` provides:
+## 帳號登入與原生管理介面
 
-- child-process supervision
-- startup readiness checks
-- periodic health checks
-- bounded restart with backoff
-- independent provider failure domains
-- graceful shutdown before forced kill
-- streaming pass-through
-- model aggregation
-- client credential stripping before forwarding
-- loopback-only V1 listener
-- live Hub + sidecar RSS reporting
+AhB 以整合**上游原有登入機制**為原則，不會把不同 Gateway 的管理台假裝成同一套通用帳密。
 
-See:
+| Gateway | 原本的管理位置或設定方式 |
+| --- | --- |
+| OpenCode | `http://127.0.0.1:8404/` |
+| Agent2API | `http://127.0.0.1:8403/` |
+| Grok | `http://127.0.0.1:8407/` |
+| Kiro | `http://127.0.0.1:8408/admin` |
+| FreeBuff | 新版 Node Gateway 沒有舊版 Rust 的 `/ui` |
+| DeepSeek Web | **DeepSeek Web: no native admin WebUI**；實驗版沒有舊 `/admin`，須使用私有且已授權的帳號檔案 |
+| Copilot | 需執行 GitHub Device Flow，並具備有效資格 |
 
-- `docs/ARCHITECTURE.md`
-- `docs/V1_SPEC.md`
-- `docs/ON_DEVICE_CHECKLIST.md`
-- `docs/NETWORK_EGRESS.md`
-- `docs/PROVIDERS.md`
-- `docs/DEPLOY_VPS_512MB.md`
+### FreeBuff（新版 Node Gateway）
 
-## External To-API bridges
+舊 Rust FreeBuff Gateway 已換為 [yutian81/freebuff2api](https://github.com/yutian81/freebuff2api)。**舊 Web Cookie 不能自動轉成新版 CLI Token**，但升級不會刻意清除原本備份中的資料。
 
-**LMArena and arbitrary local gateways:** AhB now includes a shared `connect-bridge.sh` helper, a clean mobile connection wizard, and upstream API-prefix rewriting for gateways such as Gemini2API.
+在 Android 控制台進入**帳號與登入 → FreeBuff**，使用官方 Codebuff CLI 的瀏覽器授權流程，或使用：
 
-Start your third-party bridge separately on the same phone, then run a single command:
-
-```sh
+```bash
 cd ~/AhB
-./scripts/connect-bridge.sh lmarena http://127.0.0.1:5102
+./scripts/check-freebuff-login.sh
+./scripts/freebuff-login-termux.sh
+./scripts/stop-termux.sh && ./scripts/start-termux.sh
 ```
 
-It privately asks for an optional local bridge API key, verifies `GET /v1/models`, and only then enables the local route. Restart AhB to apply it. Supported named presets include `windsurf`, `qwen`, `kimi`, `gemini`, `claude` and **optional `cliproxy`** for a separately running [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) instance with Antigravity/Codex/Claude/Muse OAuth. Configure it to **127.0.0.1:8416** first: its original 8317 listener collides with AhB. Native Android binary/login are not yet validated; this is **only an opt-in connector**, not an extra bundled daemon.
+最後用 `./scripts/provider-status-termux.sh` 檢查設定狀態。它不會列印個別帳號 Token，也不會消耗推論額度；**UNKNOWN／HEALTHY 都不等於可用餘額**。
 
-```sh
+詳細教學：[FreeBuff 登入與遷移](docs/FREEBUFF_ANDROID_LOGIN.md)。
+
+### 其他 Gateway 初始化
+
+```bash
+cd ~/AhB
+
+# 完成 Grok 私有管理設定與本機 Client Key
+./scripts/enable-grok2api.sh
+
+# 完成 Kiro-Go 管理設定與帳號初始化
+./scripts/enable-kiro-go.sh
+
+# GitHub Copilot：依官方 Device Flow 完成授權後再啟用
+./scripts/login-copilot2api.sh
+./scripts/enable-copilot2api.sh
+```
+
+**DeepSeek Web：** 新實驗版 [0xgetz/deepseek2api](https://github.com/0xgetz/deepseek2api) 為 Go 實作，沒有舊版 `/admin` 或通用自動 OAuth。必須先將自己合法取得的帳號憑證放進權限 `0600` 的 `data/deepseek2api/accounts.txt`（每行一組），再視需要執行 `./scripts/enable-deepseek2api.sh`。上游模型能否真正推論仍未實測通過。
+
+**Duck.ai：** 目前是 [Rust HTTP-only 實驗版](https://github.com/desktop-tools-which-may-be-useful/duckai2api)，預設停用；觀察到的 HTTP 418 問題不能靠本機 `/health` 成功來宣稱修復。
+
+來源限制與待測項目：[DeepSeek／Duck.ai 現況](docs/DEEPSEEK_DUCK_AVAILABILITY_2026-10-10.md)、[Gateway 穩定性](docs/PROVIDER_STABILITY_2026-10-09.md)。
+
+## 連接其他已安裝的本機 Gateway
+
+AhB 的 `connect-bridge.sh` 可以把你**自行部署、已經授權且正在運行**的 OpenAI 相容 API 接到統一路由，提供可選的本機 Key 設定與模型目錄驗證。
+
+```bash
+cd ~/AhB
 ./scripts/connect-bridge.sh --list
+./scripts/connect-bridge.sh lmarena http://127.0.0.1:5102
 ./scripts/connect-bridge.sh windsurf http://127.0.0.1:3003
 ./scripts/connect-bridge.sh kimi http://127.0.0.1:8000
 ./scripts/connect-bridge.sh gemini http://127.0.0.1:5918
 ./scripts/connect-bridge.sh cliproxy http://127.0.0.1:8416
 ```
 
-The bridge must itself be installed, running, and legitimately usable. The presets are **connectors, not bundled upstream implementations**. No browser-session bypass, CAPTCHA solving, anti-bot evasion, or bulk account creation is included. See [External bridge guide](docs/BRIDGES.md) for project links, custom API paths, precise limits and troubleshooting.
+以上是**連線預設，不是已內建的上游程式**。例如 [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) 必須另行安裝與設定；若其預設使用 8317，會與 AhB 衝突，請先將其綁在其他本機連接埠（範例為 8416）。
 
-**Agent2API pin:** the reviewed upstream [v2.9.9](https://github.com/aimod-cc/agent2api/releases/tag/v2.9.9) commit `cd97bce9912225e055cc79761d96a3f0b77e26f8` is used by Android ARM64/Linux AMD64/ARM64 native build workflows and the optional Termux source installer. This version fixes crash and SSE-close handling and improves Qoder / account limits. Publishing new binaries and actual phone acceptance require separate successful build gates.
+Kimi Web 有額外的歷史 Termux Python 安裝方案，但不在基本封包內：
 
-
-### Optional Grok2API provider
-
-The Android prebuilt contains the pinned Grok2API backend and its original Web
-UI. Its account/admin setup is not complete until it is initialized:
-
-```sh
-./scripts/enable-grok2api.sh
-```
-
-The helper generates local Grok2API secrets, starts the sidecar temporarily on
-loopback, creates a dedicated AhB Client Key through its local admin API, stores
-the key under ignored `data/grok2api/`, enables `grok/`, then returns normal
-process lifecycle control to hubd.
-
-
-### Optional Kiro-Go provider
-
-The Android bundle also contains a pinned Kiro-Go binary and its original Web
-admin. Complete its account initialization before attempting real inference:
-
-```sh
-./scripts/enable-kiro-go.sh
-```
-
-AhB binds it to `127.0.0.1:8408`, supplies a local API key, and reads its
-authenticated `/v1/stats` account totals so an empty account pool is not
-treated as routable.
-
-## New optional account-backed adapters (build/package status must be checked)
-
-```sh
-cd ~/AhB
-
-# Copilot: lightweight native Go sidecar; requires a valid Copilot entitlement.
-./scripts/login-copilot2api.sh
-# Authorize with GitHub Device Flow, then Ctrl+C.
-./scripts/enable-copilot2api.sh
-./scripts/stop-termux.sh && ./scripts/start-termux.sh
-
-# Kimi Web: separate optional Python/React install; not part of base archive.
+```bash
 ./scripts/install-kimiweb-termux.sh
 ./scripts/enable-kimiweb-termux.sh
-./scripts/stop-termux.sh && ./scripts/start-termux.sh
 ```
 
-The Kimi Web native admin is `http://127.0.0.1:8412/admin`. Its password is stored privately in `data/kimiweb/admin-password.txt`. The `kimiweb/` managed adapter is separate from the original `kimi/` connection preset. Avoid adding duplicate account sources or auto-starting every service; unconfigured sources are not usable for inference until authorized; on-demand services stay asleep when idle. See [curated installation and optimization plan](docs/TO_API_INSTALL_AND_OPTIMIZATION_PLAN.md).
+其他外部橋接器、`codex` 等預設與限制：[外部 Gateway 接入說明](docs/BRIDGES.md)。專案不提供 CAPTCHA 繞過、批量註冊或規避上游帳號限制的功能。
 
-**Source status is distinct from usage entitlement:** a HEALTHY process, two configured credentials or a listed model do not prove quota availability. In the user's Android smoke test Agent2API returned HTTP 503 from two exhausted accounts. Treat provider quota and real inference as separate checks.
+## 健康檢查、記憶體與除錯
 
-All previously found and future To-API candidates belong in the [living registry](docs/TO_API_REGISTRY.json), with explicit statuses, direct project URLs, validation steps and a history-preserving update policy.
-
-### GPT / Codex bridge and real tool validation
-
-The **new `codex` option is connector-only** (not a bundled GPT backend). If you have *already started and authenticated* your own localhost OpenAI-compatible Codex OAuth gateway such as [Codex OAuth Proxy](https://github.com/dvcrn/codex-oauth-proxy), you can attach it with:
-
-```sh
+```bash
 cd ~/AhB
-./scripts/connect-bridge.sh codex http://127.0.0.1:9879
-./scripts/stop-termux.sh && ./scripts/start-termux.sh
+
+# 本機 Hub 健康狀態
+curl -fsS http://127.0.0.1:8317/healthz
+
+# Hub / Gateway 記憶體、常駐數量及系統 RAM
+curl -fsS http://127.0.0.1:8317/api/runtime
+
+# Android：九個來源的非敏感狀態
+./scripts/provider-status-termux.sh
+
+# Android：環境與安裝健檢
+./scripts/doctor-termux.sh
+
+# 原生 Linux：查看近期 Hub 訊息
+tail -n 40 logs/hubd.log
 ```
 
-The script requests only the **local gateway's client API key** and verifies its models endpoint; it does not log into ChatGPT or install/launch a third-party backend. The provider must have authorized Codex access and its own functional model endpoint. GPT Codex OAuth is not the same as controlling the ChatGPT **web browser** via MCP/Playwright. See [GPT Web vs Codex API vs MCP](docs/GPT_WEB_CODEX_MCP_STABILITY_2026-10-08.md).
+- Gateway 健康檢查不會因為一次錯誤就任意中斷有活動租約的 SSE 請求。
+- 上游如果長時間沒有送出 HTTP 回應標頭，最多等待 120 秒；送出標頭後，長時間 SSE 可繼續傳送。
+- 每個由 AhB 管理的 Gateway 日誌最多約 **4 MiB**，避免無限制增加磁碟占用。
+- 模型快取只保存限定的非敏感中繼資料，不保存帳號 Token、訊息內容或任意上游欄位。
+- 需要真正確認工具相容性時，可使用下列雙輪測試（**會消耗上游額度**）：
 
-To qualify any source for reliable function use, run a **full two-request tool-call test**, which verifies that an API can accept a function schema, return structured tool calls, accept a matching tool result and produce a final answer:
-
-```sh
+```bash
 AIHUB_TEST_MODEL='opencode/YOUR_MODEL_ID' ./scripts/test-tool-roundtrip.sh
 ```
 
-This test consumes upstream account quota. Do not call a provider tool-compatible based only on `/v1/models` or an initial single tool-call response. Kimi Web is experimental and disabled by default until real Android long-run/tool-continuation tests pass.
+如果服務顯示 HEALTHY，但聊天回應 HTTP 503、418 或工具呼叫失敗，請先檢查**原始 Gateway 是否有有效帳號、可用額度與真實回應**，不要只看本機程序是否仍在運行。
 
+## 安全與資料保留
+
+1. **預設只監聽 `127.0.0.1`。** 不要將 Hub 控制台、原始管理頁、帳號資料庫或 8317 直接公開到 Internet。
+2. 帳號 Cookie、Token、管理密碼與 `.env` 都應存放在私有位置；**不要提交 GitHub，也不要直接貼到 Issue 或聊天紀錄**。
+3. 更新前應保留自動建立的版本備份；Linux、Android 的安裝包及重啟流程彼此獨立。
+4. 啟動某個 Gateway 不代表你已有它的授權；模型、額度與權限仍以實際來源帳號為準。
+
+## 更多文件
+
+- [系統架構](docs/ARCHITECTURE.md)
+- [所有來源與上游管理方式](docs/PROVIDERS.md)
+- [九個上游來源版本稽核](docs/UPSTREAM_AUDIT_2026-10-11.md)
+- [API 規格](docs/V1_SPEC.md)
+- [外部 Gateway 接入](docs/BRIDGES.md)
+- [Android 部署](docs/DEPLOY_TERMUX.md)
+- [Linux 512 MiB VPS 部署](docs/DEPLOY_VPS_512MB.md)
+- [Docker／Compose](docs/DOCKER.md)
+- [Android 實機驗收](docs/ANDROID_FINAL_ACCEPTANCE.md)
+- [故障排除與網路出口](docs/NETWORK_EGRESS.md)
+- [開發與交接紀錄](docs/NEXT_AI_HANDOFF.md)
+
+---
+
+本專案以**繁體中文**為主要說明語言；API 路徑、設定鍵、專有名詞及終端機指令保留原始英文，以利直接複製使用。
