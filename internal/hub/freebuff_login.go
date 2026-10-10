@@ -179,6 +179,22 @@ func validFreebuffLink(link string)bool {
  host:=strings.ToLower(parsed.Host)
  return host=="www.codebuff.com"||host=="codebuff.com"
 }
+// Never return upstream response bodies or one-time OAuth values to the UI.
+// Keep the HTTP phase/status visible so 502 and network failures are not
+// misdiagnosed as "wrong Google password" or an AhB proxy failure.
+func freebuffAuthFailure(phase string, status int, err error) string {
+ if err!=nil {return "FreeBuff 官方"+phase+"發生網路／回應格式錯誤（可檢查連線後重試，既有帳號不受影響）。"}
+ switch status {
+ case http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout:
+  return fmt.Sprintf("FreeBuff 官方%s回覆 HTTP %d（上游閘道暫時失敗，AhB 不會自動重試授權）。",phase,status)
+ case http.StatusTooManyRequests:
+  return "FreeBuff 官方"+phase+"回覆 HTTP 429（請遵守服務速率限制，稍後再試）。"
+ case http.StatusUnauthorized, http.StatusForbidden:
+  return fmt.Sprintf("FreeBuff 官方%s回覆 HTTP %d（授權遭拒；請確認官方帳號狀態）。",phase,status)
+ default:
+  return fmt.Sprintf("FreeBuff 官方%s回覆 HTTP %d；請檢查官方登入流程，無需刪除現有 Token。",phase,status)
+ }
+}
 func (h *Hub) runFreebuffLogin(ctx context.Context,root string,session *freebuffLoginSession){
  defer session.cancel()
  bytesID:=make([]byte,12)
@@ -186,7 +202,7 @@ func (h *Hub) runFreebuffLogin(ctx context.Context,root string,session *freebuff
  fingerprint:="codebuff-cli-"+hex.EncodeToString(bytesID)
  codeStatus,data,err:=h.freebuffRequest(ctx,"POST","/api/auth/cli/code",map[string]string{"fingerprintId":fingerprint})
  if err!=nil||codeStatus!=200 {
-  session.set("failed","","無法連線 FreeBuff 官方授權服務，請稍後重試。");return
+  session.set("failed","",freebuffAuthFailure("取得授權網址",codeStatus,err));return
  }
  loginURL:=upstreamString(data,"loginUrl")
  hash:=upstreamString(data,"fingerprintHash")
@@ -220,7 +236,7 @@ func (h *Hub) runFreebuffLogin(ctx context.Context,root string,session *freebuff
   query.Set("expiresAt",expires)
   status,data,err:=h.freebuffRequest(ctx,"GET","/api/auth/cli/status?"+query.Encode(),nil)
   if err!=nil {invalidReplies++;if invalidReplies>=4{
-    session.set("failed","","官方授權狀態查詢失敗，請確認網路後重試。");return
+    session.set("failed","",freebuffAuthFailure("查詢授權狀態",status,err));return
    };continue
   }
   switch status {
@@ -243,7 +259,7 @@ func (h *Hub) runFreebuffLogin(ctx context.Context,root string,session *freebuff
    session.set("failed","","官方授權要求已失效或被拒絕，請重新開始。");return
   default:
    invalidReplies++
-   if invalidReplies>=4{session.set("failed","","官方授權服務暫時不可用，請稍後重試。");return}
+   if invalidReplies>=4{session.set("failed","",freebuffAuthFailure("查詢授權狀態",status,nil));return}
   }
  }
 }

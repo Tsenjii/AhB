@@ -31,7 +31,7 @@ for p in cfg["providers"]:
     assert p["kind"]=="sidecar"
     assert p["enabled"] is (p["id"] not in unverified_default_off)
     assert p["start_mode"]=="on_demand"
-assert cfg["resources"]["max_running_sidecars"]==3
+assert cfg["resources"]["max_running_sidecars"]==9  # Android supports all nine at once
 assert cfg["resources"]["idle_stop_seconds"]==900
 linux=json.loads(Path("configs/profiles/linux-512mb.json").read_text())
 assert {p["id"] for p in linux["providers"]}==installed

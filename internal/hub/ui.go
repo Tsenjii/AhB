@@ -285,8 +285,8 @@ button,.btn{touch-action:manipulation}button:focus-visible,a:focus-visible,input
   </div>
   <div class="command-panel">
    <div class="eyebrow">On-demand sidecars</div>
-   <div class="resource-presets" role="group" aria-label="快速資源設定"><button type="button" data-resource-preset="stable">穩定優先 · 2 個 / 10 分鐘</button><button type="button" data-resource-preset="lean">省資源 · 1 個 / 2 分鐘</button><button type="button" data-resource-preset="performance">多來源 · 3 個 / 15 分鐘</button></div>
-   <div class="command-help">快速預設只填入建議值，按「儲存資源設定」才會生效。多個 Gateway 同時運行可降低切換等待，但會增加 RAM；小 VPS 請先確認可用記憶體。</div>
+   <div class="resource-presets" role="group" aria-label="快速資源設定"><button type="button" data-resource-preset="stable">穩定優先 · 2 個 / 10 分鐘</button><button type="button" data-resource-preset="lean">省資源 · 1 個 / 2 分鐘</button><button type="button" data-resource-preset="performance">多來源 · 3 個 / 15 分鐘</button><button type="button" data-resource-preset="all">全來源 · 9 個 / 24 小時</button></div>
+   <div class="command-help">快速預設只填入建議值，按「儲存資源設定」才會生效。「全來源」允許九個 Gateway 同時運作，但不會自動啟動尚未使用的來源；你已在手機量到低占用，仍建議觀察實際推論峰值。Linux 小 VPS 可保留省資源模式。</div>
    <div class="field"><label for="maxResident">同時最多常駐幾個轉接器？</label><input id="maxResident" type="number" min="1" max="16" step="1" inputmode="numeric" value="1"></div>
    <div class="field"><label for="idleTimeout">閒置多久自動關閉？（秒）</label><input id="idleTimeout" type="number" min="30" max="86400" step="1" inputmode="numeric" value="120"></div>
    <div class="command-actions"><button type="button" id="saveResourceSettings" disabled>儲存資源設定</button></div>
@@ -887,7 +887,7 @@ document.getElementById('providers').addEventListener('click',async e=>{
 let resourceSettingsDirty=false;
 document.querySelector(".resource-presets").addEventListener("click",e=>{
  const preset=e.target.closest("button[data-resource-preset]");if(!preset)return;
- const values={stable:[2,600],lean:[1,120],performance:[3,900]}[preset.dataset.resourcePreset];if(!values)return;
+ const values={stable:[2,600],lean:[1,120],performance:[3,900],all:[9,86400]}[preset.dataset.resourcePreset];if(!values)return;
  document.getElementById("maxResident").value=values[0];document.getElementById("idleTimeout").value=values[1];
  resourceSettingsDirty=true;
  controlNotice("已套用資源預設（尚未儲存）。請確認 RAM 需求，再按『儲存資源設定』。");
@@ -928,6 +928,7 @@ let scanningAllModels=false;
 async function getJSON(path){const r=await fetch(path,{cache:'no-store'});if(!r.ok)throw new Error(path+' HTTP '+r.status);return r.json()}
 function modelCounts(models){const out={};for(const m of models){const p=m.x_provider||'';out[p]=(out[p]||0)+1}return out}
 function accountLabel(x){
+ if(x.id==='deepseek'&&x.account_total>0&&x.account_usable==null)return '待實測 '+x.account_total+' 組';
  if(x.account_total!==null&&x.account_total!==undefined)return String(x.account_usable_count||0)+'/'+String(x.account_total);
  if(x.id==='opencode'&&x.account_usable===true)return 'ANON';
  return x.account_usable===true?'YES':(x.account_usable===false?'NO':'UNKNOWN');
@@ -944,7 +945,7 @@ function renderModels(){
  const shown=rows.slice(0,modelLimit);
  document.getElementById('modelCount').textContent=rows.length===lastModels.length?lastModels.length+' 個模型':rows.length+' / '+lastModels.length+' 個模型';
  document.getElementById('models').innerHTML=shown.length?shown.map(m=>
- '<tr><td><code>'+esc(m.id)+'</code>'+(m.x_cached?'<span class="muted"> · 休眠快取</span>':'')+'</td><td>'+esc(m.x_provider_name||m.x_provider||'—')+'</td><td><code>'+esc(m.x_upstream_id||'—')+'</code></td></tr>'
+ '<tr><td><code>'+esc(m.id)+'</code>'+(m.x_cached?'<span class="muted"> · 休眠快取</span>':'')+'<span class="muted"> · 僅目錄／未實測</span>'+'</td><td>'+esc(m.x_provider_name||m.x_provider||'—')+'</td><td><code>'+esc(m.x_upstream_id||'—')+'</code></td></tr>'
  ).join(''):'<tr><td colspan="3" class="muted">沒有符合的模型</td></tr>';
  const more=document.getElementById('showMoreModels');more.hidden=rows.length<=modelLimit;
  more.textContent='顯示更多模型 · '+shown.length+' / '+rows.length;

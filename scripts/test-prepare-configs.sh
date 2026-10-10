@@ -27,7 +27,7 @@ jq -e '
   (.providers | map(.id) | unique | length) == (.providers | length)
   and (any(.providers[]; .id == "copilot" and .enabled == false and .env.GODEBUG == "netdns=cgo" and .env.MY_COPILOT_SETTING == "preserved"))
   and (all(.providers[]; .id != "kimiweb" and .id != "lmarena"))
-  and (.resources.max_running_sidecars == 3 and .resources.idle_stop_seconds == 900)
+  and (.resources.max_running_sidecars == 9 and .resources.idle_stop_seconds == 900)
   and (all(.providers[] | select(.kind == "sidecar"); .start_mode == "on_demand"))
   and (any(.providers[]; .id == "geminiweb" and .enabled == true and .env.API_KEY != "__AIHUB_SERVER_KEY__"))
   and (any(.providers[]; .id == "duckai" and .enabled == false and .env.DUCKAI_DEFAULT_API_KEY != "__AIHUB_SERVER_KEY__" and .health_path == "/health"))
