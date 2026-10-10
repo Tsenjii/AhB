@@ -7,11 +7,12 @@ AhB 的 Dashboard → **帳號與登入 → 原生控制台登入**，列出各�
 | 來源 | URL (手機本機) | AhB 取得憑證方式 | 限制 |
 |---|---|---|---|
 | OpenCode | http://127.0.0.1:8404/ | 私人 `data/opencode/config.json` 的 webui 帳號密碼 | 如果在上游修改過，顯示以實際本機設定為準 |
-| DeepSeek Web | http://127.0.0.1:8405/admin | `data/deepseek2api/admin-key.txt` | 管理 Token，不是普通使用者的密碼 |
 | Gemini Web | http://127.0.0.1:8413/admin | 私人 `config.json` 裡 `geminiweb.env.ADMIN_TOKEN` | 來源原生 Admin Token；可能與 AhB local API key 共用 |
 | Grok2API | http://127.0.0.1:8407/ | `data/grok2api/admin-password.txt` 初始密碼 | 資料庫建立後若曾在上游更換密碼，初始密碼可能失效 |
 | Kiro-Go | http://127.0.0.1:8408/admin | 私人 `data/kiro-go/config.json` 的 password | 不會更動原生帳號 |
 | Agent2API | http://127.0.0.1:8403/ | 使用原本管理頁 | AhB 不覆蓋它的帳號或代理池 |
+
+實驗版 DeepSeek Web 沒有舊版 `/admin`；其網頁登入帳號資料必須放在私有 `data/deepseek2api/accounts.txt`，AhB 不會將原來的管理密碼誤認作網頁帳號，也不會顯示 Token。需經 Playground 真實驗證。
 
 FreeBuff 的 OAuth 與 Copilot 的 GitHub 授權流程位於同一個 **帳號與登入** 分頁，但那是 AI 平台自己的官方授權，不是 Gateway 管理員密碼。
 

@@ -39,13 +39,13 @@
     },
     {
       "id": "duckai",
-      "name": "DuckDuckGo AI / Duck2API Go",
-      "url": "https://github.com/aurora-develop/duck2api",
+      "name": "Duck.ai experimental Rust HTTP-only",
+      "url": "https://github.com/desktop-tools-which-may-be-useful/duckai2api",
       "status": "new_bundled_pending_build",
       "priority": "P2",
-      "notes": "New native Go sidecar wired into both platform builds at 8414, localhost-only and Bearer token-protected. Commit f446c1c6 pinned; chat, Anthropic Messages and Responses support claimed by upstream. 512 MB memory load / Android compatibility / real inference remain unverified.",
+      "notes": "2026-10-10 experimental source replacement pinned d8c6888eeb11daedb71a6ad589095f0a315626eb; builds Rust HTTP-only without Chrome/Playwright. Real Android and upstream inference still untested; user observed HTTP 418 on old bridge. Remains disabled by default.",
       "verified_live_android": false,
-      "last_reviewed": "2026-10-09"
+      "last_reviewed": "2026-10-10"
     },
     {
       "id": "opencode",
@@ -73,19 +73,19 @@
       "url": "https://github.com/aimod-cc/agent2api",
       "status": "bundled_quota_blocked",
       "priority": "P0",
-      "notes": "Bundled; two credentialed accounts but actual HTTP 503 due low quota.",
+      "notes": "Bundled official upstream v2.9.9 pinned at cd97bce9912225e055cc79761d96a3f0b77e26f8; this was newest release on 2026-10-10. Device test found 503 when credentials had insufficient quota; version update does not restore quota.",
       "verified_live_android": false,
-      "last_reviewed": "2026-10-08"
+      "last_reviewed": "2026-10-10"
     },
     {
       "id": "deepseek",
-      "name": "DeepSeek Web (Go)",
-      "url": "https://github.com/zengtao227/Deepseek2API",
+      "name": "DeepSeek Web experimental Go",
+      "url": "https://github.com/0xgetz/deepseek2api",
       "status": "bundled_unverified",
       "priority": "P0",
-      "notes": "Bundled but disabled; complete real-account inference tests first.",
+      "notes": "2026-10-10 experimental pure-Go source replacement pinned 41b924e7741e1619433469900625dca132e00d6c. Requires account tokens in private accounts.txt; old Deepseek2API admin/password is incompatible. No native WebUI or OAuth. Disabled by default, live inference unverified.",
       "verified_live_android": false,
-      "last_reviewed": "2026-10-08"
+      "last_reviewed": "2026-10-10"
     },
     {
       "id": "grok",

@@ -24,7 +24,6 @@ type adminConsoleDefinition struct {
 }
 var adminConsoles = []adminConsoleDefinition{
  {"opencode","OpenCode Free","http://127.0.0.1:8404/","username_password","admin","讀取 OpenCode 目前本機 WebUI 設定。"},
- {"deepseek","DeepSeek Web","http://127.0.0.1:8405/admin","admin_token","","使用 DeepSeek 管理 Token，不是 API Key。"},
  {"geminiweb","Gemini Web","http://127.0.0.1:8413/admin","admin_token","","讀取 AhB 啟動 Gemini Web 時使用的 ADMIN_TOKEN；來源可能有自己的登入規則。"},
  {"grok","Grok2API","http://127.0.0.1:8407/","bootstrap_password","admin","僅為初次建立管理員時使用的密碼；若在上游 UI 更改過，請使用新的密碼。"},
  {"kiro","Kiro-Go","http://127.0.0.1:8408/admin","admin_password","","Kiro 管理密碼；無須更改原本的帳號登入。"},
@@ -119,10 +118,6 @@ func readLocalAdminSecret(root,id string) (secret,username string,err error) {
   if e=json.Unmarshal(raw,&doc);e!=nil{return "","",e}
   if doc.WebUI.Password==""||strings.Contains(doc.WebUI.Password,"__AIHUB_"){return "","",errors.New("uninitialized password")}
   return doc.WebUI.Password,doc.WebUI.Username,nil
- case "deepseek":
-  raw,e:=readPrivateAdminFile(root,"data","deepseek2api","admin-key.txt")
-  if e!=nil{return "","",e}
-  return strings.TrimSpace(string(raw)),"",nil
  case "geminiweb":
   raw,e:=readPrivateAdminFile(root,"config.json")
   if e!=nil{return "","",e}

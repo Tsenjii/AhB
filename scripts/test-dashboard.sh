@@ -20,7 +20,7 @@ for needle in ('id="bridgePreset"', 'id="bridgeURL"', 'id="bridgeCommand"',
     assert needle in html, f"missing UI element: {needle}"
 assert "Node.js" in html and "FreeBuff" in html and "freebuff-login-termux.sh" in html
 assert "HTTP 418 · Duck.ai 拒絕請求" in html
-assert "DeepSeek Web 需要先在原生 /admin 設定自己的網頁帳號" in html
+assert "實驗版 DeepSeek Web 已移除舊 /admin 管理台" in html
 assert 'data-copilot-auth' in html
 assert 'Copilot2API 沒有獨立 WebUI' in html
 assert "copilotLoginAction('status').then(showCopilotLogin)" in html

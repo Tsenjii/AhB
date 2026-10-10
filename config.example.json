@@ -82,27 +82,26 @@
     },
     {
       "id": "deepseek",
-      "display_name": "DeepSeek Web",
-      "description": "DeepSeek Web account bridge (chat.deepseek.com). Disabled until real Web account/session is configured and live inference is tested; admin token is NOT DeepSeek login.",
+      "display_name": "DeepSeek Web (experimental Go)",
+      "description": "Experimental Oct 2026 Go Web adapter. Requires separate authorized DeepSeek account token in private accounts.txt; old admin key and config.json do not authenticate this adapter. Disabled pending live chat.",
       "enabled": false,
       "kind": "sidecar",
       "base_url": "http://127.0.0.1:8405",
-      "ui_url": "http://127.0.0.1:8405/admin",
-      "docs_url": "https://github.com/zengtao227/Deepseek2API",
+      "ui_url": "",
+      "docs_url": "https://github.com/0xgetz/deepseek2api",
       "binary": "./bin/deepseek2api",
       "work_dir": "./data/deepseek2api",
       "env": {
         "PORT": "8405",
-        "Deepseek2API_CONFIG_PATH": "config.json",
-        "Deepseek2API_STATIC_ADMIN_DIR": "static/admin",
-        "Deepseek2API_ADMIN_KEY": "__AIHUB_DEEPSEEK_ADMIN_KEY__",
+        "PROXY_API_KEY": "__AIHUB_SERVER_KEY__",
+        "DEEPSEEK_ACCOUNTS_FILE": "accounts.txt",
         "GODEBUG": "netdns=cgo",
         "NO_PROXY": "127.0.0.1,localhost"
       },
       "headers": {
         "Authorization": "Bearer __AIHUB_SERVER_KEY__"
       },
-      "health_path": "/healthz",
+      "health_path": "/health",
       "models_path": "/v1/models",
       "max_restarts": 3,
       "startup_timeout_seconds": 60,
@@ -222,25 +221,27 @@
     },
     {
       "id": "duckai",
-      "display_name": "DuckDuckGo AI",
-      "description": "Experimental unofficial Duck.ai gateway; real upstream chats may return HTTP 418. Disabled pending live acceptance; local /ping is not inference success.",
+      "display_name": "Duck.ai (experimental Rust)",
+      "description": "Experimental Rust HTTP-only Duck.ai adapter; known real upstream HTTP 418, disabled pending authorized live verification. Health is local only.",
       "enabled": false,
       "kind": "sidecar",
       "start_mode": "on_demand",
       "base_url": "http://127.0.0.1:8414",
       "ui_url": "",
-      "docs_url": "https://github.com/aurora-develop/duck2api",
+      "docs_url": "https://github.com/desktop-tools-which-may-be-useful/duckai2api",
       "binary": "./bin/duck2api",
       "work_dir": "./data/duckai",
       "env": {
-        "SERVER_HOST": "127.0.0.1",
-        "SERVER_PORT": "8414",
-        "Authorization": "__AIHUB_SERVER_KEY__"
+        "PORT": "8414",
+        "DUCKAI_BIND": "127.0.0.1",
+        "DUCKAI_DEFAULT_API_KEY": "__AIHUB_SERVER_KEY__",
+        "DUCKAI_DB_PATH": "duckai.db",
+        "DUCKAI_MAX_CONCURRENCY": "2"
       },
       "headers": {
         "Authorization": "Bearer __AIHUB_SERVER_KEY__"
       },
-      "health_path": "/ping",
+      "health_path": "/health",
       "models_path": "/v1/models",
       "max_restarts": 3,
       "startup_timeout_seconds": 60

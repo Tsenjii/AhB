@@ -269,47 +269,38 @@ jobs:
           cp -R /tmp/kiro-go/web "$GITHUB_WORKSPACE/dist/AhB/data/kiro-go/web"
           cp /tmp/kiro-go/LICENSE "$GITHUB_WORKSPACE/dist/AhB/LICENSE.kiro-go" || true
 
-      - name: Build pinned DeepSeek2API for Android ARM64
+      - name: Build experimental DeepSeek Web pure-Go replacement for Android ARM64
         shell: bash
         run: |
           set -euo pipefail
-          DS_SHA="7a0925fa9bd83e36838b4d3762c81292feb344c2"
-          rm -rf /tmp/deepseek2api
+          # Opt-in replacement, not proof of live account inference.
+          DS_SHA="41b924e7741e1619433469900625dca132e00d6c"
           git init /tmp/deepseek2api
-          git -C /tmp/deepseek2api remote add origin https://github.com/zengtao227/Deepseek2API.git
+          git -C /tmp/deepseek2api remote add origin https://github.com/0xgetz/deepseek2api.git
           git -C /tmp/deepseek2api fetch --depth 1 origin "$DS_SHA"
           git -C /tmp/deepseek2api checkout --detach FETCH_HEAD
-
           cd /tmp/deepseek2api
+          # Upstream defaults to all interfaces. AhB is loopback-only.
           python3 - <<'PY'
           from pathlib import Path
-          p = Path("cmd/Deepseek2API/main.go")
-          s = p.read_text()
-          old = 'Addr:              "0.0.0.0:" + port,'
-          new = 'Addr:              "127.0.0.1:" + port,'
-          if old not in s:
-              raise SystemExit("expected Deepseek2API listen address not found")
-          p.write_text(s.replace(old, new, 1))
+          p=Path("main.go")
+          s=p.read_text()
+          old='Addr:              ":" + cfg.Port,'
+          new='Addr:              "127.0.0.1:" + cfg.Port,'
+          if s.count(old) != 1:
+              raise SystemExit("DeepSeek upstream listen contract changed; refuse unsafe build")
+          p.write_text(s.replace(old,new))
           PY
-
-          npm ci --prefix webui
-          npm run build --prefix webui
-
           CC="$ANDROID_TOOLCHAIN/aarch64-linux-android24-clang" \
             GOOS=android GOARCH=arm64 CGO_ENABLED=1 \
-            go build -trimpath -ldflags="-s -w" \
-            -o "$GITHUB_WORKSPACE/dist/AhB/bin/deepseek2api" ./cmd/Deepseek2API
+            go build -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/dist/AhB/bin/deepseek2api" .
+          cp LICENSE "$GITHUB_WORKSPACE/dist/AhB/LICENSE.deepseek2api"
 
-          mkdir -p "$GITHUB_WORKSPACE/dist/AhB/data/deepseek2api/static"
-          cp -R static/admin "$GITHUB_WORKSPACE/dist/AhB/data/deepseek2api/static/admin"
-          cp LICENSE "$GITHUB_WORKSPACE/dist/AhB/LICENSE.deepseek2api" || true
-
-      - name: Build pinned Gemini Web Go and Duck.ai Go (localhost-only)
+      - name: Build pinned Gemini Web Go and experimental Duck.ai Rust (localhost-only)
         shell: bash
         run: |
           set -euo pipefail
           GEMINI_SHA="bc09c7171915deb7406a4b14344692cfa330388e"
-          DUCK_SHA="f446c1c68fffa02c34de0805daf1604fe26349e9"
           git init /tmp/ahb-gemini-web2api
           git -C /tmp/ahb-gemini-web2api remote add origin https://github.com/zexadev/gemini-web2api-go.git
           git -C /tmp/ahb-gemini-web2api fetch --depth 1 origin "$GEMINI_SHA"
@@ -319,35 +310,38 @@ jobs:
             CC="$ANDROID_TOOLCHAIN/aarch64-linux-android24-clang" GOOS=android GOARCH=arm64 CGO_ENABLED=1 go build -buildvcs=false -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/dist/AhB/bin/gemini-web2api-go" .
             cp LICENSE "$GITHUB_WORKSPACE/dist/AhB/LICENSE.gemini-web2api-go"
           )
+          # Experimental Duck replacement, no Chromium/browser feature or auto-evasion setup.
+          DUCK_SHA="d8c6888eeb11daedb71a6ad589095f0a315626eb"
           git init /tmp/ahb-duck2api
-          git -C /tmp/ahb-duck2api remote add origin https://github.com/aurora-develop/Duck2api.git
+          git -C /tmp/ahb-duck2api remote add origin https://github.com/desktop-tools-which-may-be-useful/duckai2api.git
           git -C /tmp/ahb-duck2api fetch --depth 1 origin "$DUCK_SHA"
           git -C /tmp/ahb-duck2api checkout --detach FETCH_HEAD
           (
             cd /tmp/ahb-duck2api
-            # wlynxg/anet v0.0.5 uses go:linkname on private net.zoneCache
-            # which was removed in Go 1.26's Android runtime. Keep anet's
-            # cache local rather than linking against unsupported stdlib guts.
-            # This is scoped to Duck.ai's Android build only.
-            mod_dir="$(go mod download -json github.com/wlynxg/anet@v0.0.5 | jq -r .Dir)"
-            test -d "$mod_dir"
-            cp -R "$mod_dir" /tmp/ahb-duck-anet
-            chmod -R u+w /tmp/ahb-duck-anet
-            python3 - <<'PY'
-          from pathlib import Path
-          path=Path("/tmp/ahb-duck-anet/interface_android.go")
-          s=path.read_text()
-          for line in (
-              "//go:linkname zoneCache net.zoneCache",
-              "//go:linkname zoneCacheX golang.org/x/net/internal/socket.zoneCache",
-          ):
-              assert s.count(line)==1, "unexpected anet upstream Go linkname declaration"
-              s=s.replace(line,"// Local Android cache. Go 1.26 no longer exposes private net internals.")
-          path.write_text(s)
-          PY
-            go mod edit -replace github.com/wlynxg/anet=/tmp/ahb-duck-anet
-            CC="$ANDROID_TOOLCHAIN/aarch64-linux-android24-clang" GOOS=android GOARCH=arm64 CGO_ENABLED=1 go build -buildvcs=false -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/dist/AhB/bin/duck2api" .
-            cp LICENSE "$GITHUB_WORKSPACE/dist/AhB/LICENSE.duck2api"
+            export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$ANDROID_TOOLCHAIN/aarch64-linux-android24-clang"
+            export CC_aarch64_linux_android="$ANDROID_TOOLCHAIN/aarch64-linux-android24-clang"
+            export AR_aarch64_linux_android="$ANDROID_TOOLCHAIN/llvm-ar"
+            export CARGO_BUILD_JOBS=2
+            # dlopen2 0.9.0 references once_cell::Lazy on Android but
+            # its published Cargo manifest omits that dependency. Use
+            # Rust 1.95's equivalent std::sync::LazyLock in the fetched
+            # pinned crate, without changing Cargo.lock or browser features.
+            cargo fetch --locked --target aarch64-linux-android
+            # QuickJS v0.14 does not ship pre-generated Android ARM64
+            # bindings. Use upstream's official bindgen feature for only
+            # this native Android build (no external browser runtime).
+            # The added optional bindgen dependency needs an ephemeral
+            # Cargo.lock resolution, then the actual build remains --locked.
+            python3 -c 'from pathlib import Path; p=Path("Cargo.toml"); s=p.read_text(); old="rquickjs = { version = \"0.14\", features = [\"full\"] }"; new="rquickjs = { version = \"0.14\", features = [\"full\", \"bindgen\"] }"; assert s.count(old)==1, "Pinned QuickJS feature contract changed"; p.write_text(s.replace(old,new))'
+            export BINDGEN_EXTRA_CLANG_ARGS="--target=aarch64-linux-android24 --sysroot=$ANDROID_TOOLCHAIN/../sysroot"
+            cargo fetch --target aarch64-linux-android
+            # Bash's nested shell block makes indented heredoc delimiters
+            # invalid after YAML's block indentation is removed. Use -c instead.
+            python3 -c 'from pathlib import Path; paths=list((Path.home()/".cargo/registry/src").glob("*/dlopen2-0.9.0/src/raw/unix.rs")); assert len(paths)==1, "dlopen2 0.9.0 source contract changed"; p=paths[0]; s=p.read_text(); old="once_cell::sync::Lazy"; assert s.count(old)==1, "dlopen2 Lazy import contract changed"; p.write_text(s.replace(old, "std::sync::LazyLock as Lazy")); print("Android-only dlopen2 LazyLock compatibility shim applied")'
+            cargo build --locked --release --target aarch64-linux-android \
+              --package duckai-server --bin duckai2api --no-default-features --features http
+            cp target/aarch64-linux-android/release/duckai2api "$GITHUB_WORKSPACE/dist/AhB/bin/duck2api"
+            # Upstream Cargo workspace declares MIT; it currently has no LICENSE file.
           )
 
       - name: Assemble Termux bundle
@@ -368,6 +362,10 @@ jobs:
           cp configs/deepseek2api.json dist/AhB/data/deepseek2api/config.json
           cp configs/grok2api.yaml dist/AhB/data/grok2api/config.yaml
           cp configs/kiro-go.json dist/AhB/data/kiro-go/config.json
+          # The currently published Android updater checks for this path.
+          # Include an inert placeholder only; new DeepSeek Go has NO /admin UI.
+          mkdir -p dist/AhB/data/deepseek2api/static/admin
+          echo 'Legacy upgrade compatibility only. Configure private accounts.txt.' > dist/AhB/data/deepseek2api/static/admin/.upgrade-compat
           chmod 700 dist/AhB/bin/*
           chmod +x dist/AhB/scripts/*.sh
           tar -C dist -czf AhB_android_arm64.tar.gz AhB

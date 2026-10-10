@@ -95,7 +95,7 @@ fi
 assets=(
   AhB/data/freebuff/gateway
   AhB/data/agent2api/ui
-  AhB/data/deepseek2api/static/admin
+  # Removed upstream DeepSeek admin UI; do not require it on future upgrades.
   AhB/data/grok2api/frontend/dist
   AhB/data/kiro-go/web
 )

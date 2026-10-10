@@ -238,46 +238,37 @@ jobs:
           cp -R /tmp/kiro-go/web "$GITHUB_WORKSPACE/dist/AhB/data/kiro-go/web"
           cp /tmp/kiro-go/LICENSE "$GITHUB_WORKSPACE/dist/AhB/LICENSE.kiro-go" || true
 
-      - name: Build pinned DeepSeek2API for native Linux
+      - name: Build experimental DeepSeek Web pure-Go replacement for native Linux
         shell: bash
         run: |
           set -euo pipefail
-          DS_SHA="7a0925fa9bd83e36838b4d3762c81292feb344c2"
-          rm -rf /tmp/deepseek2api
+          # Opt-in replacement, not proof of live account inference.
+          DS_SHA="41b924e7741e1619433469900625dca132e00d6c"
           git init /tmp/deepseek2api
-          git -C /tmp/deepseek2api remote add origin https://github.com/zengtao227/Deepseek2API.git
+          git -C /tmp/deepseek2api remote add origin https://github.com/0xgetz/deepseek2api.git
           git -C /tmp/deepseek2api fetch --depth 1 origin "$DS_SHA"
           git -C /tmp/deepseek2api checkout --detach FETCH_HEAD
-
           cd /tmp/deepseek2api
+          # Upstream defaults to all interfaces. AhB is loopback-only.
           python3 - <<'PY'
           from pathlib import Path
-          p = Path("cmd/Deepseek2API/main.go")
-          s = p.read_text()
-          old = 'Addr:              "0.0.0.0:" + port,'
-          new = 'Addr:              "127.0.0.1:" + port,'
-          if old not in s:
-              raise SystemExit("expected Deepseek2API listen address not found")
-          p.write_text(s.replace(old, new, 1))
+          p=Path("main.go")
+          s=p.read_text()
+          old='Addr:              ":" + cfg.Port,'
+          new='Addr:              "127.0.0.1:" + cfg.Port,'
+          if s.count(old) != 1:
+              raise SystemExit("DeepSeek upstream listen contract changed; refuse unsafe build")
+          p.write_text(s.replace(old,new))
           PY
+          GOOS=linux GOARCH="$AHB_ARCH" CGO_ENABLED=0 \
+            go build -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/dist/AhB/bin/deepseek2api" .
+          cp LICENSE "$GITHUB_WORKSPACE/dist/AhB/LICENSE.deepseek2api"
 
-          npm ci --prefix webui
-          npm run build --prefix webui
-
-          GOOS=linux GOARCH="$AHB_ARCH" CGO_ENABLED=1 \
-            go build -trimpath -ldflags="-s -w" \
-            -o "$GITHUB_WORKSPACE/dist/AhB/bin/deepseek2api" ./cmd/Deepseek2API
-
-          mkdir -p "$GITHUB_WORKSPACE/dist/AhB/data/deepseek2api/static"
-          cp -R static/admin "$GITHUB_WORKSPACE/dist/AhB/data/deepseek2api/static/admin"
-          cp LICENSE "$GITHUB_WORKSPACE/dist/AhB/LICENSE.deepseek2api" || true
-
-      - name: Build pinned Gemini Web Go and Duck.ai Go (localhost-only)
+      - name: Build pinned Gemini Web Go and experimental Duck.ai Rust (localhost-only)
         shell: bash
         run: |
           set -euo pipefail
           GEMINI_SHA="bc09c7171915deb7406a4b14344692cfa330388e"
-          DUCK_SHA="f446c1c68fffa02c34de0805daf1604fe26349e9"
           git init /tmp/ahb-gemini-web2api
           git -C /tmp/ahb-gemini-web2api remote add origin https://github.com/zexadev/gemini-web2api-go.git
           git -C /tmp/ahb-gemini-web2api fetch --depth 1 origin "$GEMINI_SHA"
@@ -287,14 +278,19 @@ jobs:
             GOOS=linux GOARCH="$AHB_ARCH" CGO_ENABLED=1 go build -buildvcs=false -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/dist/AhB/bin/gemini-web2api-go" .
             cp LICENSE "$GITHUB_WORKSPACE/dist/AhB/LICENSE.gemini-web2api-go"
           )
+          # Experimental Duck replacement, no Chromium/browser feature or auto-evasion setup.
+          DUCK_SHA="d8c6888eeb11daedb71a6ad589095f0a315626eb"
           git init /tmp/ahb-duck2api
-          git -C /tmp/ahb-duck2api remote add origin https://github.com/aurora-develop/Duck2api.git
+          git -C /tmp/ahb-duck2api remote add origin https://github.com/desktop-tools-which-may-be-useful/duckai2api.git
           git -C /tmp/ahb-duck2api fetch --depth 1 origin "$DUCK_SHA"
           git -C /tmp/ahb-duck2api checkout --detach FETCH_HEAD
           (
             cd /tmp/ahb-duck2api
-            GOOS=linux GOARCH="$AHB_ARCH" CGO_ENABLED=1 go build -buildvcs=false -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/dist/AhB/bin/duck2api" .
-            cp LICENSE "$GITHUB_WORKSPACE/dist/AhB/LICENSE.duck2api"
+            export CARGO_BUILD_JOBS=2
+            cargo build --locked --release \
+              --package duckai-server --bin duckai2api --no-default-features --features http
+            cp target/release/duckai2api "$GITHUB_WORKSPACE/dist/AhB/bin/duck2api"
+            # Upstream Cargo workspace declares MIT; it currently has no LICENSE file.
           )
 
       - name: Smoke-test new native gateways on loopback (no accounts)
@@ -319,14 +315,14 @@ jobs:
           GEMINI_PID=$!
           (
             cd "$TMP/duck"
-            SERVER_HOST=127.0.0.1 SERVER_PORT=18414 Authorization="ci-local-test-key"               "$GITHUB_WORKSPACE/dist/AhB/bin/duck2api" > "$TMP/duck.log" 2>&1
+            PORT=18414 DUCKAI_BIND=127.0.0.1 DUCKAI_DB_PATH="$TMP/duck/duckai.db" DUCKAI_DEFAULT_API_KEY="ci-local-test-key"               "$GITHUB_WORKSPACE/dist/AhB/bin/duck2api" > "$TMP/duck.log" 2>&1
           ) &
           DUCK_PID=$!
-          for target in "18413:status" "18414:pong"; do
+          for target in "18413:status" "18414:ok"; do
             port="${target%%:*}"
             expected="${target#*:}"
             path="/"
-            if [ "$port" = "18414" ]; then path="/ping"; fi
+            if [ "$port" = "18414" ]; then path="/health"; fi
             ready=0
             for i in $(seq 1 80); do
               if curl -fsS --max-time 2 "http://127.0.0.1:$port$path" | grep -q "$expected"; then ready=1; break; fi
