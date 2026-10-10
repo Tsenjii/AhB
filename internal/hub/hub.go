@@ -437,10 +437,13 @@ func assessProviderHealth(id, kind string, snap sidecar.Snapshot, account accoun
 		}
 	case "deepseek":
 		if account.Known {
-			usable := account.Usable > 0
-			a.AccountUsable = boolPtr(usable)
-			if !usable {
-				a.Detail = "no configured DeepSeek accounts"
+			// The experimental adapter inventories token lines, not actual
+			// authenticated chat/quotas. Keep candidates UNKNOWN, not YES.
+			if account.Total == 0 {
+				a.AccountUsable = boolPtr(false)
+				a.Detail = "no configured DeepSeek credentials"
+			} else {
+				a.Detail = "DeepSeek credentials configured, but live inference unverified"
 			}
 		}
 	case "freebuff":
@@ -678,6 +681,8 @@ func (h *Hub) fetchModels(ctx context.Context, cfg config.ProviderConfig) ([]map
 		copyModel["x_provider"] = cfg.ID
 		copyModel["x_provider_name"] = cfg.DisplayName
 		copyModel["x_upstream_id"] = upstreamID
+		// Provider declarations alone are not live inference evidence.
+		copyModel["x_catalog_only"] = true
 		out = append(out, copyModel)
 	}
 	if p := h.providers[cfg.ID]; p != nil && h.onDemand(p) {
