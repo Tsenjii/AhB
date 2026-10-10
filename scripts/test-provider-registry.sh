@@ -21,12 +21,15 @@ for c in src["candidates"]:
     assert c["last_reviewed"] and c["notes"]
 for p in cfg["providers"]:
     assert p["id"] in ids, f"config provider missing in source registry: {p['id']}"
-# Android installs expose ONLY adapters actually compiled into the
-# Android bundle, with all nine enabled but resident only on demand.
+# Android bundles still include all nine adapters. Experimental sources
+# that have not passed live account/upstream acceptance must start disabled,
+# while preserving any existing installed user's private config.json.
 installed={"opencode","freebuff","agent2api","deepseek","grok","kiro","copilot","geminiweb","duckai"}
 assert {p["id"] for p in cfg["providers"]} == installed
+unverified_default_off={"deepseek","duckai"}
 for p in cfg["providers"]:
-    assert p["kind"]=="sidecar" and p["enabled"] is True
+    assert p["kind"]=="sidecar"
+    assert p["enabled"] is (p["id"] not in unverified_default_off)
     assert p["start_mode"]=="on_demand"
 assert cfg["resources"]["max_running_sidecars"]==3
 assert cfg["resources"]["idle_stop_seconds"]==900
@@ -34,6 +37,8 @@ linux=json.loads(Path("configs/profiles/linux-512mb.json").read_text())
 assert {p["id"] for p in linux["providers"]}==installed
 assert linux["resources"]["max_running_sidecars"]==1
 assert linux["resources"]["idle_stop_seconds"]==120
+for p in linux["providers"]:
+    assert p["enabled"] is (p["id"] not in unverified_default_off)
 assert Path("scripts/login-copilot2api.sh").is_file()
 assert Path("scripts/enable-copilot2api.sh").is_file()
 assert Path("scripts/install-kimiweb-termux.sh").is_file()

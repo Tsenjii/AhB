@@ -305,6 +305,18 @@ func (h *Hub) providerViews() []providerView {
 				if view.LastError == "" {
 					view.LastError = assessment.Detail
 				}
+				// A successful /ping only establishes that the local Duck.ai
+				// process is alive. Its last real chat response HTTP 418 indicates
+				// that the upstream rejected the request. Surface the failure as
+				// DEGRADED rather than claiming a usable inference endpoint.
+				// Do not restart automatically or claim the user's IP is banned.
+				if id == "duckai" && view.ProviderReady && last.Status == http.StatusTeapot &&
+					!last.TransportError && !last.At.IsZero() &&
+					time.Since(last.At) < 15*time.Minute {
+					view.State = provider.StateDegraded
+					view.ProviderReady = false
+					view.LastError = "Duck.ai refused the last inference (HTTP 418); upstream access must be checked. This is not a local process crash."
+				}
 			}
 		}
 		out = append(out, view)

@@ -1,5 +1,12 @@
 # NEXT AI HANDOFF — AhB (2026-10-09 release checkpoint)
 
+## Android live failure report — 2026-10-10 (DeepSeek + Duck.ai)
+
+- User confirms DeepSeek Web has **no working real inference** in their installation. It is not the paid DeepSeek API: bundled upstream zengtao227/Deepseek2API calls chat.deepseek.com, but requires a real Web account/session in its original /admin. AhB admin-key.txt authenticates management only. Do not label usable based on a running service or listed models.
+- User observed Duck.ai **HTTP 418 I'm a teapot**. Pinned aurora-develop/Duck2api may retry 418/429 but still get rejected. Do not claim permanent IP ban from the code alone, and do not reattempt or restart repeatedly. A healthy /ping is process health only.
+- This patch marks recent Duck real-inference HTTP 418 DEGRADED and clearly warns in Dashboard; later HTTP 200 or stale refusal clears recent status. New install templates now disable DeepSeek/Duck while preserving any existing user config. See [DeepSeek/Duck.ai availability guide](DEEPSEEK_DUCK_AVAILABILITY_2026-10-10.md).
+- Current changes are **diagnosis/false-health/default control**, not repaired DeepSeek account login or upstream Duck.ai access; these require permitted real-phone acceptance. Do not erase user's known-good OpenCode/Agent2API accounts.
+
 ## 2026-10-10 final onboarding reliability checkpoint
 
 - [PR #29](https://github.com/Tsenjii/AhB/pull/29) merged at `0f48b1165b468658e34ea273f3a9b02ed147b2af` after Go CI/race, Android ARM64, native Linux AMD64/ARM64 all passed. The official Android `prebuilt/source-commit.txt` matches this SHA and the published SHA-256 verified Linux release is [`linux-0f48b1165b46`](https://github.com/Tsenjii/AhB/releases/tag/linux-0f48b1165b46).
@@ -49,7 +56,7 @@
 
 ## Actual packaging / architecture
 
-Nine bundled gateway implementations, each configured enabled but started on demand:
+Nine bundled gateway implementations. DeepSeek Web and Duck.ai are disabled in **new-install templates** pending real account/upstream acceptance; the others remain enabled on demand. Existing private Android and Linux config.json files are preserved on upgrade:
 
 | Prefix | Gateway | Platform/runtime | Account / inference status |
 | --- | --- | --- | --- |

@@ -15,7 +15,7 @@ the same Go Hub and nine pinned upstream gateways. Agent2API remains
 | Policy | Android Termux | Native Linux VPS |
 | --- | --- | --- |
 | Platform | Android ARM64 | Linux AMD64 / ARM64 |
-| Default providers | Nine bundled, configured enabled; started on demand | Nine bundled, configured enabled; started on demand |
+| Default providers | Nine bundled; DeepSeek Web / Duck.ai disabled pending live verification; others on demand | Nine bundled; DeepSeek Web / Duck.ai disabled pending live verification; others on demand |
 | Startup | On demand | On demand |
 | Maximum resident on-demand providers | **3** | **1** |
 | Idle cleanup | **900 seconds** | **120 seconds** |
@@ -131,7 +131,7 @@ cd ~/AhB
 ./scripts/provider-status-termux.sh
 ```
 
-This reports all nine bundled sources (OpenCode, FreeBuff, Agent2API, DeepSeek Web, Grok, Kiro, GitHub Copilot, Gemini Web and Duck.ai), plus separately the optional Kimi Web, including enabled status, process health, ready/account-count layers, model count and recent upstream HTTP code. It **never** reads or prints individual account details/tokens and does **not** spend inference quota. Unknown states remain UNKNOWN; HTTP 200 is not evidence of completed streaming/tools or actual available balance. See [provider stability rollout](docs/PROVIDER_STABILITY_2026-10-09.md).
+This reports all nine bundled sources (OpenCode, FreeBuff, Agent2API, DeepSeek Web, Grok, Kiro, GitHub Copilot, Gemini Web and Duck.ai), plus separately the optional Kimi Web, including enabled status, process health, ready/account-count layers, model count and recent upstream HTTP code. **Recent Duck.ai HTTP 418 must be treated as a rejected inference even if local /ping is healthy. DeepSeek Web needs a real Web account; the admin key alone is not an account.** For onboarding details see [DeepSeek/Duck.ai status](docs/DEEPSEEK_DUCK_AVAILABILITY_2026-10-10.md). It **never** reads or prints individual account details/tokens and does **not** spend inference quota. Unknown states remain UNKNOWN; HTTP 200 is not evidence of completed streaming/tools or actual available balance. See [provider stability rollout](docs/PROVIDER_STABILITY_2026-10-09.md).
 
 **FreeBuff on Android:** the Node.js gateway has no old Rust `/ui` account manager. Instead open AhB Dashboard → **帳號與登入 → FreeBuff** and click **以 Google 登入 FreeBuff** to launch its existing official Codebuff CLI browser authorization; after approval, AhB saves only the authorized token to the private credential directory and offers **重新載入 FreeBuff 帳號**. A manual fallback remains `./scripts/freebuff-login-termux.sh`. Old Web Cookies cannot be reused as new CLI credentials. See [FreeBuff guide](docs/FREEBUFF_ANDROID_LOGIN.md) and [Android final acceptance](docs/ANDROID_FINAL_ACCEPTANCE.md).
 
