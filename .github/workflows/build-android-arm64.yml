@@ -96,8 +96,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # yutian81/freebuff2api latest reviewed 2026-10-08; no npm dependencies.
-          FREEBUFF_SHA="e0d8c9d4d1a955f46fbeb6841ea192bd8b3f2109"
+          # yutian81/freebuff2api latest 2026-10-10 (MODELS.md-only changes); no npm dependencies.
+          FREEBUFF_SHA="c4db1a352ebfa05f699a9fe1eca2cd96f31f868c"
           git init /tmp/freebuff2api
           git -C /tmp/freebuff2api remote add origin https://github.com/yutian81/freebuff2api.git
           git -C /tmp/freebuff2api fetch --depth 1 origin "$FREEBUFF_SHA"
@@ -178,8 +178,8 @@ jobs:
           CARGO_BUILD_JOBS: "2"
         run: |
           set -euo pipefail
-          # Pinned Agent2API v2.9.9 upstream source (2026-10-09); built as Android headless.
-          AGENT_SHA="cd97bce9912225e055cc79761d96a3f0b77e26f8"
+          # Pinned Agent2API v3.0.1 upstream release (2026-10-10); built as Android headless.
+          AGENT_SHA="fd869a4610859f4690c307ad9e8b0e16d51e1058"
           git init /tmp/agent2api
           git -C /tmp/agent2api remote add origin https://github.com/aimod-cc/agent2api.git
           git -C /tmp/agent2api fetch --depth 1 origin "$AGENT_SHA"

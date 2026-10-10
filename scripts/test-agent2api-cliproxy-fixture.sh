@@ -4,7 +4,7 @@ cd "$(dirname "$0")/.."
 python3 - <<'PY'
 from pathlib import Path
 import re
-expected="cd97bce9912225e055cc79761d96a3f0b77e26f8"
+expected="fd869a4610859f4690c307ad9e8b0e16d51e1058"
 files=[
     Path(".github/workflows/build-android-arm64.yml"),
     Path(".github/workflows/build-linux.yml"),
@@ -14,8 +14,8 @@ for path in files:
     s=path.read_text()
     key="AGENT_SHA" if "workflows" in str(path) else "EXPECTED_SHA"
     values=re.findall(rf'{key}="([a-f0-9]{{40}})"',s)
-    assert values==[expected],f"{path}: expected one reviewed Agent2API v2.9.9 SHA"
-    assert "2.9.9" in s,f"{path}: stale Agent2API version marker"
+    assert values==[expected],f"{path}: expected one reviewed Agent2API v3.0.1 SHA"
+    assert "3.0.1" in s,f"{path}: stale Agent2API version marker"
     print(path,"Agent2API SHA pinned consistently")
 bridge=Path("scripts/connect-bridge.sh").read_text()
 assert 'cliproxy) title="CLIProxyAPI"' in bridge
