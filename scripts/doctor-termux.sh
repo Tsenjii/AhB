@@ -70,9 +70,7 @@ if provider_enabled kimiweb; then
 fi
 if provider_enabled deepseek; then
   check_file "bin/deepseek2api"
-  check_file "data/deepseek2api/config.json"
-  check_file "data/deepseek2api/static/admin"
-  check_file "data/deepseek2api/admin-key.txt"
+  check_file "data/deepseek2api/accounts.txt"
 fi
 if provider_enabled grok; then
   check_file "bin/grok2api"
@@ -100,9 +98,8 @@ if [ -x bin/agent2api-server ]; then
   check_url "agent2api-ui" "http://127.0.0.1:8403/"
 fi
 if provider_enabled deepseek; then
-  check_url "deepseek-api" "http://127.0.0.1:8405/healthz"
-  check_url "deepseek-ready" "http://127.0.0.1:8405/readyz"
-  check_url "deepseek-ui" "http://127.0.0.1:8405/admin"
+  check_url "deepseek-api" "http://127.0.0.1:8405/health"
+  echo "NOTE     deepseek /health only tests process liveness, NOT real Web chat."
 fi
 # Read configured external bridge URLs instead of assuming fixed ports.
 # Private authenticated bridges are probed through AhB; unauthenticated direct

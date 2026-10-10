@@ -5,25 +5,24 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 if [ ! -x bin/deepseek2api ]; then
-  echo "bin/deepseek2api is missing."
-  echo "Install the current Android prebuilt bundle first."
+  echo "Missing bin/deepseek2api; install the latest Android prebuilt first." >&2
   exit 1
 fi
-if [ ! -d data/deepseek2api/static/admin ]; then
-  echo "data/deepseek2api/static/admin is missing."
+# This replacement has no WebUI or admin key. Never convert previous
+# passwords, account JSON, cookies, or other upstream secrets automatically.
+ACCOUNT_FILE="$ROOT/data/deepseek2api/accounts.txt"
+if [ ! -f "$ACCOUNT_FILE" ] || ! grep -Eq '^[[:space:]]*[^#[:space:]]' "$ACCOUNT_FILE"; then
+  echo "No authorized DeepSeek Web account configured." >&2
+  echo "Add your own authorized account token to private file:" >&2
+  echo "  $ACCOUNT_FILE" >&2
+  echo "One token per line; chmod 600; never paste credentials in chat." >&2
   exit 1
 fi
-if ! command -v jq >/dev/null 2>&1; then
-  pkg install -y jq
-fi
-
+chmod 600 "$ACCOUNT_FILE"
 ./scripts/prepare-configs.sh
-
 tmp="$(mktemp)"
 jq '(.providers[] | select(.id == "deepseek") | .enabled) = true' config.json > "$tmp"
+chmod 600 "$tmp"
 mv "$tmp" config.json
-chmod 600 config.json
-
-echo "DeepSeek2API enabled."
-echo "Restart AhB, then open http://127.0.0.1:8405/admin"
-echo "Admin key is stored locally at: $ROOT/data/deepseek2api/admin-key.txt"
+echo "Experimental DeepSeek Web adapter enabled. Restart AhB and test deepseek/deepseek-chat in /playground."
+echo "The old /admin dashboard and admin-key are NOT part of this replacement."

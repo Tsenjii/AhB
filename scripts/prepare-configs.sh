@@ -86,6 +86,28 @@ if command -v jq >/dev/null 2>&1 && [ -f config.json ]; then
             | .headers = ((.headers // {}) + {"Authorization":"Bearer __AIHUB_SERVER_KEY__"})
           else . end
         )
+      # Replace old DeepSeek and Duck sidecar contracts without importing,
+      # printing or reusing obsolete account/admin secrets.
+      | .providers |= map(
+          if .id == "deepseek" then
+            .display_name = "DeepSeek Web (experimental Go)"
+            | .description = "Experimental Oct 2026 pure-Go Web adapter; requires own account in private accounts.txt"
+            | .ui_url = ""
+            | .docs_url = "https://github.com/0xgetz/deepseek2api"
+            | .health_path = "/health"
+            | .env = {"PORT":"8405","PROXY_API_KEY":"__AIHUB_SERVER_KEY__",
+                       "DEEPSEEK_ACCOUNTS_FILE":"accounts.txt","GODEBUG":"netdns=cgo",
+                       "NO_PROXY":"127.0.0.1,localhost"}
+          elif .id == "duckai" then
+            .display_name = "Duck.ai (experimental Rust)"
+            | .description = "Experimental Rust HTTP-only adapter; upstream 418 remains unresolved"
+            | .docs_url = "https://github.com/desktop-tools-which-may-be-useful/duckai2api"
+            | .health_path = "/health"
+            | .env = {"PORT":"8414","DUCKAI_BIND":"127.0.0.1",
+                       "DUCKAI_DEFAULT_API_KEY":"__AIHUB_SERVER_KEY__",
+                       "DUCKAI_DB_PATH":"duckai.db","DUCKAI_MAX_CONCURRENCY":"2"}
+          else . end
+        )
       | (.providers | map(.id)) as $validIDs
       | .routing.same_model_fallback.providers =
           ((.routing.same_model_fallback.providers // []) | map(select(. as $id | $validIDs | index($id))))

@@ -57,7 +57,14 @@ for config in (cfg,linux):
     assert gemini["base_url"]=="http://127.0.0.1:8413"
     assert gemini["env"]["API_KEY"]=="__AIHUB_SERVER_KEY__"
     assert duck["base_url"]=="http://127.0.0.1:8414"
-    assert duck["env"]["SERVER_HOST"]=="127.0.0.1"
-    assert duck["env"]["Authorization"]=="__AIHUB_SERVER_KEY__"
+    assert duck["env"]["DUCKAI_BIND"]=="127.0.0.1"
+    assert duck["env"]["PORT"]=="8414"
+    assert duck["env"]["DUCKAI_DEFAULT_API_KEY"]=="__AIHUB_SERVER_KEY__"
+    assert duck["health_path"]=="/health"
+    deepseek=next(x for x in config["providers"] if x["id"]=="deepseek")
+    assert deepseek["env"]["PROXY_API_KEY"]=="__AIHUB_SERVER_KEY__"
+    assert deepseek["env"]["DEEPSEEK_ACCOUNTS_FILE"]=="accounts.txt"
+    assert deepseek["ui_url"]==""
+    assert deepseek["health_path"]=="/health"
 print("registry and native Android/Linux provider wiring verified",len(ids),"candidates")
 PY
