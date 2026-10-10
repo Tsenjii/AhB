@@ -890,6 +890,7 @@ const fmtBytes=n=>!n?'—':n<1048576?(n/1024).toFixed(1)+' KiB':(n/1048576).toFi
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let lastModels=[];
 let lastProviders=[];
+let modelLimit=120,providerFilter='all',refreshing=false;
 let scanningAllModels=false;
 async function getJSON(path){const r=await fetch(path,{cache:'no-store'});if(!r.ok)throw new Error(path+' HTTP '+r.status);return r.json()}
 function modelCounts(models){const out={};for(const m of models){const p=m.x_provider||'';out[p]=(out[p]||0)+1}return out}
@@ -907,10 +908,24 @@ function lastRequestLabel(x){
 function renderModels(){
  const q=(document.getElementById('search').value||'').trim().toLowerCase();
  const rows=lastModels.filter(m=>!q||String(m.id||'').toLowerCase().includes(q)||String(m.x_provider_name||m.x_provider||'').toLowerCase().includes(q));
- document.getElementById('modelCount').textContent=rows.length===lastModels.length?lastModels.length+' listed':rows.length+' of '+lastModels.length;
- document.getElementById('models').innerHTML=rows.length?rows.map(m=>
-  '<tr><td><code>'+esc(m.id)+'</code>'+(m.x_cached?'<span class="muted"> · 休眠快取</span>':'')+'</td><td>'+esc(m.x_provider_name||m.x_provider||'—')+'</td><td><code>'+esc(m.x_upstream_id||'—')+'</code></td></tr>'
+ const shown=rows.slice(0,modelLimit);
+ document.getElementById('modelCount').textContent=rows.length===lastModels.length?lastModels.length+' 個模型':rows.length+' / '+lastModels.length+' 個模型';
+ document.getElementById('models').innerHTML=shown.length?shown.map(m=>
+ '<tr><td><code>'+esc(m.id)+'</code>'+(m.x_cached?'<span class="muted"> · 休眠快取</span>':'')+'</td><td>'+esc(m.x_provider_name||m.x_provider||'—')+'</td><td><code>'+esc(m.x_upstream_id||'—')+'</code></td></tr>'
  ).join(''):'<tr><td colspan="3" class="muted">沒有符合的模型</td></tr>';
+ const more=document.getElementById('showMoreModels');more.hidden=rows.length<=modelLimit;
+ more.textContent='顯示更多模型 · '+shown.length+' / '+rows.length;
+}
+function applyProviderFilter(){
+ let visible=0;
+ document.querySelectorAll('#providers article[data-provider-id]').forEach(card=>{
+ const x=lastProviders.find(p=>p.id===card.dataset.providerId);
+ const problem=x&&x.enabled&&(x.state==='DEGRADED'||x.state==='DEAD'||Number(x.last_request_http_status)>=400);
+ const match=providerFilter==='all'||!!(x&&(providerFilter==='enabled'&&x.enabled||providerFilter==='problems'&&problem||providerFilter==='asleep'&&x.enabled&&!x.process_alive));
+ card.hidden=!match;if(match)visible++;
+ });
+ document.getElementById('providerFilterEmpty').hidden=visible>0;
+ document.querySelectorAll('[data-provider-filter]').forEach(b=>{const selected=b.dataset.providerFilter===providerFilter;b.classList.toggle('selected',selected);b.setAttribute('aria-pressed',String(selected))});
 }
 function actionLink(url,label,primary,enabled){
  if(!url||!enabled)return '<span class="btn disabled">'+esc(label)+'</span>';
@@ -923,6 +938,8 @@ async function copyText(text){
  area.remove();return ok;
 }
 async function refresh(){
+ if(refreshing)return;
+ refreshing=true;
  const error=document.getElementById('error');error.style.display='none';
  const warnings=document.getElementById('warnings');warnings.style.display='none';
  try{
@@ -952,12 +969,17 @@ async function refresh(){
   }
   document.getElementById('saveResourceSettings').disabled=!ahbProviderControlAvailable;
   document.getElementById('providerTotal').textContent=providers.filter(x=>x.enabled).length;
+   document.getElementById('summaryReady').textContent=ready;
+   document.getElementById('summaryRss').textContent=fmtBytes(ahbRSS);
+   const conn=document.getElementById('connectionStatus');conn.textContent='Hub 已連線';conn.className='connection-pill online';
+   document.getElementById('lastSynced').textContent='最近同步 '+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   document.getElementById('modelTotal').textContent=lastModels.length;
   document.getElementById('providerReady').textContent=ready+' endpoint healthy / '+providers.length+' configured';
-  document.getElementById('providers').innerHTML=providers.map(x=>{
+  const previousCards=new Map([...document.querySelectorAll('#providers article[data-provider-id]')].map(card=>{const input=card.querySelector('input[data-provider-proxy-url]'),details=card.querySelector('details.proxy-config');return [card.dataset.providerId,{value:input?input.value:'',open:!!(details&&details.open),focused:document.activeElement===input}]}));
+   document.getElementById('providers').innerHTML=providers.map(x=>{
    const manageable=x.state==='HEALTHY'||x.state==='DEGRADED';
    const enabled=!!x.enabled;
-   return '<article class="card"><div class="card-top">'+
+   return '<article class="card" data-provider-id="'+esc(x.id)+'" data-state="'+esc(x.state)+'" data-enabled="'+esc(x.enabled)+'"><div class="card-top">'+
     '<div class="provider-main"><div class="provider-name"><span class="state-dot '+esc(x.state)+'"></span>'+esc(x.display_name||x.id)+' <span class="badge">'+esc(x.state)+'</span></div><div class="desc">'+esc(x.description||x.id)+'</div>'+
      '<div class="layers"><span class="layer">Process <b>'+esc(x.kind==='external'?'N/A':(x.process_alive?'YES':'NO'))+'</b></span><span class="layer">Ready <b>'+esc(x.provider_ready?'YES':'NO')+'</b></span><span class="layer">Credentials <b>'+esc(accountLabel(x))+'</b></span><span class="layer" title="最近一次 API 上游回覆 HTTP 狀態；200 不保證串流完整或有可用額度">Last API <b>'+esc(lastRequestLabel(x))+'</b></span></div>'+
      (x.last_error?'<div class="provider-error">'+esc(x.last_error)+'</div>':'')+'</div>'+
@@ -974,14 +996,19 @@ async function refresh(){
       (x.kind==='sidecar'?'<details class="proxy-config"><summary>程序出站 Proxy · '+(x.proxy_configured?'已設定':'未設定')+'</summary><div class="proxy-input-row"><input type="url" data-provider-proxy-url placeholder="http://127.0.0.1:7890（留白清除）" spellcheck="false" autocomplete="off" aria-label="'+esc(x.id)+' 出站 Proxy URL"><button type="button" class="btn" data-provider-proxy="'+esc(x.id)+'" '+(!ahbProviderControlAvailable?'disabled':'')+'>儲存 Proxy</button></div><div class="proxy-help">只作用於該 Gateway 的 HTTP_PROXY / HTTPS_PROXY 等程序環境變數，可能受上游實作影響；Agent2API 等來源的帳號代理池仍由原生管理介面負責。儲存會重新啟動 AhB。</div></details>':'')+
    '</div></article>';
   }).join('');
-  if(m.x_provider_warnings&&Object.keys(m.x_provider_warnings).length){
+  document.querySelectorAll('#providers article[data-provider-id]').forEach(card=>{const saved=previousCards.get(card.dataset.providerId);if(!saved)return;const details=card.querySelector('details.proxy-config'),input=card.querySelector('input[data-provider-proxy-url]');if(details)details.open=saved.open;if(input){input.value=saved.value;if(saved.focused)input.focus({preventScroll:true)}});
+   applyProviderFilter();
+   if(m.x_provider_warnings&&Object.keys(m.x_provider_warnings).length){
    warnings.textContent=Object.entries(m.x_provider_warnings).map(([k,v])=>k+': '+v).join('\n');warnings.style.display='block';
   }
   renderModels();
- }catch(e){error.textContent=e.message;error.style.display='block'}
+ }catch(e){error.textContent=e.message;error.style.display='block';const conn=document.getElementById('connectionStatus');conn.textContent='連線異常';conn.className='connection-pill offline';document.getElementById('lastSynced').textContent='同步失敗';}
+ finally{refreshing=false;}
 }
 document.getElementById('refresh').addEventListener('click',refresh);
-document.getElementById('search').addEventListener('input',renderModels);
+document.getElementById('search').addEventListener('input',()=>{modelLimit=120;renderModels()});
+document.getElementById('showMoreModels').addEventListener('click',()=>{modelLimit+=120;renderModels()});
+document.querySelector('.provider-filter').addEventListener('click',e=>{const b=e.target.closest('button[data-provider-filter]');if(!b)return;providerFilter=b.dataset.providerFilter;applyProviderFilter()});
 // Explicit opt-in discovery: never wake nine gateways just because a client
 // polls /v1/models. Requests are sequential to respect the 512 MiB ceiling.
 document.getElementById('scanAllModels').addEventListener('click',async()=>{
