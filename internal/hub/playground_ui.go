@@ -189,6 +189,9 @@ function hint(code){
  if(code===429)return '429：來源限流或額度不足。';
  if(code===401||code===403)return code+'：登入或授權遭到拒絕。';
  if(code===503)return '503：來源或帳號未就緒，也可能是上游故障。';
+ if(code===502&&provider.value==='freebuff')return '502：FreeBuff Gateway 或其上游故障。請查看 logs/freebuff.log 並確認官方帳號、可用額度及地區要求。';
+ if(code===502&&provider.value==='deepseek')return '502：DeepSeek Web 實驗版與上游通訊失敗；帳號檔案有 Token 不代表可成功推論。';
+ if(code===502)return '502：所選 Gateway 的上游請求失敗，不代表 AhB 切換了模型。';
  return code+'：Gateway 或上游回傳錯誤。';
 }
 function deltaEvent(packet,test){
