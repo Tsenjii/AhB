@@ -334,7 +334,7 @@ th,td{font-size:12px}
   <div class="quick-form">
    <div class="command-panel">
     <div class="field"><label>GitHub Copilot · 本機裝置授權</label></div>
-    <p>直接在 AhB 開始登入，使用官方 GitHub 網頁完成授權，無須離開管理介面輸入 Termux 指令。</p>
+    <p>Copilot2API 沒有獨立 WebUI。先在這裡取得 GitHub 官方一次性授權碼並登入，再回首頁啟動 Gateway。已有 GitHub 授權資料不代表一定有 Copilot 額度。</p>
     <div class="command-actions"><button type="button" id="startCopilotLogin" class="btn primary">登入 GitHub Copilot</button><button type="button" id="copyCopilotInstall">複製備用指令</button></div>
     <div id="copilotLoginFeedback" class="quick-note" role="status" aria-live="polite" style="display:none;margin-top:10px">
      <span id="copilotLoginMessage">正在檢查登入狀態…</span>
@@ -651,7 +651,7 @@ async function copilotLoginAction(action){
 function showCopilotLogin(data){
  copilotLoginFeedback.style.display='block';
  const state=data.state||'idle';
- const text={idle:'尚未啟動授權',starting:'正在向 GitHub 要求裝置授權…',waiting:'請打開 GitHub 並輸入授權碼，授權後會自動完成。',done:'已登入！現在可以啟用 Copilot。',failed:'登入未成功，請確認帳號或網路後再試。'}[state]||'正在登入…';
+ const text={idle:'尚未啟動授權',starting:'正在向 GitHub 要求裝置授權…',waiting:'請打開 GitHub 並輸入授權碼，授權後會自動完成。',done:'本機已有 GitHub 授權資料；啟用後需用 Playground 驗證可用額度。',failed:'登入未成功，請確認帳號或網路後再試。'}[state]||'正在登入…';
  copilotLoginMessage.textContent=data.detail||text;
  copilotLoginDevice.style.display=(state==='waiting'&&data.user_code)?'block':'none';
  copilotDeviceCode.textContent=state==='waiting'?(data.user_code||''):'';
@@ -666,7 +666,9 @@ function showCopilotLogin(data){
   },1800);
  }
 }
-startCopilotLoginBtn.addEventListener('click',async()=>{
+// Restore a pending GitHub device code after Android browser refresh.
+ if(ahbProviderControlAvailable)copilotLoginAction('status').then(showCopilotLogin).catch(()=>{});
+ startCopilotLoginBtn.addEventListener('click',async()=>{
  startCopilotLoginBtn.disabled=true;
  copilotLoginFeedback.style.display='block';
  copilotLoginMessage.textContent='正在啟動 GitHub 授權…';
@@ -772,6 +774,13 @@ document.getElementById('providers').addEventListener('change',e=>{
  if(input)toggleProvider(input.dataset.providerToggle,input.checked);
 });
 document.getElementById('providers').addEventListener('click',async e=>{
+ const copilotAuth=e.target.closest('button[data-copilot-auth]');
+ if(copilotAuth){
+  switchTab('accounts');
+  startCopilotLoginBtn.focus();
+  startCopilotLoginBtn.scrollIntoView({behavior:'smooth',block:'center'});
+  return;
+ }
  const recover=e.target.closest('button[data-provider-recover]');
  if(recover){
   const id=recover.dataset.providerRecover;
@@ -936,8 +945,9 @@ async function refresh(){
       '<label class="ui-toggle"><input type="checkbox" data-provider-toggle="'+esc(x.id)+'" '+(x.enabled?'checked ':'')+(!ahbProviderControlAvailable?'disabled ':'')+' aria-label="'+esc(x.display_name||x.id)+' 啟用或停用"><span>'+(x.enabled?'已開啟':'已關閉')+'</span></label>'+
       (enabled&&x.start_mode==='on_demand'&&!x.process_alive?'<button type="button" class="btn" data-provider-wake="'+esc(x.id)+'" '+(!ahbProviderControlAvailable?'disabled':'')+'>啟動並載入模型</button>':'')+
       (enabled&&x.start_mode==='on_demand'&&x.process_alive?'<button type="button" class="btn" data-provider-recover="'+esc(x.id)+'" '+(!ahbProviderControlAvailable?'disabled':'')+'>單獨重啟</button>':'')+
-      actionLink(x.ui_url,'管理原本 UI',true,enabled&&manageable)+actionLink(x.docs_url,'上游文件',false,true)+'</div>'+
-      (x.id==='duckai'&&x.last_request_http_status===418?'<div class="provider-error">Duck.ai 最近的實際推論被上游拒絕（HTTP 418）。/ping 成功不代表可用；暫停使用並確認官方服務狀態，請勿連續重啟或反覆請求。這不代表 IP 已永久被封鎖。</div>':'')+
+      (x.id==='copilot'?'<button type="button" class="btn primary" data-copilot-auth>GitHub 授權登入</button>':actionLink(x.ui_url,'管理原本 UI',true,enabled&&manageable))+actionLink(x.docs_url,'上游文件',false,true)+'</div>'+
+      (x.id==='copilot'?'<div class="provider-recovery-note">Copilot2API 沒有網頁管理台。請先使用「GitHub 授權登入」，完成後再啟動並在 Playground 實測；/v1/models 不代表有額度。</div>':'')+
+       (x.id==='duckai'&&x.last_request_http_status===418?'<div class="provider-error">Duck.ai 最近的實際推論被上游拒絕（HTTP 418）。/ping 成功不代表可用；暫停使用並確認官方服務狀態，請勿連續重啟或反覆請求。這不代表 IP 已永久被封鎖。</div>':'')+
       (x.id==='deepseek'&&x.enabled&&(x.account_total===0||x.account_usable===false)?'<div class="provider-recovery-note">DeepSeek Web 需要先在原生 /admin 設定自己的網頁帳號或有效登入憑證。AhB 管理 Token 只用來進管理台，不是 DeepSeek Web 登入；目前沒有已驗證可用的帳號。</div>':'')+
       ((x.last_request_http_status===503||x.last_request_http_status===502)?'<div class="provider-recovery-note">最近回應 '+esc(x.last_request_http_status)+'：先確認登入與額度，程序卡住時再嘗試單獨重啟（不自動重送）。</div>':'')+
       (x.kind==='sidecar'?'<details class="proxy-config"><summary>程序出站 Proxy · '+(x.proxy_configured?'已設定':'未設定')+'</summary><div class="proxy-input-row"><input type="url" data-provider-proxy-url placeholder="http://127.0.0.1:7890（留白清除）" spellcheck="false" autocomplete="off" aria-label="'+esc(x.id)+' 出站 Proxy URL"><button type="button" class="btn" data-provider-proxy="'+esc(x.id)+'" '+(!ahbProviderControlAvailable?'disabled':'')+'>儲存 Proxy</button></div><div class="proxy-help">只作用於該 Gateway 的 HTTP_PROXY / HTTPS_PROXY 等程序環境變數，可能受上游實作影響；Agent2API 等來源的帳號代理池仍由原生管理介面負責。儲存會重新啟動 AhB。</div></details>':'')+

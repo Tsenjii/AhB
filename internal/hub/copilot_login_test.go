@@ -56,3 +56,18 @@ func TestCopilotDeviceLoginIsLocalAndOnlyExposesDeviceCode(t *testing.T) {
  if !seenCode || !seenDone {t.Fatalf("expected device code and done: code %v done %v",seenCode,seenDone)}
  if _,err:=os.Stat(filepath.Join(root,"data","copilot2api","credentials.json"));err!=nil{t.Fatalf("local credentials missing: %v",err)}
 }
+
+func TestCopilotSafeFailureHints(t *testing.T) {
+ cases:=[]struct{raw,expected string}{
+  {`{"level":"ERROR","msg":"authentication failed","error":"failed to initiate device flow: Post https://github.com/login/device/code: lookup github.com: no such host"}`,"DNS"},
+  {`{"level":"ERROR","msg":"authentication failed","error":"failed to get copilot token: HTTP 403"}`,"Copilot"},
+  {"authorization_pending",""},
+  {"private_github_token_must_not_leak",""},
+ }
+ for _,tt:=range cases {
+  got:=copilotSafeFailureHint(tt.raw)
+  if tt.expected!=""&&!strings.Contains(got,tt.expected){t.Fatalf("expected %s in %q",tt.expected,got)}
+  if tt.expected==""&&got!=""{t.Fatalf("unexpected hint: %q",got)}
+  if strings.Contains(got,"private_github_token")||strings.Contains(got,"https://github.com/login/device/code"){t.Fatalf("unsafe hint: %q",got)}
+ }
+}

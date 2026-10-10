@@ -21,6 +21,9 @@ for needle in ('id="bridgePreset"', 'id="bridgeURL"', 'id="bridgeCommand"',
 assert "Node.js" in html and "FreeBuff" in html and "freebuff-login-termux.sh" in html
 assert "HTTP 418 · Duck.ai 拒絕請求" in html
 assert "DeepSeek Web 需要先在原生 /admin 設定自己的網頁帳號" in html
+assert 'data-copilot-auth' in html
+assert 'Copilot2API 沒有獨立 WebUI' in html
+assert "copilotLoginAction('status').then(showCopilotLogin)" in html
 assert "'/api/control/resources'" in html and "'/api/runtime'" in html
 assert "x_cached" in html and "休眠快取" in html
 assert "'/api/control/wake/'" in html and "scanAllModels" in html
