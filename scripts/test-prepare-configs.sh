@@ -30,7 +30,8 @@ jq -e '
   and (.resources.max_running_sidecars == 3 and .resources.idle_stop_seconds == 900)
   and (all(.providers[] | select(.kind == "sidecar"); .start_mode == "on_demand"))
   and (any(.providers[]; .id == "geminiweb" and .enabled == true and .env.API_KEY != "__AIHUB_SERVER_KEY__"))
-  and (any(.providers[]; .id == "duckai" and .enabled == true and .env.Authorization != "__AIHUB_SERVER_KEY__"))
+  and (any(.providers[]; .id == "duckai" and .enabled == false and .env.Authorization != "__AIHUB_SERVER_KEY__"))
+  and (any(.providers[]; .id == "deepseek" and .enabled == false and .env.Deepseek2API_ADMIN_KEY != "__AIHUB_DEEPSEEK_ADMIN_KEY__"))
   and (any(.providers[]; .id == "grok" and .enabled == true and .start_mode == "on_demand"))
   and (any(.providers[]; .id == "custom-provider" and .headers.Authorization == "Bearer preserved-bridge-secret"))
   and (any(.providers[]; .id == "opencode" and .headers.Authorization == "Bearer preserved-user-secret" and .env.CUSTOM == "preserved" and .env.GODEBUG == "netdns=cgo"))
@@ -105,6 +106,10 @@ printf 'OLD_COOKIE_DO_NOT_CONVERT\n' > "$LEGACY/data/freebuff/tokens.json"
     and (any(.providers[]; .id == "grok" and .enabled == true))
     and (any(.providers[]; .id == "kiro" and .enabled == true))
   ' config.json >/dev/null
+  # This early user's enabled/disabled settings must survive migration;
+  # newly added unverified sources should use the latest safe defaults.
+  jq -e 'any(.providers[]; .id=="deepseek" and .enabled==false)
+    and any(.providers[]; .id=="duckai" and .enabled==false)' config.json >/dev/null
   test "$(cat data/hub-local-key.txt)" = "FIRST_RELEASE_SECRET"
   test "$(cat data/freebuff/tokens.json)" = "OLD_COOKIE_DO_NOT_CONVERT"
   jq -e '.server_keys[0] == "FIRST_RELEASE_SECRET"' data/opencode/config.json >/dev/null
