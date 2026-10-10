@@ -15,6 +15,8 @@ AhB 的 Dashboard → **帳號與登入 → 原生控制台登入**，列出各�
 
 FreeBuff 的 OAuth 與 Copilot 的 GitHub 授權流程位於同一個 **帳號與登入** 分頁，但那是 AI 平台自己的官方授權，不是 Gateway 管理員密碼。
 
+**Copilot 特別說明：** 上游 [whtsky/copilot2api](https://github.com/whtsky/copilot2api) 沒有獨立 WebUI。請從首頁 Copilot 卡片按「GitHub 授權登入」，再按「登入 GitHub Copilot」取得官方一次性授權碼，前往 [GitHub 官方裝置授權頁](https://github.com/login/device) 輸入代碼。手機重新整理後可恢復進行中的授權狀態；授權錯誤只顯示安全分類，不會暴露 Token 或原始上游日誌。授權資料存在仍不代表 Copilot 帳號具備模型資格或剩餘額度。
+
 ## 安全性與操作
 
 - 只有直接在 localhost 打開 AhB Dashboard、並按下個別「複製管理密碼」時，後端才會把該秘密交給本機瀏覽器的剪貼簿。預設清單與網頁 HTML **不包含密碼或 Token**。
