@@ -401,3 +401,17 @@ func TestDashboardRestartButtonDoesNotExposeControlOnNonTermux(t *testing.T) {
 		t.Fatalf("UI token template was not substituted")
 	}
 }
+
+func TestInspectExperimentalDeepSeekTokenInventory(t *testing.T) {
+  root:=t.TempDir()
+  path:=filepath.Join(root,"accounts.txt")
+  cfg:=config.ProviderConfig{ID:"deepseek",WorkDir:root,Env:map[string]string{"DEEPSEEK_ACCOUNTS_FILE":"accounts.txt"}}
+  missing,err:=inspectDeepSeekAccounts(cfg)
+  if err!=nil||!missing.Known||missing.Total!=0{t.Fatalf("missing accounts must be empty/known: %+v %v",missing,err)}
+  if err=os.WriteFile(path,[]byte("# own accounts\nTOKEN_ONE\n\nTOKEN_TWO\n"),0600);err!=nil{t.Fatal(err)}
+  got,err:=inspectDeepSeekAccounts(cfg)
+  if err!=nil||!got.Known||got.Total!=2||got.Usable!=2{t.Fatalf("private account candidates: %+v %v",got,err)}
+  if err=os.Chmod(path,0644);err!=nil{t.Fatal(err)}
+  _,err=inspectDeepSeekAccounts(cfg)
+  if err==nil{t.Fatal("world-readable DeepSeek account file unexpectedly accepted")}
+}

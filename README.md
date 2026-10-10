@@ -27,8 +27,8 @@ providers consume no child-process RSS, and switching to a sleeping backend
 can release an idle sidecar. Long-running SSE requests hold an active lease.
 
 **Bundled:** OpenCode2API (Go), FreeBuff2API (Node), Agent2API (Rust),
-DeepSeek2API (Go), Grok2API (Go), Kiro-Go (Go), Copilot2API (Go),
-Gemini Web2API (Go), DuckDuckGo AI2API (Go).
+experimental 0xgetz DeepSeek Web (Go), Grok2API (Go), Kiro-Go (Go), Copilot2API (Go),
+Gemini Web2API (Go), experimental Duck.ai2API (Rust HTTP-only).
 Each requires its own legitimate account/authorization and may have
 different quota and model capabilities.
 
@@ -103,7 +103,7 @@ Each healthy provider has a **管理原本 UI** button:
 - OpenCode: `http://127.0.0.1:8404/`
 - FreeBuff: no WebUI in the bundled Node adapter
 - Agent2API when installed: `http://127.0.0.1:8403/`
-- DeepSeek2API when enabled: `http://127.0.0.1:8405/admin`
+- Experimental DeepSeek Web: no native admin WebUI; authorized account file is required.
 - Grok2API when enabled: `http://127.0.0.1:8407/`
 - Kiro-Go when enabled: `http://127.0.0.1:8408/admin`
 
@@ -203,13 +203,13 @@ Optional Agent2API pack:
 
 Then restart the Hub.
 
-Optional DeepSeek2API provider (the Android prebuilt already contains it):
+Optional experimental DeepSeek Web provider (once the updated Android bundle is actually published and installed):
 
-```sh
-./scripts/enable-deepseek2api.sh
-```
-
-Its local admin key is generated into `data/deepseek2api/admin-key.txt`. The AhB build applies a loopback-only listen patch to the pinned upstream source so this sidecar does not expose itself to the LAN.
+- Source: [0xgetz/deepseek2api](https://github.com/0xgetz/deepseek2api), pure Go, pinned at `41b924e7741e1619433469900625dca132e00d6c`.
+- This adapter has **no** old DeepSeek admin WebUI or automatic OAuth login. An authorized account token must exist in the **private** `data/deepseek2api/accounts.txt` (one per line, mode 0600). Previous upstream admin keys/config/account data remain preserved, but **are not compatible credentials**.
+- Enable with `./scripts/enable-deepseek2api.sh` only after setting up your own authorized Web account. Then check `deepseek/deepseek-chat` directly at `/playground`; process `/health` is not inference proof.
+- Experimental Duck.ai now uses the pinned [Rust HTTP adapter](https://github.com/desktop-tools-which-may-be-useful/duckai2api) (`d8c6888eeb11daedb71a6ad589095f0a315626eb`) with browser mode excluded; it remains **disabled by default** and known HTTP 418 is not claimed fixed. Its localhost `/health` does not prove live inference.
+- Agent2API remains **v2.9.9**, the newest upstream release checked 2026-10-10; no unnecessary re-pin. See [adapter migration](docs/EXPERIMENTAL_ADAPTER_SWAP_2026-10-10.md).
 
 ## Reliability
 

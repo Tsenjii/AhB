@@ -169,6 +169,30 @@ func (h *Hub) getProviderJSON(ctx context.Context, cfg config.ProviderConfig, pa
 
 
 func inspectDeepSeekAccounts(cfg config.ProviderConfig) (accountProbe, error) {
+  // New 0xgetz Web adapter: only the private own-account tokens file
+  // is a credential candidate inventory. Tokens are NEVER sent to UI.
+  // This does not measure quota or prove a live chat response.
+  if name := strings.TrimSpace(cfg.Env["DEEPSEEK_ACCOUNTS_FILE"]); name != "" {
+    if !filepath.IsAbs(name) {
+      base := strings.TrimSpace(cfg.WorkDir)
+      if base == "" { base = "." }
+      name = filepath.Join(base, name)
+    }
+    info, err := os.Lstat(name)
+    if os.IsNotExist(err) { return accountProbe{Known:true},nil }
+    if err != nil { return accountProbe{},fmt.Errorf("stat private DeepSeek account file: %w",err) }
+    if !info.Mode().IsRegular() || info.Mode().Perm()&0077!=0 {
+      return accountProbe{},fmt.Errorf("DeepSeek account file must be private regular file (0600)")
+    }
+    raw,err:=os.ReadFile(name)
+    if err!=nil{return accountProbe{},fmt.Errorf("read private DeepSeek account file: %w",err)}
+    count:=0
+    for _,v:=range strings.Split(string(raw),"\n"){
+      v=strings.TrimSpace(v)
+      if v!="" && !strings.HasPrefix(v,"#"){count++}
+    }
+    return accountProbe{Known:true,Total:count,Usable:count},nil
+  }
 	configPath := strings.TrimSpace(cfg.Env["Deepseek2API_CONFIG_PATH"])
 	if configPath == "" {
 		configPath = "config.json"

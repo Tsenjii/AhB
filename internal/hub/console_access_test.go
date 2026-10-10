@@ -52,9 +52,9 @@ func TestConsoleAccessExplicitLocalCopyNeverLeaksByDefault(t *testing.T) {
   LocalAvailable bool `json:"local_available"`
  } `json:"consoles"` }
  if err:=json.Unmarshal(got.Body.Bytes(),&payload);err!=nil{t.Fatal(err)}
- if len(payload.Consoles)!=6{t.Fatalf("expected six console rows: %+v",payload)}
+ if len(payload.Consoles)!=5{t.Fatalf("expected five supported console rows: %+v",payload)}
  values:=map[string]string{
-  "opencode":"opencode-secret","deepseek":"deepseek-secret",
+  "opencode":"opencode-secret",
   "geminiweb":"gemini-secret","grok":"grok-bootstrap-secret","kiro":"kiro-secret",
  }
  for id,expected:=range values{
@@ -69,6 +69,8 @@ func TestConsoleAccessExplicitLocalCopyNeverLeaksByDefault(t *testing.T) {
  }
  missing:=localControlRequest(h,"POST","/api/control/console-access",`{"action":"copy","provider":"agent2api"}`)
  if missing.Code!=404{t.Fatalf("upstream-native-only credentials unexpectedly exposed: %d",missing.Code)}
+ legacy:=localControlRequest(h,"POST","/api/control/console-access",`{"action":"copy","provider":"deepseek"}`)
+ if legacy.Code!=404{t.Fatalf("obsolete DeepSeek /admin secret exposed: %d",legacy.Code)}
 }
 
 func TestConsoleAccessRejectsCrossOriginAndUnsafeFilesystem(t *testing.T){
