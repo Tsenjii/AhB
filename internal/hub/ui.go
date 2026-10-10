@@ -1017,7 +1017,7 @@ async function refresh(){
       (x.kind==='sidecar'?'<details class="proxy-config"><summary>程序出站 Proxy · '+(x.proxy_configured?'已設定':'未設定')+'</summary><div class="proxy-input-row"><input type="url" data-provider-proxy-url placeholder="http://127.0.0.1:7890（留白清除）" spellcheck="false" autocomplete="off" aria-label="'+esc(x.id)+' 出站 Proxy URL"><button type="button" class="btn" data-provider-proxy="'+esc(x.id)+'" '+(!ahbProviderControlAvailable?'disabled':'')+'>儲存 Proxy</button></div><div class="proxy-help">只作用於該 Gateway 的 HTTP_PROXY / HTTPS_PROXY 等程序環境變數，可能受上游實作影響；Agent2API 等來源的帳號代理池仍由原生管理介面負責。儲存會重新啟動 AhB。</div></details>':'')+
    '</div></article>';
   }).join('');
-  document.querySelectorAll('#providers article[data-provider-id]').forEach(card=>{const saved=previousCards.get(card.dataset.providerId);if(!saved)return;const details=card.querySelector('details.proxy-config'),input=card.querySelector('input[data-provider-proxy-url]');if(details)details.open=saved.open;if(input){input.value=saved.value;if(saved.focused)input.focus({preventScroll:true)}});
+  document.querySelectorAll('#providers article[data-provider-id]').forEach(card=>{const saved=previousCards.get(card.dataset.providerId);if(!saved)return;const details=card.querySelector('details.proxy-config'),input=card.querySelector('input[data-provider-proxy-url]');if(details)details.open=saved.open;if(input){input.value=saved.value;if(saved.focused)input.focus({preventScroll:true});}});
    applyProviderFilter();
    if(m.x_provider_warnings&&Object.keys(m.x_provider_warnings).length){
    warnings.textContent=Object.entries(m.x_provider_warnings).map(([k,v])=>k+': '+v).join('\n');warnings.style.display='block';
