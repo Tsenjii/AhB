@@ -37,6 +37,16 @@ assert "freebuffLink.removeAttribute('href')" in html
 assert "signal:controller.signal" in html
 assert "開啟 FreeBuff 官方授權頁" in html
 assert "visit.addEventListener('click',async event=>" in html and "started=await fetch('/api/control/wake/'" in html
+# Responsive desktop/mobile UI and lightweight browser-side collection paging.
+for needle in ('id="connectionStatus"', 'id="lastSynced"', 'id="summaryRss"',
+               'id="summaryReady"', 'id="showMoreModels"', 'data-provider-filter="problems"',
+               'data-provider-filter="asleep"', 'data-provider-filter="enabled"',
+               'min-width:1024px', 'grid-template-columns:repeat(5,minmax(0,1fr))'):
+    assert needle in html, f"desktop/mobile control center missing: {needle}"
+assert 'modelLimit=120' in html and 'rows.slice(0,modelLimit)' in html, 'model page size must be bounded'
+assert 'previousCards' in html and 'applyProviderFilter()' in html, 'proxy state/filter must survive refresh'
+assert 'providerFilterEmpty' in html and "connection-pill offline" in html, 'visible status required'
+assert html.count('<script>') == 1, 'must not introduce a second browser bundle'
 js=html.split("<script>",1)[1].split("</script>",1)[0]
 Path(sys.argv[1]).write_text(js,encoding="utf-8")
 PY
@@ -57,6 +67,15 @@ for needle in ('id="provider"', 'id="model"', 'id="prompt"', 'id="stream"',
     assert needle in html, f"Playground missing: {needle}"
 assert 'window.open(' not in html, "Playground must not open empty OAuth tabs"
 assert "innerHTML=" not in html, "Playground should render model text without HTML injection"
+# Playground desktop layout and browser-only conveniences.
+for needle in ('workbench-heading', 'results-card', 'result-actions', 'id="copyResponse"',
+               'id="clearResponse"', 'id="providerInfo"', 'data-preset="reason"',
+               'Ctrl', 'min-width:1600px'):
+    if needle == 'Ctrl':
+        assert 'e.ctrlKey||e.metaKey' in html, 'keyboard shortcut missing'
+    else:
+        assert needle in html, f"Playground UI regression: {needle}"
+assert 'navigator.clipboard.writeText' in html, 'reply-copy action must be wired'
 js=html.split("<script>",1)[1].split("</script>",1)[0]
 Path(sys.argv[1]).write_text(js,encoding="utf-8")
 PY

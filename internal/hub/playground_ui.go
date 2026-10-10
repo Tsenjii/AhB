@@ -11,7 +11,7 @@ import (
 const playgroundHTML = `<!doctype html>
 <html lang="zh-TW"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="color-scheme" content="dark"><title>AhB · Playground</title>
+<meta name="color-scheme" content="dark"><title>AhB · API 實測工作區</title>
 <style>
 :root{color-scheme:dark;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;--bg:#0d0f12;--panel:#13161a;--line:#303741;--text:#eff3f8;--muted:#a4acb7;--accent:#d7e2f0;--ok:#68c58b;--bad:#e68890}
 *{box-sizing:border-box}body{margin:0;min-height:100vh;background:var(--bg);color:var(--text)}
@@ -41,18 +41,43 @@ details{margin-top:14px}summary{font-size:12px;color:var(--muted);cursor:pointer
 .note{border-top:1px solid var(--line);margin-top:15px;padding-top:13px}
 @media(max-width:820px){.layout{grid-template-columns:1fr}main{padding:14px 12px 45px}.card{padding:14px}.row{grid-template-columns:1fr 1fr}}
 @media(max-width:390px){.row{grid-template-columns:1fr}}
+/* Shared dark workspace theme; CSS-only desktop layout, zero backend overhead. */
+:root{--bg:#10151c;--panel:#1b242f;--line:#374758;--muted:#bac6d3;--text:#f0f5fa;--accent:#a8c8ea;--ok:#83d3a8;--bad:#ed949e}
+body{background:var(--bg);line-height:1.55}main{max-width:1440px;padding:26px 28px 55px}
+header{margin-bottom:30px}.brand{font-size:21px}.brand small{color:#9eb8d4}
+.workbench-heading{display:flex;align-items:end;justify-content:space-between;gap:15px;margin-bottom:8px}
+.workbench-heading h1{font-size:29px;margin:6px 0}.eyebrow,.card-label{color:#a9c0d8;font-size:11px;letter-spacing:.12em;font-weight:740}
+.workbench-pill{display:inline-flex;border:1px solid #436585;background:#23384e;color:#cde3fb;font-size:11px;padding:7px 12px;border-radius:999px;white-space:nowrap}
+.layout{grid-template-columns:minmax(360px,.87fr) minmax(400px,1.13fr);gap:21px;align-items:start}
+.card{border-radius:15px;background:var(--panel);padding:25px;border-color:var(--line)}
+.card-label{margin-bottom:19px}.field label{font-size:13px}.field input,.field select,.field textarea{background:#111922;border-color:#435466;border-radius:10px}
+.field :is(input,select,textarea):focus-visible{outline:2px solid #a8c8ea;outline-offset:1px}
+.provider-info{font-size:12px;line-height:1.5;background:#1e3042;color:#b9cbe0;border:1px solid #344c65;padding:11px 13px;border-radius:10px;margin:-1px 0 17px}
+.preset-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.preset-row button{font-size:11px;min-height:35px;padding:7px 11px;border-color:#405164}
+.results-card{position:sticky;top:18px}.result-head{display:flex;justify-content:space-between;align-items:center;gap:9px;flex-wrap:wrap}
+.result-head .card-label{margin-bottom:14px}.result-actions{display:flex;gap:6px;margin-bottom:12px}
+.result-actions button{min-height:35px;padding:7px 10px;font-size:11px}.output{background:#111922;min-height:290px;max-height:min(65vh,690px);font-size:13px;line-height:1.72}
+.metrics span{background:#202d3a;border-color:#435466;border-radius:9px;color:#c9d7e6;padding:8px 11px}
+button,.btn{touch-action:manipulation}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+button.primary{background:#dceafb;color:#182636}button:hover:not(:disabled),.btn:hover{border-color:#7994ad}
+@media(min-width:1600px){main{max-width:1550px}.layout{grid-template-columns:minmax(410px,.78fr) minmax(650px,1.22fr)}}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.results-card{position:static}.output{min-height:200px;max-height:500px}}
+@media(max-width:600px){main{padding:14px 12px calc(44px + env(safe-area-inset-bottom))}header{margin-bottom:20px}.card{padding:17px}.workbench-heading{align-items:start;flex-direction:column;gap:4px}.workbench-heading h1{font-size:24px}.layout{gap:13px}.row{grid-template-columns:1fr 1fr}.output{min-height:210px}.result-actions{width:100%}.result-actions button{flex:1}}
+@media(max-width:390px){.row{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 </style></head><body>
 <main>
-<header><div class="brand">AhB <small>Direct Gateway Playground</small></div><a href="/ui" class="btn">返回管理介面</a></header>
-<h1>Playground</h1>
-<p>對指定 Gateway 發出真正推論。**不經路由 fallback**，所以 Duck.ai 回 418 或 DeepSeek 回 503，不會偷偷換其他來源回答。只有按下「送出測試」才會使用帳號額度。</p>
+<header><div class="brand">AhB <small>API / DIRECT TEST WORKSPACE</small></div><a href="/ui" class="btn">← 返回控制中心</a></header>
+<div class="workbench-heading"><div><span class="eyebrow">TEST WORKBENCH / LOCAL ONLY</span><h1>API 實測工作區</h1></div><span class="workbench-pill">不經跨來源 Fallback</span></div>
+<p>對指定 Gateway 發送真實請求，顯示 HTTP、首字延遲與串流結果。失敗不會偷偷切換其他提供商；只有主動送出才會消耗帳號額度。</p>
 <div class="layout">
-<section class="card" aria-label="測試輸入">
+<section class="card input-card" aria-label="測試輸入"><div class="card-label">01 / 請求設定</div>
  <div class="row">
   <div class="field"><label for="provider">Gateway</label><select id="provider"><option value="">載入來源中…</option></select></div>
   <div class="field"><label for="model">模型（可自行輸入）</label><input id="model" list="modelHints" spellcheck="false" autocomplete="off" placeholder="輸入上游模型名稱"><datalist id="modelHints"></datalist></div>
  </div>
- <div class="field"><label for="prompt">測試問題</label><textarea id="prompt" maxlength="6000" spellcheck="false">請用一句話介紹自己，然後回答 2 + 3 = ?</textarea></div>
+ <div id="providerInfo" class="provider-info" role="status">選擇 Gateway 後顯示程序狀態與認證提醒。</div>
+ <div class="field"><label for="prompt">測試問題</label><textarea id="prompt" maxlength="6000" spellcheck="false">請用一句話介紹自己，然後回答 2 + 3 = ?</textarea><div class="preset-row" aria-label="快速測試問題"><button type="button" data-preset="chat">一般聊天</button><button type="button" data-preset="reason">邏輯測試</button><button type="button" data-preset="format">JSON 格式</button></div></div>
  <div class="row">
   <div class="field"><label for="maxTokens">最大 Tokens</label><input id="maxTokens" type="number" min="1" max="1024" value="256"></div>
   <div><label class="check"><input id="stream" type="checkbox" checked>測試 SSE 串流</label><label class="check"><input id="toolTest" type="checkbox">傳送模擬 Tool Calling</label></div>
@@ -60,10 +85,10 @@ details{margin-top:14px}summary{font-size:12px;color:var(--muted);cursor:pointer
  <div class="actions"><button id="send" type="button" class="primary" disabled>送出測試</button><button id="cancel" type="button" disabled>停止</button><button id="reload" type="button">更新來源／模型</button></div>
  <p class="note">睡眠來源的模型清單可能是快取；不知道模型時可先回管理頁面掃描。Playground 會按需啟動已啟用 Gateway，但**不會替你登入、不會自動重試、不會執行模擬工具**。</p>
 </section>
-<section class="card" aria-label="測試結果">
+<section class="card results-card" aria-label="測試結果"><div class="result-head"><div class="card-label">02 / 真實回應</div><div class="result-actions"><button type="button" id="copyResponse" disabled>複製回答</button><button type="button" id="clearResponse">清除畫面</button></div></div>
  <div class="status" id="status" role="status" aria-live="polite">尚未測試</div>
  <div class="metrics" id="metrics"><span>HTTP —</span><span>TTFT —</span><span>總耗時 —</span></div>
- <div class="output" id="output">模型的真實回答會顯示在這裡。</div>
+ <div class="output" id="output" aria-label="模型的回覆">模型的真實回答會顯示在這裡。</div>
  <details><summary>原始回應與 Tool Calls（僅本機顯示）</summary><pre id="raw" class="output" style="min-height:55px;max-height:260px"></pre></details>
  <p class="note">HTTP 200 不等於成功：必須有實際文字或結構化 tool_calls，SSE 還必須收到 [DONE]。HTTP 418 代表該來源拒絕請求；502／503 可能是帳號、上游或程序問題，不能靠重新啟動保證修復。</p>
 </section></div>
@@ -75,6 +100,7 @@ const el=id=>document.getElementById(id);
 const provider=el('provider'),model=el('model'),hints=el('modelHints'),statusBox=el('status');
 const output=el('output'),raw=el('raw'),send=el('send'),cancel=el('cancel');
 let providers=[],models=[],active=null;
+const copyResponse=el('copyResponse'),clearResponse=el('clearResponse');
 function metric(code,ttft,total){
  el('metrics').replaceChildren();
  for(const label of ['HTTP '+code,'TTFT '+ttft,'總耗時 '+total]){
@@ -83,7 +109,7 @@ function metric(code,ttft,total){
 }
 async function getJSON(path){const r=await fetch(path,{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}
 async function reload(){
- const last=provider.value;
+ const last=provider.value||new URLSearchParams(location.search).get('provider')||'';
  statusBox.className='status';
  statusBox.textContent='讀取模型中（不會喚醒休眠來源）…';
  try{
@@ -102,6 +128,8 @@ async function reload(){
  }catch(err){statusBox.textContent='來源清單讀取失敗：'+err.message;send.disabled=true}
 }
 function chooseModels(){
+ const chosen=providers.find(p=>p.id===provider.value);
+ el('providerInfo').textContent=chosen?(chosen.display_name||chosen.id)+' · '+(chosen.process_alive?'程序運作中':'目前休眠／未啟動')+' · '+(chosen.provider_ready?'端點已就緒':'仍需確認帳號與可用性'):'尚未選擇來源';
  const items=models.filter(m=>m.x_provider===provider.value&&m.x_upstream_id);
  hints.replaceChildren();
  for(const item of items){
@@ -112,6 +140,11 @@ function chooseModels(){
  model.placeholder=items.length?'選擇或輸入模型':'請手動輸入真實模型 ID';
 }
 provider.addEventListener('change',chooseModels);
+const presets={chat:'請用一句話介紹自己，然後回答 2 + 3 = ?',reason:'有三個盒子，各裝著紅球、藍球或混合球，且標籤全部貼錯。請說明最少抽幾顆球能判斷標籤。',format:'請只輸出合法 JSON，包含 status 為 ok、answer 為 5 兩個欄位。'};
+document.querySelector('.preset-row').addEventListener('click',e=>{const b=e.target.closest('button[data-preset]');if(b&&presets[b.dataset.preset])el('prompt').value=presets[b.dataset.preset]});
+el('prompt').addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();if(!send.disabled)send.click()}});
+copyResponse.addEventListener('click',async()=>{if(!output.textContent)return;try{await navigator.clipboard.writeText(output.textContent);copyResponse.textContent='已複製'}catch(_){copyResponse.textContent='複製失敗'}});
+clearResponse.addEventListener('click',()=>{if(active)return;output.textContent='模型的真實回答會顯示在這裡。';raw.textContent='';statusBox.className='status';statusBox.textContent='尚未測試';metric('—','—','—');copyResponse.disabled=true;copyResponse.textContent='複製回答'});
 el('reload').addEventListener('click',reload);
 cancel.addEventListener('click',()=>{if(active)active.abort()});
 function contentText(v){
@@ -187,7 +220,7 @@ send.addEventListener('click',async()=>{
  const ctrl=new AbortController();active=ctrl;send.disabled=true;cancel.disabled=false;
  let http='—';
  const test={start:performance.now(),ttft:null,text:'',tools:[],finish:''};
- output.textContent='';raw.textContent='';metric('—','—','—');
+ output.textContent='';raw.textContent='';copyResponse.disabled=true;copyResponse.textContent='複製回答';metric('—','—','—');
  statusBox.className='status';statusBox.textContent='直接向 '+id+' 發送真實請求…';
  const timeout=setTimeout(()=>ctrl.abort(),120000);
  try{
@@ -222,7 +255,8 @@ send.addEventListener('click',async()=>{
    if(!test.text)output.textContent='模型回傳 '+tools.length+' 個 Tool Call（未執行工具）。';
   }
   if(!test.text&&!tools.length)throw new Error('HTTP 200 但沒有實際回答或工具呼叫，不算成功');
-  statusBox.className='status good';
+  copyResponse.disabled=false;
+   statusBox.className='status good';
   statusBox.textContent='成功 · '+id+' 直接路由 · finish_reason: '+(test.finish||'未提供');
  }catch(error){
   statusBox.className='status bad';

@@ -11,7 +11,7 @@ const dashboardHTML = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="dark">
-<title>AhB</title>
+<title>AhB · 控制中心</title>
 <style>
 :root{
  color-scheme:dark;
@@ -190,6 +190,41 @@ th,td{font-size:12px}
  .anchor-nav button{font-size:13px;min-height:44px}
  .ui-toggle{min-height:44px}
 }
+/* AhB mobile-first control surface, no external dependencies. */
+:root{--bg:#10151c;--panel:#1b242f;--panel2:#283341;--line:#384657;--line2:#303b49;--text:#f2f6fa;--muted:#bac6d3;--subtle:#94a4b5;--accent:#a8c8ea;--ok:#80d2a6;--warn:#e5bd75;--bad:#ed959d}
+body{line-height:1.5}main{max-width:1200px;padding-bottom:82px}.brand .mark{width:43px;height:43px;border-radius:12px;background:#2c4055;color:#e4f1ff;border-color:#58728f}h1{font-size:21px}h2{font-size:16px}
+button,.btn{touch-action:manipulation}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.anchor-nav{position:sticky;top:0;z-index:12;margin:0 -6px;padding:12px 6px;background:var(--bg);border-bottom:1px solid var(--line)}
+.anchor-nav button,.anchor-nav .nav-play{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:9px 17px;border-radius:10px;text-decoration:none;white-space:nowrap;font-size:13px;color:var(--muted);background:transparent;border:1px solid transparent}
+.anchor-nav button.selected{background:#304257;color:#f2f7ff;border:1px solid #6d87a3}
+.sync-strip{display:flex;gap:10px;align-items:center;padding:12px 0 0;color:var(--subtle);font-size:11px}.connection-pill{font-weight:680;color:var(--warn)}
+.connection-pill:before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:currentColor;margin-right:7px}.connection-pill.online{color:var(--ok)}.connection-pill.offline{color:var(--bad)}
+.overview{gap:22px;padding:22px 0}.overview-title{font-size:23px}.summary{grid-template-columns:repeat(4,minmax(0,1fr));min-width:min(520px,100%);border-radius:12px}.summary-item{padding:13px;min-width:0}.summary-item b{font-size:20px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}.summary-item span{font-size:10px}
+.providers,.table-wrap,.quick-connect{border-radius:12px}.card[data-state="DEGRADED"]{box-shadow:inset 3px 0 var(--warn)}.card[data-state="DEAD"]{box-shadow:inset 3px 0 var(--bad)}.card[data-enabled="false"]{background:#17202a}
+.provider-filter{display:flex;gap:7px;overflow:auto;scrollbar-width:none;margin:0 0 12px;padding:3px 0}.provider-filter button{white-space:nowrap;min-height:38px;background:transparent;color:var(--muted);border-color:var(--line)}.provider-filter button.selected{background:#30465c;border-color:#718faa;color:#f2f7ff;font-weight:700}
+.empty-result{padding:25px;text-align:center;border:1px dashed var(--line);border-radius:12px;color:var(--muted);font-size:13px}.load-more-wrap{padding:11px;text-align:center}.load-more-wrap button[hidden]{display:none}
+@media(max-width:960px){.overview{grid-template-columns:1fr}.summary{min-width:0;width:100%}}
+@media(max-width:820px),(hover:none) and (pointer:coarse){main{padding-bottom:calc(116px + env(safe-area-inset-bottom))}.anchor-nav{position:fixed;top:auto;bottom:0;left:0;right:0;margin:0;padding:8px max(8px,env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-right));border-top:1px solid #4a596a;border-bottom:0;background:#1b242f;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;z-index:30;box-shadow:0 -4px 24px #0005}.anchor-nav button,.anchor-nav .nav-play{padding:9px 2px;min-height:46px;font-size:12px;min-width:0}.summary{grid-template-columns:repeat(2,minmax(0,1fr))}.summary-item:nth-child(3){border-left:0;border-top:1px solid var(--line)}.summary-item:nth-child(4){border-top:1px solid var(--line)}.card-top{grid-template-columns:1fr}.overview-title{font-size:21px}}
+@media(max-width:390px){.anchor-nav button,.anchor-nav .nav-play{font-size:11px}}@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
+/* Desktop workspace: persistent sidebar and generous data density. */
+@media(min-width:1024px){
+ main{width:auto;max-width:1560px;margin:0 28px 0 258px;padding:26px 24px 76px}
+ .anchor-nav{position:fixed;left:0;top:0;bottom:0;width:240px;margin:0;padding:100px 16px 80px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;overflow-x:hidden;border:0;border-right:1px solid var(--line);border-radius:0;background:#141c26;box-shadow:none;z-index:30}
+ .anchor-nav::before{content:'AhB  /  WORKSPACE';position:absolute;top:37px;left:26px;color:#b8d4f2;font-size:12px;font-weight:790;letter-spacing:.13em}
+ .anchor-nav::after{content:'LOCALHOST  ·  PRIVATE';position:absolute;bottom:24px;left:26px;color:var(--subtle);font-size:10px;letter-spacing:.12em}
+ .anchor-nav button,.anchor-nav .nav-play{display:flex;justify-content:flex-start;flex:0 0 auto;text-align:left;min-height:47px;width:100%;padding:12px 15px;border-radius:10px;font-size:14px}
+ .anchor-nav button.selected{background:#32465c;border-color:#627e9c;box-shadow:inset 3px 0 #b6d4f4}
+ .anchor-nav .nav-play{color:#c6dfff;background:#22364a;border-color:#364e67;margin-top:12px}
+ .anchor-nav .nav-play:hover{background:#304761}
+ header{padding-bottom:20px}.overview{grid-template-columns:minmax(320px,1fr) minmax(440px,.98fr)}
+ .summary{width:100%;min-width:0}.summary-item{padding:17px 14px}.summary-item b{font-size:23px}
+ .card-top{grid-template-columns:minmax(210px,1.6fr) minmax(160px,.8fr) minmax(260px,auto);gap:20px}
+ .provider-actions{max-width:345px;flex-wrap:wrap;justify-content:flex-end}
+ .provider-actions .btn{min-width:110px}.provider-name{font-size:15px}
+ .quick-connect{grid-template-columns:minmax(250px,.85fr) minmax(380px,1.3fr);gap:32px;padding:25px}
+ .table-wrap{max-height:560px;overflow:auto}th{z-index:1}
+}
+@media(min-width:1700px){main{margin-left:max(258px,calc((100vw - 1450px) / 2 + 90px));margin-right:auto;max-width:1450px}}
 </style>
 </head>
 <body>
@@ -197,28 +232,31 @@ th,td{font-size:12px}
 <header>
  <div class="brand">
   <div class="mark">AhB</div>
-  <div><h1>Local Gateway</h1><div id="runtime" class="kicker">正在讀取執行狀態…</div></div>
+  <div><h1>本機控制中心</h1><div id="runtime" class="kicker">正在讀取執行狀態…</div></div>
  </div>
  <div style="display:flex;gap:8px;align-items:center"><button id="updateAhB" type="button" disabled title="連 Agent2API 在內，從已發布 Android 封包安全更新">更新 AhB</button><button id="restartAhB" type="button" disabled title="只重新啟動 AhB，不會關閉 Termux">重新啟動 AhB</button><button id="refresh">重新整理</button></div>
 </header>
 <nav class="anchor-nav" aria-label="AhB 分頁" id="ahbTabs">
  <button type="button" data-tab="home" class="selected" aria-current="page">總覽</button>
- <a href="/playground" class="btn" style="min-height:40px;display:inline-grid;place-items:center">Playground 實測</a>
- <button type="button" data-tab="accounts">帳號與登入</button>
- <button type="button" data-tab="bridges">連接來源</button>
- <button type="button" data-tab="advanced">進階與診斷</button>
+ <a href="/playground" class="btn nav-play" aria-label="前往 Playground">實測</a>
+ <button type="button" data-tab="accounts">帳號</button>
+ <button type="button" data-tab="bridges">連接</button>
+ <button type="button" data-tab="advanced">設定</button>
 </nav>
+<div class="sync-strip" role="status" aria-live="polite"><span class="connection-pill" id="connectionStatus">連線中</span><span id="lastSynced">讀取最新狀態…</span></div>
 <div id="controlInfo" role="status" aria-live="polite" style="display:none;margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);font-size:12px"></div>
 
 <div class="overview">
  <div>
-  <div class="overview-title">統一 API</div>
+  <div class="overview-title">統一 API 入口</div>
   <div class="desc">所有來源維持明確的 provider/model 命名；路由狀態可以在下方直接確認。</div>
   <div class="base-row"><div id="baseUrl" class="base">http://127.0.0.1:8317/v1</div><button id="copyBase">複製 Base URL</button></div>
  </div>
  <div class="summary">
-  <div class="summary-item"><b id="providerTotal">—</b><span>Providers</span></div>
-  <div class="summary-item"><b id="modelTotal">—</b><span>Models</span></div>
+  <div class="summary-item"><b id="providerTotal">—</b><span>已啟用來源</span></div>
+  <div class="summary-item"><b id="modelTotal">—</b><span>可列出模型</span></div>
+   <div class="summary-item"><b id="summaryReady">—</b><span>健康程序</span></div>
+   <div class="summary-item"><b id="summaryRss">—</b><span>Hub + 子程序 RSS</span></div>
  </div>
 </div>
 
@@ -328,7 +366,7 @@ th,td{font-size:12px}
   <div>
    <div class="eyebrow">Optional packages</div>
    <div class="quick-title">有帳號才啟用，減少手機負擔。</div>
-   <p>預設只有隨安裝包提供的七個網關；其他尚未整合的來源不會冒充為已安裝。Agent2API 的 Android 更新由 AhB 統一封包管理：在首頁按「更新 AhB」即可安全檢查並更新整套服務。</p>
+   <p>安裝包包含九個獨立 Gateway；其他尚未整合的來源不會冒充為已安裝。Agent2API 的 Android 更新由 AhB 統一封包管理：在首頁按「更新 AhB」即可安全檢查並更新整套服務。</p>
    <p>Copilot 可以在這裡完成官方裝置授權；未安裝的 Kimi Web 不再列入預設來源。</p>
   </div>
   <div class="quick-form">
@@ -383,17 +421,19 @@ th,td{font-size:12px}
 </section>
 
 <section id="providersSection">
- <div class="section-head"><div class="section-title"><h2>Providers</h2><span id="providerReady" class="count">—</span></div></div>
+ <div class="section-head"><div class="section-title"><h2>Gateway 服務</h2><span id="providerReady" class="count">—</span></div></div>
+ <div class="provider-filter" role="group" aria-label="篩選 Gateway"><button type="button" class="selected" data-provider-filter="all" aria-pressed="true">全部</button><button type="button" data-provider-filter="enabled" aria-pressed="false">已啟用</button><button type="button" data-provider-filter="problems" aria-pressed="false">需注意</button><button type="button" data-provider-filter="asleep" aria-pressed="false">休眠</button></div>
  <div id="providers" class="providers"></div>
+ <div id="providerFilterEmpty" class="empty-result" hidden>沒有符合此篩選的來源。</div>
 </section>
 
 <section id="modelsSection">
  <div class="section-head">
-  <div><div class="section-title"><h2>Models</h2><span id="modelCount" class="count">—</span></div><div class="desc">已啟動來源顯示即時清單；休眠來源可顯示六小時內曾成功取得的模型快取（並標示「休眠快取」）。快取不保證帳號有效、模型未下架或有剩餘額度。可依序掃描全部來源而不常駐九個程序。</div></div>
-  <div class="command-actions"><button type="button" id="scanAllModels" class="btn" disabled>逐一載入全部模型</button><input id="search" class="search" placeholder="搜尋模型或 Provider"></div>
+  <div><div class="section-title"><h2>模型清單</h2><span id="modelCount" class="count">—</span></div><div class="desc">已啟動來源顯示即時清單；休眠來源可顯示六小時內曾成功取得的模型快取（並標示「休眠快取」）。快取不保證帳號有效、模型未下架或有剩餘額度。可依序掃描全部來源而不常駐九個程序。</div></div>
+  <div class="command-actions"><button type="button" id="scanAllModels" class="btn" disabled>逐一載入全部模型</button><input id="search" class="search" type="search" aria-label="搜尋模型或來源" placeholder="搜尋模型或來源…"></div>
  </div>
  <div class="table-wrap">
-  <table><thead><tr><th>Model ID</th><th>Provider</th><th>Upstream</th></tr></thead><tbody id="models"></tbody></table>
+  <table><thead><tr><th>Model ID</th><th>Provider</th><th>Upstream</th></tr></thead><tbody id="models"></tbody></table><div class="load-more-wrap"><button type="button" id="showMoreModels" hidden>顯示更多模型</button></div>
  </div>
 </section>
 
@@ -745,7 +785,7 @@ function switchTab(name){
 }
 document.getElementById('ahbTabs').addEventListener('click',e=>{
  const b=e.target.closest('button[data-tab]');
- if(b)switchTab(b.dataset.tab);
+ if(b){switchTab(b.dataset.tab);if(b.dataset.tab==='home')refresh()}
 });
 function controlNotice(message){
  const el=document.getElementById('controlInfo');
@@ -869,6 +909,7 @@ const fmtBytes=n=>!n?'—':n<1048576?(n/1024).toFixed(1)+' KiB':(n/1048576).toFi
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let lastModels=[];
 let lastProviders=[];
+let modelLimit=120,providerFilter='all',refreshing=false,runtimePolling=false;
 let scanningAllModels=false;
 async function getJSON(path){const r=await fetch(path,{cache:'no-store'});if(!r.ok)throw new Error(path+' HTTP '+r.status);return r.json()}
 function modelCounts(models){const out={};for(const m of models){const p=m.x_provider||'';out[p]=(out[p]||0)+1}return out}
@@ -886,10 +927,24 @@ function lastRequestLabel(x){
 function renderModels(){
  const q=(document.getElementById('search').value||'').trim().toLowerCase();
  const rows=lastModels.filter(m=>!q||String(m.id||'').toLowerCase().includes(q)||String(m.x_provider_name||m.x_provider||'').toLowerCase().includes(q));
- document.getElementById('modelCount').textContent=rows.length===lastModels.length?lastModels.length+' listed':rows.length+' of '+lastModels.length;
- document.getElementById('models').innerHTML=rows.length?rows.map(m=>
-  '<tr><td><code>'+esc(m.id)+'</code>'+(m.x_cached?'<span class="muted"> · 休眠快取</span>':'')+'</td><td>'+esc(m.x_provider_name||m.x_provider||'—')+'</td><td><code>'+esc(m.x_upstream_id||'—')+'</code></td></tr>'
+ const shown=rows.slice(0,modelLimit);
+ document.getElementById('modelCount').textContent=rows.length===lastModels.length?lastModels.length+' 個模型':rows.length+' / '+lastModels.length+' 個模型';
+ document.getElementById('models').innerHTML=shown.length?shown.map(m=>
+ '<tr><td><code>'+esc(m.id)+'</code>'+(m.x_cached?'<span class="muted"> · 休眠快取</span>':'')+'</td><td>'+esc(m.x_provider_name||m.x_provider||'—')+'</td><td><code>'+esc(m.x_upstream_id||'—')+'</code></td></tr>'
  ).join(''):'<tr><td colspan="3" class="muted">沒有符合的模型</td></tr>';
+ const more=document.getElementById('showMoreModels');more.hidden=rows.length<=modelLimit;
+ more.textContent='顯示更多模型 · '+shown.length+' / '+rows.length;
+}
+function applyProviderFilter(){
+ let visible=0;
+ document.querySelectorAll('#providers article[data-provider-id]').forEach(card=>{
+ const x=lastProviders.find(p=>p.id===card.dataset.providerId);
+ const problem=x&&x.enabled&&(x.state==='DEGRADED'||x.state==='DEAD'||Number(x.last_request_http_status)>=400);
+ const match=providerFilter==='all'||!!(x&&(providerFilter==='enabled'&&x.enabled||providerFilter==='problems'&&problem||providerFilter==='asleep'&&x.enabled&&!x.process_alive));
+ card.hidden=!match;if(match)visible++;
+ });
+ document.getElementById('providerFilterEmpty').hidden=visible>0;
+ document.querySelectorAll('[data-provider-filter]').forEach(b=>{const selected=b.dataset.providerFilter===providerFilter;b.classList.toggle('selected',selected);b.setAttribute('aria-pressed',String(selected))});
 }
 function actionLink(url,label,primary,enabled){
  if(!url||!enabled)return '<span class="btn disabled">'+esc(label)+'</span>';
@@ -902,6 +957,8 @@ async function copyText(text){
  area.remove();return ok;
 }
 async function refresh(){
+ if(refreshing)return;
+ refreshing=true;
  const error=document.getElementById('error');error.style.display='none';
  const warnings=document.getElementById('warnings');warnings.style.display='none';
  try{
@@ -931,12 +988,17 @@ async function refresh(){
   }
   document.getElementById('saveResourceSettings').disabled=!ahbProviderControlAvailable;
   document.getElementById('providerTotal').textContent=providers.filter(x=>x.enabled).length;
+   document.getElementById('summaryReady').textContent=ready;
+   document.getElementById('summaryRss').textContent=fmtBytes(ahbRSS);
+   const conn=document.getElementById('connectionStatus');conn.textContent='Hub 已連線';conn.className='connection-pill online';
+   document.getElementById('lastSynced').textContent='最近同步 '+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   document.getElementById('modelTotal').textContent=lastModels.length;
   document.getElementById('providerReady').textContent=ready+' endpoint healthy / '+providers.length+' configured';
-  document.getElementById('providers').innerHTML=providers.map(x=>{
+  const previousCards=new Map([...document.querySelectorAll('#providers article[data-provider-id]')].map(card=>{const input=card.querySelector('input[data-provider-proxy-url]'),details=card.querySelector('details.proxy-config');return [card.dataset.providerId,{value:input?input.value:'',open:!!(details&&details.open),focused:document.activeElement===input}]}));
+   document.getElementById('providers').innerHTML=providers.map(x=>{
    const manageable=x.state==='HEALTHY'||x.state==='DEGRADED';
    const enabled=!!x.enabled;
-   return '<article class="card"><div class="card-top">'+
+   return '<article class="card" data-provider-id="'+esc(x.id)+'" data-state="'+esc(x.state)+'" data-enabled="'+esc(x.enabled)+'"><div class="card-top">'+
     '<div class="provider-main"><div class="provider-name"><span class="state-dot '+esc(x.state)+'"></span>'+esc(x.display_name||x.id)+' <span class="badge">'+esc(x.state)+'</span></div><div class="desc">'+esc(x.description||x.id)+'</div>'+
      '<div class="layers"><span class="layer">Process <b>'+esc(x.kind==='external'?'N/A':(x.process_alive?'YES':'NO'))+'</b></span><span class="layer">Ready <b>'+esc(x.provider_ready?'YES':'NO')+'</b></span><span class="layer">Credentials <b>'+esc(accountLabel(x))+'</b></span><span class="layer" title="最近一次 API 上游回覆 HTTP 狀態；200 不保證串流完整或有可用額度">Last API <b>'+esc(lastRequestLabel(x))+'</b></span></div>'+
      (x.last_error?'<div class="provider-error">'+esc(x.last_error)+'</div>':'')+'</div>'+
@@ -945,7 +1007,9 @@ async function refresh(){
       '<label class="ui-toggle"><input type="checkbox" data-provider-toggle="'+esc(x.id)+'" '+(x.enabled?'checked ':'')+(!ahbProviderControlAvailable?'disabled ':'')+' aria-label="'+esc(x.display_name||x.id)+' 啟用或停用"><span>'+(x.enabled?'已開啟':'已關閉')+'</span></label>'+
       (enabled&&x.start_mode==='on_demand'&&!x.process_alive?'<button type="button" class="btn" data-provider-wake="'+esc(x.id)+'" '+(!ahbProviderControlAvailable?'disabled':'')+'>啟動並載入模型</button>':'')+
       (enabled&&x.start_mode==='on_demand'&&x.process_alive?'<button type="button" class="btn" data-provider-recover="'+esc(x.id)+'" '+(!ahbProviderControlAvailable?'disabled':'')+'>單獨重啟</button>':'')+
-      (x.id==='copilot'?'<button type="button" class="btn primary" data-copilot-auth>GitHub 授權登入</button>':actionLink(x.ui_url,'管理原本 UI',true,enabled&&manageable))+actionLink(x.docs_url,'上游文件',false,true)+'</div>'+
+      (x.id==='copilot'?'<button type="button" class="btn primary" data-copilot-auth>GitHub 授權登入</button>':actionLink(x.ui_url,'管理原本 UI',true,enabled&&manageable))+
+       (enabled?'<a class="btn" href="/playground?provider='+encodeURIComponent(x.id)+'">直接測試</a>':'')+
+       actionLink(x.docs_url,'上游文件',false,true)+'</div>'+
       (x.id==='copilot'?'<div class="provider-recovery-note">Copilot2API 沒有網頁管理台。請先使用「GitHub 授權登入」，完成後再啟動並在 Playground 實測；/v1/models 不代表有額度。</div>':'')+
        (x.id==='duckai'&&x.last_request_http_status===418?'<div class="provider-error">Duck.ai 最近的實際推論被上游拒絕（HTTP 418）。/ping 成功不代表可用；暫停使用並確認官方服務狀態，請勿連續重啟或反覆請求。這不代表 IP 已永久被封鎖。</div>':'')+
       (x.id==='deepseek'&&x.enabled&&(x.account_total===0||x.account_usable===false)?'<div class="provider-recovery-note">實驗版 DeepSeek Web 已移除舊 /admin 管理台。請將自己授權的 Web 帳號憑證放入本機私有 data/deepseek2api/accounts.txt（權限 0600），然後使用 Playground 檢查真實回覆。舊版管理密碼無法登入新版本。</div>':'')+
@@ -953,14 +1017,19 @@ async function refresh(){
       (x.kind==='sidecar'?'<details class="proxy-config"><summary>程序出站 Proxy · '+(x.proxy_configured?'已設定':'未設定')+'</summary><div class="proxy-input-row"><input type="url" data-provider-proxy-url placeholder="http://127.0.0.1:7890（留白清除）" spellcheck="false" autocomplete="off" aria-label="'+esc(x.id)+' 出站 Proxy URL"><button type="button" class="btn" data-provider-proxy="'+esc(x.id)+'" '+(!ahbProviderControlAvailable?'disabled':'')+'>儲存 Proxy</button></div><div class="proxy-help">只作用於該 Gateway 的 HTTP_PROXY / HTTPS_PROXY 等程序環境變數，可能受上游實作影響；Agent2API 等來源的帳號代理池仍由原生管理介面負責。儲存會重新啟動 AhB。</div></details>':'')+
    '</div></article>';
   }).join('');
-  if(m.x_provider_warnings&&Object.keys(m.x_provider_warnings).length){
+  document.querySelectorAll('#providers article[data-provider-id]').forEach(card=>{const saved=previousCards.get(card.dataset.providerId);if(!saved)return;const details=card.querySelector('details.proxy-config'),input=card.querySelector('input[data-provider-proxy-url]');if(details)details.open=saved.open;if(input){input.value=saved.value;if(saved.focused)input.focus({preventScroll:true});}});
+   applyProviderFilter();
+   if(m.x_provider_warnings&&Object.keys(m.x_provider_warnings).length){
    warnings.textContent=Object.entries(m.x_provider_warnings).map(([k,v])=>k+': '+v).join('\n');warnings.style.display='block';
   }
   renderModels();
- }catch(e){error.textContent=e.message;error.style.display='block'}
+ }catch(e){error.textContent=e.message;error.style.display='block';const conn=document.getElementById('connectionStatus');conn.textContent='連線異常';conn.className='connection-pill offline';document.getElementById('lastSynced').textContent='同步失敗';}
+ finally{refreshing=false;}
 }
 document.getElementById('refresh').addEventListener('click',refresh);
-document.getElementById('search').addEventListener('input',renderModels);
+document.getElementById('search').addEventListener('input',()=>{modelLimit=120;renderModels()});
+document.getElementById('showMoreModels').addEventListener('click',()=>{modelLimit+=120;renderModels()});
+document.querySelector('.provider-filter').addEventListener('click',e=>{const b=e.target.closest('button[data-provider-filter]');if(!b)return;providerFilter=b.dataset.providerFilter;applyProviderFilter()});
 // Explicit opt-in discovery: never wake nine gateways just because a client
 // polls /v1/models. Requests are sequential to respect the 512 MiB ceiling.
 document.getElementById('scanAllModels').addEventListener('click',async()=>{
@@ -1046,7 +1115,8 @@ refresh();
 // Refresh RAM separately: avoid re-probing all upstream model lists merely
 // to update the memory gauge on a 512 MiB VPS.
 setInterval(()=>{
- if(document.visibilityState==='hidden')return;
+ if(document.visibilityState==='hidden'||runtimePolling)return;
+ runtimePolling=true;
  getJSON('/api/runtime').then(r=>{
   const total=r.system_total_bytes||0,used=r.system_used_bytes||0;
   const pct=total?Math.min(100,Math.round(used/total*100)):0;
@@ -1056,9 +1126,10 @@ setInterval(()=>{
   document.getElementById('ahbRamValue').textContent=fmtBytes(r.ahb_rss_bytes);
   document.getElementById('ramMeter').style.width=pct+'%';
   document.getElementById('runtime').textContent='AhB RSS '+fmtBytes(r.ahb_rss_bytes)+' · 按需 '+(r.running_on_demand??0)+'/'+(r.max_running_sidecars||1)+' · '+(r.goos||'?')+'/'+(r.goarch||'?');
- }).catch(()=>{});
-},5000);
-setInterval(()=>{if(document.visibilityState!=='hidden')refresh()},30000);
+ }).catch(()=>{}).finally(()=>{runtimePolling=false});
+},10000);
+setInterval(()=>{if(document.visibilityState!=='hidden'&&!document.getElementById('providersSection').classList.contains('ahb-tab-hidden'))refresh()},45000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&!document.getElementById('providersSection').classList.contains('ahb-tab-hidden'))refresh()});
 </script>
 </body>
 </html>`
