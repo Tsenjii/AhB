@@ -1,10 +1,10 @@
-# AhB 512 MiB deployment plan (staged, not yet a published release)
+# AhB 512 MiB deployment and resource safeguards
 
 ## What is actually bundled
 
 Android ARM64 base package contains **nine** real provider processes: OpenCode
 (Go), FreeBuff (Node 22), Agent2API (Rust), DeepSeek (Go), Grok (Go), Kiro
-(Go), Copilot (Go), Gemini Web (Go), and Duck.ai (Go). The AhB Hub is a separate Go process.
+(Go), Copilot (Go), Gemini Web (Go), and experimental Duck.ai (Rust HTTP-only). The AhB Hub is a separate Go process.
 
 LMArena is an **external** third-party bridge and is not installed by the
 bundle. Kimi Web is **not bundled**; the legacy Python installer remains only
@@ -37,14 +37,15 @@ The RAM panel differentiates:
 For a 512 MiB VPS start at **one** active gateway and **120 seconds** idle.
 For Android Termux default to **three** and **900 seconds** idle. These are
 preferences adjustable from the local authenticated UI; neither is a hard
-operating-system memory cap. RAM telemetry refreshes every five seconds
+operating-system memory cap. RAM telemetry refreshes every ten seconds
 without fetching every provider's models.
 
 ## Low RAM mode
 
-On a **fresh** installation all nine bundled entries default to
-`enabled=true` but `start_mode=on_demand`: "enabled" means *permitted to
-start*, not *seven simultaneous running background services*.
+On a **fresh** installation, seven bundled gateways default to `enabled=true`
+and `start_mode=on_demand`; the experimental DeepSeek Web and Duck.ai sources
+are installed but **disabled** until explicitly opted in. Enabled means
+*permitted to start*, not seven simultaneous running background services.
 
 - `resources.max_running_sidecars=1` caps concurrently resident managed
   on-demand processes. A second request to a different provider while a
@@ -55,6 +56,14 @@ start*, not *seven simultaneous running background services*.
 - Inactive on-demand services shut down after
   `resources.idle_stop_seconds=120` (when zero leases remain). Switching
   platforms first evicts any unused resident sidecar.
+- Model discovery now has a **Hub-wide** concurrency limit: one live
+  upstream probe on the one-resident-sidecar (512 MiB) profile, or four on
+  larger configurations. Multiple browser tabs or API clients share the
+  same limit. Waiting probes acquire their sidecar lease only after obtaining
+  a slot, so they do not unnecessarily keep a gateway resident.
+- Each managed gateway's private diagnostic log is capped at **4 MiB**, so
+  long-running output cannot grow its on-disk log without bound. Logs wrap
+  in place; old log contents are dropped when the cap is reached.
 - `GET /v1/models` intentionally does **not** wake all sleeping providers.
   Use the UI's `啟動並載入模型` control to inspect the provider's current
   models or specify the known `provider/model` identifier directly.
@@ -70,25 +79,23 @@ start*, not *seven simultaneous running background services*.
 OS page cache, and Node/Rust/Go process RSS vary. Benchmark on the actual
 target and avoid running heavy web browsers on the same 512 MiB host.
 
-This runtime uses Android/Termux-centric bootstrap scripts. A normal Linux VPS
-will additionally need a Linux build and startup/service manager; do not
-attempt to execute Android ELF files on standard Linux.
+Android/Termux and native Linux AMD64/ARM64 have independent verified release
+bundles and startup scripts. Always use the correct platform package; Android
+ELF files cannot run on regular Linux. Check the newest GitHub Release and
+matching Android prebuilt commit before deploying.
 
-## DeepSeek: replacement requirements (DO NOT swap before validation)
+## Experimental DeepSeek and Duck.ai behavior
 
-Current [zengtao227/Deepseek2API](https://github.com/zengtao227/Deepseek2API)
-upstream is no longer maintained. High-priority experimental candidate:
-[NIyueeE/ds-free-api](https://github.com/NIyueeE/ds-free-api), actively
-maintained Rust with Chat Completions, Responses, Anthropic, tool-call parser,
-multi-account management and mobile admin UI.
+The previously bundled DeepSeek adapter was replaced by a lightweight
+experimental 0xgetz/deepseek2api-derived **Go** Web adapter. The earlier
+`/admin` UI does not exist in this version; only properly authorized private
+Web account credentials belong in `data/deepseek2api/accounts.txt` (0600).
+Its installation/build status is not proof that upstream chat or quotas work.
 
-Before replacing: review GPL-3.0, build Android NDK successfully, measure RSS,
-check login/account migration without moving raw secrets through UI, confirm
-OpenAI/Anthropic SSE and multi-turn tool calls, test real upstream error
-handling and credentials protection, and provide reversible rollback.
-It publishes explicit warnings about upstream login/account risk checks.
-Do not advertise a working swap without successful real-account authorized
-inference and agreement with upstream limits.
+Duck.ai uses an experimental Rust HTTP-only adapter and remains disabled by
+default. A successful local health probe does **not** establish inference
+availability; the observed upstream HTTP 418 requires real service validation.
+Do not count either experimental provider toward tested production capacity.
 
 ## Kimi: replacement requirements (DO NOT ship untested Python)
 
@@ -110,5 +117,5 @@ persistence, and RSS gates described above.
 - Existing active streaming requests are never intentionally stopped by the
   idle reaper.
 - Wake and toggle operations require loopback/origin/ephemeral token checks.
-- This document describes a development branch. Do not update an existing
-  512 MiB deployment until CI and native-target tests pass.
+- Newly proposed source changes must pass CI, native Android ARM64 and Linux
+  AMD64/ARM64 builds before upgrading an existing 512 MiB deployment.
