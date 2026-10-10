@@ -203,6 +203,7 @@ th,td{font-size:12px}
 </header>
 <nav class="anchor-nav" aria-label="AhB 分頁" id="ahbTabs">
  <button type="button" data-tab="home" class="selected" aria-current="page">總覽</button>
+ <a href="/playground" class="btn" style="min-height:40px;display:inline-grid;place-items:center">Playground 實測</a>
  <button type="button" data-tab="accounts">帳號與登入</button>
  <button type="button" data-tab="bridges">連接來源</button>
  <button type="button" data-tab="advanced">進階與診斷</button>
