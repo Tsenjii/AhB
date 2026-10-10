@@ -11,7 +11,7 @@ const dashboardHTML = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="dark">
-<title>AhB</title>
+<title>AhB · 控制中心</title>
 <style>
 :root{
  color-scheme:dark;
@@ -190,6 +190,22 @@ th,td{font-size:12px}
  .anchor-nav button{font-size:13px;min-height:44px}
  .ui-toggle{min-height:44px}
 }
+/* AhB mobile-first control surface, no external dependencies. */
+:root{--bg:#10151c;--panel:#1b242f;--panel2:#283341;--line:#384657;--line2:#303b49;--text:#f2f6fa;--muted:#bac6d3;--subtle:#94a4b5;--accent:#a8c8ea;--ok:#80d2a6;--warn:#e5bd75;--bad:#ed959d}
+body{line-height:1.5}main{max-width:1200px;padding-bottom:82px}.brand .mark{width:43px;height:43px;border-radius:12px;background:#2c4055;color:#e4f1ff;border-color:#58728f}h1{font-size:21px}h2{font-size:16px}
+button,.btn{touch-action:manipulation}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.anchor-nav{position:sticky;top:0;z-index:12;margin:0 -6px;padding:12px 6px;background:var(--bg);border-bottom:1px solid var(--line)}
+.anchor-nav button,.anchor-nav .nav-play{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:9px 17px;border-radius:10px;text-decoration:none;white-space:nowrap;font-size:13px;color:var(--muted);background:transparent;border:1px solid transparent}
+.anchor-nav button.selected{background:#304257;color:#f2f7ff;border:1px solid #6d87a3}
+.sync-strip{display:flex;gap:10px;align-items:center;padding:12px 0 0;color:var(--subtle);font-size:11px}.connection-pill{font-weight:680;color:var(--warn)}
+.connection-pill:before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:currentColor;margin-right:7px}.connection-pill.online{color:var(--ok)}.connection-pill.offline{color:var(--bad)}
+.overview{gap:22px;padding:22px 0}.overview-title{font-size:23px}.summary{grid-template-columns:repeat(4,minmax(0,1fr));min-width:min(520px,100%);border-radius:12px}.summary-item{padding:13px;min-width:0}.summary-item b{font-size:20px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}.summary-item span{font-size:10px}
+.providers,.table-wrap,.quick-connect{border-radius:12px}.card[data-state="DEGRADED"]{box-shadow:inset 3px 0 var(--warn)}.card[data-state="DEAD"]{box-shadow:inset 3px 0 var(--bad)}.card[data-enabled="false"]{background:#17202a}
+.provider-filter{display:flex;gap:7px;overflow:auto;scrollbar-width:none;margin:0 0 12px;padding:3px 0}.provider-filter button{white-space:nowrap;min-height:38px;background:transparent;color:var(--muted);border-color:var(--line)}.provider-filter button.selected{background:#30465c;border-color:#718faa;color:#f2f7ff;font-weight:700}
+.empty-result{padding:25px;text-align:center;border:1px dashed var(--line);border-radius:12px;color:var(--muted);font-size:13px}.load-more-wrap{padding:11px;text-align:center}.load-more-wrap button[hidden]{display:none}
+@media(max-width:960px){.overview{grid-template-columns:1fr}.summary{min-width:0;width:100%}}
+@media(max-width:820px),(hover:none) and (pointer:coarse){main{padding-bottom:calc(116px + env(safe-area-inset-bottom))}.anchor-nav{position:fixed;top:auto;bottom:0;left:0;right:0;margin:0;padding:8px max(8px,env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-right));border-top:1px solid #4a596a;border-bottom:0;background:#1b242f;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;z-index:30;box-shadow:0 -4px 24px #0005}.anchor-nav button,.anchor-nav .nav-play{padding:9px 2px;min-height:46px;font-size:12px;min-width:0}.summary{grid-template-columns:repeat(2,minmax(0,1fr))}.summary-item:nth-child(3){border-left:0;border-top:1px solid var(--line)}.summary-item:nth-child(4){border-top:1px solid var(--line)}.card-top{grid-template-columns:1fr}.overview-title{font-size:21px}}
+@media(max-width:390px){.anchor-nav button,.anchor-nav .nav-play{font-size:11px}}@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
@@ -197,28 +213,31 @@ th,td{font-size:12px}
 <header>
  <div class="brand">
   <div class="mark">AhB</div>
-  <div><h1>Local Gateway</h1><div id="runtime" class="kicker">正在讀取執行狀態…</div></div>
+  <div><h1>本機控制中心</h1><div id="runtime" class="kicker">正在讀取執行狀態…</div></div>
  </div>
  <div style="display:flex;gap:8px;align-items:center"><button id="updateAhB" type="button" disabled title="連 Agent2API 在內，從已發布 Android 封包安全更新">更新 AhB</button><button id="restartAhB" type="button" disabled title="只重新啟動 AhB，不會關閉 Termux">重新啟動 AhB</button><button id="refresh">重新整理</button></div>
 </header>
 <nav class="anchor-nav" aria-label="AhB 分頁" id="ahbTabs">
  <button type="button" data-tab="home" class="selected" aria-current="page">總覽</button>
- <a href="/playground" class="btn" style="min-height:40px;display:inline-grid;place-items:center">Playground 實測</a>
- <button type="button" data-tab="accounts">帳號與登入</button>
- <button type="button" data-tab="bridges">連接來源</button>
- <button type="button" data-tab="advanced">進階與診斷</button>
+ <a href="/playground" class="btn nav-play" aria-label="前往 Playground">實測</a>
+ <button type="button" data-tab="accounts">帳號</button>
+ <button type="button" data-tab="bridges">連接</button>
+ <button type="button" data-tab="advanced">設定</button>
 </nav>
+<div class="sync-strip" role="status" aria-live="polite"><span class="connection-pill" id="connectionStatus">連線中</span><span id="lastSynced">讀取最新狀態…</span></div>
 <div id="controlInfo" role="status" aria-live="polite" style="display:none;margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);font-size:12px"></div>
 
 <div class="overview">
  <div>
-  <div class="overview-title">統一 API</div>
+  <div class="overview-title">統一 API 入口</div>
   <div class="desc">所有來源維持明確的 provider/model 命名；路由狀態可以在下方直接確認。</div>
   <div class="base-row"><div id="baseUrl" class="base">http://127.0.0.1:8317/v1</div><button id="copyBase">複製 Base URL</button></div>
  </div>
  <div class="summary">
-  <div class="summary-item"><b id="providerTotal">—</b><span>Providers</span></div>
-  <div class="summary-item"><b id="modelTotal">—</b><span>Models</span></div>
+  <div class="summary-item"><b id="providerTotal">—</b><span>已啟用來源</span></div>
+  <div class="summary-item"><b id="modelTotal">—</b><span>可列出模型</span></div>
+   <div class="summary-item"><b id="summaryReady">—</b><span>健康程序</span></div>
+   <div class="summary-item"><b id="summaryRss">—</b><span>Hub + 子程序 RSS</span></div>
  </div>
 </div>
 
@@ -328,7 +347,7 @@ th,td{font-size:12px}
   <div>
    <div class="eyebrow">Optional packages</div>
    <div class="quick-title">有帳號才啟用，減少手機負擔。</div>
-   <p>預設只有隨安裝包提供的七個網關；其他尚未整合的來源不會冒充為已安裝。Agent2API 的 Android 更新由 AhB 統一封包管理：在首頁按「更新 AhB」即可安全檢查並更新整套服務。</p>
+   <p>安裝包包含九個獨立 Gateway；其他尚未整合的來源不會冒充為已安裝。Agent2API 的 Android 更新由 AhB 統一封包管理：在首頁按「更新 AhB」即可安全檢查並更新整套服務。</p>
    <p>Copilot 可以在這裡完成官方裝置授權；未安裝的 Kimi Web 不再列入預設來源。</p>
   </div>
   <div class="quick-form">
@@ -383,17 +402,19 @@ th,td{font-size:12px}
 </section>
 
 <section id="providersSection">
- <div class="section-head"><div class="section-title"><h2>Providers</h2><span id="providerReady" class="count">—</span></div></div>
+ <div class="section-head"><div class="section-title"><h2>Gateway 服務</h2><span id="providerReady" class="count">—</span></div></div>
+ <div class="provider-filter" role="group" aria-label="篩選 Gateway"><button type="button" class="selected" data-provider-filter="all" aria-pressed="true">全部</button><button type="button" data-provider-filter="enabled" aria-pressed="false">已啟用</button><button type="button" data-provider-filter="problems" aria-pressed="false">需注意</button><button type="button" data-provider-filter="asleep" aria-pressed="false">休眠</button></div>
  <div id="providers" class="providers"></div>
+ <div id="providerFilterEmpty" class="empty-result" hidden>沒有符合此篩選的來源。</div>
 </section>
 
 <section id="modelsSection">
  <div class="section-head">
-  <div><div class="section-title"><h2>Models</h2><span id="modelCount" class="count">—</span></div><div class="desc">已啟動來源顯示即時清單；休眠來源可顯示六小時內曾成功取得的模型快取（並標示「休眠快取」）。快取不保證帳號有效、模型未下架或有剩餘額度。可依序掃描全部來源而不常駐九個程序。</div></div>
-  <div class="command-actions"><button type="button" id="scanAllModels" class="btn" disabled>逐一載入全部模型</button><input id="search" class="search" placeholder="搜尋模型或 Provider"></div>
+  <div><div class="section-title"><h2>模型清單</h2><span id="modelCount" class="count">—</span></div><div class="desc">已啟動來源顯示即時清單；休眠來源可顯示六小時內曾成功取得的模型快取（並標示「休眠快取」）。快取不保證帳號有效、模型未下架或有剩餘額度。可依序掃描全部來源而不常駐九個程序。</div></div>
+  <div class="command-actions"><button type="button" id="scanAllModels" class="btn" disabled>逐一載入全部模型</button><input id="search" class="search" type="search" aria-label="搜尋模型或來源" placeholder="搜尋模型或來源…"></div>
  </div>
  <div class="table-wrap">
-  <table><thead><tr><th>Model ID</th><th>Provider</th><th>Upstream</th></tr></thead><tbody id="models"></tbody></table>
+  <table><thead><tr><th>Model ID</th><th>Provider</th><th>Upstream</th></tr></thead><tbody id="models"></tbody></table><div class="load-more-wrap"><button type="button" id="showMoreModels" hidden>顯示更多模型</button></div>
  </div>
 </section>
 
