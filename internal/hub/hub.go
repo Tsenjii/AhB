@@ -310,7 +310,7 @@ func (h *Hub) providerViews() []providerView {
 				// that the upstream rejected the request. Surface the failure as
 				// DEGRADED rather than claiming a usable inference endpoint.
 				// Do not restart automatically or claim the user's IP is banned.
-				if id == "duckai" && view.ProcessAlive && last.Status == http.StatusTeapot &&
+				if id == "duckai" && view.ProviderReady && last.Status == http.StatusTeapot &&
 					!last.TransportError && !last.At.IsZero() &&
 					time.Since(last.At) < 15*time.Minute {
 					view.State = provider.StateDegraded
