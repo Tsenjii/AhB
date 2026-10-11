@@ -89,4 +89,5 @@ js=html.split("<script>",1)[1].split("</script>",1)[0]
 Path(sys.argv[1]).write_text(js,encoding="utf-8")
 PY
 node --check "$TMP/playground.js"
-echo "dashboard + Playground markup and JavaScript syntax passed"
+node scripts/test-playground-batch.mjs "$TMP/playground.js"
+echo "dashboard + Playground markup, JavaScript syntax and real batch workflow fixtures passed"
