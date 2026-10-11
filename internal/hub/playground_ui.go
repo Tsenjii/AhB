@@ -363,8 +363,7 @@ function batchDiagnostic(status){
 }
 function batchCSVCell(value){
  // Treat spreadsheets as data, not executable formulas.
- return '"'+String(value??'').replace(/"/g,'""').replace(/^[=+\-@]/,"'reload();
-</script></body></html>`")+'"';
+ return '"'+String(value??'').replace(/"/g,'""').replace(/^[=+\-@]/,"'$&")+'"';
 }
 batchCopy.addEventListener('click',async()=>{
  const rows=[['Gateway','Model ID','結果','HTTP','毫秒','診斷'],...batchRecords.map(r=>[r.provider,r.model,r.result,r.http||'',r.ms??'',r.note||''])];
