@@ -79,6 +79,12 @@ for needle in ('workbench-heading', 'results-card', 'result-actions', 'id="copyR
         assert needle in html, f"Playground UI regression: {needle}"
 assert 'navigator.clipboard.writeText' in html, 'reply-copy action must be wired'
 assert 'id="modelSelect"' in html and 'id="loadModels"' in html, 'Playground must allow selecting and loading models'
+for needle in ('id="batchPanel"', 'id="batchStart"', 'id="batchStop"', 'id="batchLimit"',
+               'id="batchScope"', 'id="batchRows"', 'id="batchCopy"', 'id="batchExperimental"'):
+    assert needle in html, f"Batch test control missing: {needle}"
+assert "async function batchProbe(" in html and "batchController.abort()" in html
+assert "batchActive" in html and "max_tokens:64" in html and "stream:false" in html
+assert "x_upstream_id" in html and "attempts>=maximum" in html
 js=html.split("<script>",1)[1].split("</script>",1)[0]
 Path(sys.argv[1]).write_text(js,encoding="utf-8")
 PY
