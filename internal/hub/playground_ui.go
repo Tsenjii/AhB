@@ -39,6 +39,13 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .metrics span{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:7px;padding:6px 9px}
 details{margin-top:14px}summary{font-size:12px;color:var(--muted);cursor:pointer;padding:10px 0}
 .note{border-top:1px solid var(--line);margin-top:15px;padding-top:13px}
+
+.batch-card{margin-top:20px}.batch-top{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:8px}
+.batch-controls{display:grid;grid-template-columns:minmax(150px,1.5fr) minmax(100px,.6fr) minmax(150px,1.1fr);gap:12px;align-items:end}
+.batch-wrap{overflow:auto;border:1px solid var(--line);border-radius:10px;margin-top:14px}.batch-table{border-collapse:collapse;width:100%;min-width:590px;font-size:12px}
+.batch-table th,.batch-table td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);max-width:340px;overflow-wrap:anywhere}
+.batch-table th{color:var(--muted);background:#202d3a}.batch-table tr:last-child td{border-bottom:0}
+.batch-summary{font-size:12px;color:var(--muted);margin-top:10px}.batch-pass{color:var(--ok)}.batch-fail{color:var(--bad)}.batch-skip{color:var(--muted)}
 @media(max-width:820px){.layout{grid-template-columns:1fr}main{padding:14px 12px 45px}.card{padding:14px}.row{grid-template-columns:1fr 1fr}}
 @media(max-width:390px){.row{grid-template-columns:1fr}}
 /* Shared dark workspace theme; CSS-only desktop layout, zero backend overhead. */
@@ -62,7 +69,7 @@ button,.btn{touch-action:manipulation}button:focus-visible,a:focus-visible,input
 button.primary{background:#dceafb;color:#182636}button:hover:not(:disabled),.btn:hover{border-color:#7994ad}
 @media(min-width:1600px){main{max-width:1550px}.layout{grid-template-columns:minmax(410px,.78fr) minmax(650px,1.22fr)}}
 @media(max-width:900px){.layout{grid-template-columns:1fr}.results-card{position:static}.output{min-height:200px;max-height:500px}}
-@media(max-width:600px){main{padding:14px 12px calc(44px + env(safe-area-inset-bottom))}header{margin-bottom:20px}.card{padding:17px}.workbench-heading{align-items:start;flex-direction:column;gap:4px}.workbench-heading h1{font-size:24px}.layout{gap:13px}.row{grid-template-columns:1fr 1fr}.output{min-height:210px}.result-actions{width:100%}.result-actions button{flex:1}}
+@media(max-width:600px){.batch-controls{grid-template-columns:1fr 1fr}.batch-controls .batch-scope{grid-column:1/-1}main{padding:14px 12px calc(44px + env(safe-area-inset-bottom))}header{margin-bottom:20px}.card{padding:17px}.workbench-heading{align-items:start;flex-direction:column;gap:4px}.workbench-heading h1{font-size:24px}.layout{gap:13px}.row{grid-template-columns:1fr 1fr}.output{min-height:210px}.result-actions{width:100%}.result-actions button{flex:1}}
 @media(max-width:390px){.row{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 </style></head><body>
@@ -92,6 +99,20 @@ button.primary{background:#dceafb;color:#182636}button:hover:not(:disabled),.btn
  <details><summary>原始回應與 Tool Calls（僅本機顯示）</summary><pre id="raw" class="output" style="min-height:55px;max-height:260px"></pre></details>
  <p class="note">HTTP 200 不等於成功：必須有實際文字或結構化 tool_calls，SSE 還必須收到 [DONE]。HTTP 418 代表該來源拒絕請求；502／503 可能是帳號、上游或程序問題，不能靠重新啟動保證修復。</p>
 </section></div>
+<section class="card batch-card" id="batchPanel" aria-label="批量模型實測">
+ <div class="batch-top"><div><div class="card-label">03 / 一鍵批量實測</div><h2 style="font-size:18px;margin:7px 0">一次找出真正有回應的模型</h2></div><span class="workbench-pill">單線程 · 不重試 · 無跨來源 Fallback</span></div>
+ <p>逐一對模型發送簡短、非串流的真實聊天請求，檢查 HTTP 與回答內容。<strong>每個實際請求都可能消耗帳號額度</strong>；不會自動測試全部數百個模型、處理 CAPTCHA 或更換帳號。測試結果僅保存在本頁，不會寫入伺服器或記錄憑證。</p>
+ <div class="batch-controls">
+  <div class="field batch-scope"><label for="batchScope">測試範圍</label><select id="batchScope"><option value="current">目前選定的 Gateway</option><option value="all">所有已啟用 Gateway</option></select></div>
+  <div class="field"><label for="batchLimit">最多測試模型數</label><input id="batchLimit" type="number" min="1" max="100" value="20" inputmode="numeric"></div>
+  <div class="field"><label for="batchExperimental">實驗版來源</label><label class="check" style="min-height:44px;margin:0"><input id="batchExperimental" type="checkbox">包括 DeepSeek／Duck.ai</label></div>
+ </div>
+ <div class="actions"><button id="batchStart" class="primary" type="button" disabled>一鍵批量實測</button><button id="batchStop" type="button" disabled>停止測試</button><button id="batchCopy" type="button" disabled>複製 CSV 結果</button></div>
+ <div class="status" id="batchStatus" role="status" aria-live="polite" style="margin-top:12px">尚未開始；只有按下批量實測才會消耗額度。</div>
+ <div id="batchSummary" class="batch-summary">成功 0 · 失敗 0 · 已發送 0</div>
+ <div class="batch-wrap"><table class="batch-table"><thead><tr><th>Gateway／模型</th><th>結果</th><th>HTTP</th><th>耗時</th><th>診斷</th></tr></thead><tbody id="batchRows"><tr><td colspan="5">尚無測試紀錄</td></tr></tbody></table></div>
+ <p class="note">遇到 401、403、429、502 或 503 時會停止繼續測試該來源，避免重複消耗額度。成功僅表示這次拿到有效回答，不保證日後額度或穩定性；若中途停止，已送出的請求可能仍被上游計費。</p>
+</section>
 </main>
 <script>
 const controlToken="__AHB_CONTROL_TOKEN__";
@@ -99,7 +120,7 @@ const controlsAvailable=__AHB_PROVIDER_CONTROL_AVAILABLE__;
 const el=id=>document.getElementById(id);
 const provider=el('provider'),model=el('model'),modelSelect=el('modelSelect'),loadModels=el('loadModels'),statusBox=el('status');
 const output=el('output'),raw=el('raw'),send=el('send'),cancel=el('cancel');
-let providers=[],models=[],active=null,lastProvider='';
+let providers=[],models=[],active=null,lastProvider='',batchActive=false;
 const copyResponse=el('copyResponse'),clearResponse=el('clearResponse');
 function metric(code,ttft,total){
  el('metrics').replaceChildren();
@@ -109,6 +130,7 @@ function metric(code,ttft,total){
 }
 async function getJSON(path){const r=await fetch(path,{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}
 async function reload(){
+ if(batchActive)return;
  const last=provider.value||new URLSearchParams(location.search).get('provider')||'';
  statusBox.className='status';
  statusBox.textContent='讀取模型中（不會喚醒休眠來源）…';
@@ -157,7 +179,7 @@ modelSelect.addEventListener('change',()=>{if(modelSelect.value)model.value=mode
 model.addEventListener('input',()=>{modelSelect.value=Array.from(modelSelect.options).some(o=>o.value===model.value)?model.value:''});
 loadModels.addEventListener('click',async()=>{
  const id=provider.value,p=providers.find(item=>item.id===id);
- if(!controlsAvailable||!p||active)return;
+ if(!controlsAvailable||!p||active||batchActive)return;
  loadModels.disabled=true;statusBox.className='status';statusBox.textContent='正在讀取 '+id+' 的模型目錄…';
  try{
   if(p.start_mode==='on_demand'){
@@ -245,7 +267,7 @@ async function readSSE(response,test){
  if(!done)throw new Error('串流沒有收到 [DONE]，不視為成功');
 }
 send.addEventListener('click',async()=>{
- if(active)return;
+ if(active||batchActive)return;
  const id=provider.value,upstream=model.value.trim(),prompt=el('prompt').value.trim();
  const max=Number(el('maxTokens').value);
  if(!id||!upstream||!prompt){statusBox.textContent='請選擇來源、模型和輸入問題。';return}
