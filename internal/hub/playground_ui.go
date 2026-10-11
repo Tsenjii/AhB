@@ -39,6 +39,13 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .metrics span{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:7px;padding:6px 9px}
 details{margin-top:14px}summary{font-size:12px;color:var(--muted);cursor:pointer;padding:10px 0}
 .note{border-top:1px solid var(--line);margin-top:15px;padding-top:13px}
+
+.batch-card{margin-top:20px}.batch-top{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:8px}
+.batch-controls{display:grid;grid-template-columns:minmax(150px,1.5fr) minmax(100px,.6fr) minmax(150px,1.1fr);gap:12px;align-items:end}
+.batch-wrap{overflow:auto;border:1px solid var(--line);border-radius:10px;margin-top:14px}.batch-table{border-collapse:collapse;width:100%;min-width:590px;font-size:12px}
+.batch-table th,.batch-table td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);max-width:340px;overflow-wrap:anywhere}
+.batch-table th{color:var(--muted);background:#202d3a}.batch-table tr:last-child td{border-bottom:0}
+.batch-summary{font-size:12px;color:var(--muted);margin-top:10px}.batch-pass{color:var(--ok)}.batch-fail{color:var(--bad)}.batch-skip{color:var(--muted)}
 @media(max-width:820px){.layout{grid-template-columns:1fr}main{padding:14px 12px 45px}.card{padding:14px}.row{grid-template-columns:1fr 1fr}}
 @media(max-width:390px){.row{grid-template-columns:1fr}}
 /* Shared dark workspace theme; CSS-only desktop layout, zero backend overhead. */
@@ -62,7 +69,7 @@ button,.btn{touch-action:manipulation}button:focus-visible,a:focus-visible,input
 button.primary{background:#dceafb;color:#182636}button:hover:not(:disabled),.btn:hover{border-color:#7994ad}
 @media(min-width:1600px){main{max-width:1550px}.layout{grid-template-columns:minmax(410px,.78fr) minmax(650px,1.22fr)}}
 @media(max-width:900px){.layout{grid-template-columns:1fr}.results-card{position:static}.output{min-height:200px;max-height:500px}}
-@media(max-width:600px){main{padding:14px 12px calc(44px + env(safe-area-inset-bottom))}header{margin-bottom:20px}.card{padding:17px}.workbench-heading{align-items:start;flex-direction:column;gap:4px}.workbench-heading h1{font-size:24px}.layout{gap:13px}.row{grid-template-columns:1fr 1fr}.output{min-height:210px}.result-actions{width:100%}.result-actions button{flex:1}}
+@media(max-width:600px){.batch-controls{grid-template-columns:1fr 1fr}.batch-controls .batch-scope{grid-column:1/-1}main{padding:14px 12px calc(44px + env(safe-area-inset-bottom))}header{margin-bottom:20px}.card{padding:17px}.workbench-heading{align-items:start;flex-direction:column;gap:4px}.workbench-heading h1{font-size:24px}.layout{gap:13px}.row{grid-template-columns:1fr 1fr}.output{min-height:210px}.result-actions{width:100%}.result-actions button{flex:1}}
 @media(max-width:390px){.row{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 </style></head><body>
@@ -92,6 +99,20 @@ button.primary{background:#dceafb;color:#182636}button:hover:not(:disabled),.btn
  <details><summary>原始回應與 Tool Calls（僅本機顯示）</summary><pre id="raw" class="output" style="min-height:55px;max-height:260px"></pre></details>
  <p class="note">HTTP 200 不等於成功：必須有實際文字或結構化 tool_calls，SSE 還必須收到 [DONE]。HTTP 418 代表該來源拒絕請求；502／503 可能是帳號、上游或程序問題，不能靠重新啟動保證修復。</p>
 </section></div>
+<section class="card batch-card" id="batchPanel" aria-label="批量模型實測">
+ <div class="batch-top"><div><div class="card-label">03 / 一鍵批量實測</div><h2 style="font-size:18px;margin:7px 0">一次找出真正有回應的模型</h2></div><span class="workbench-pill">單線程 · 不重試 · 無跨來源 Fallback</span></div>
+ <p>逐一對模型發送簡短、非串流的真實聊天請求，檢查 HTTP 與回答內容。<strong>每個實際請求都可能消耗帳號額度</strong>；不會自動測試全部數百個模型、處理 CAPTCHA 或更換帳號。測試結果僅保存在本頁，不會寫入伺服器或記錄憑證。</p>
+ <div class="batch-controls">
+  <div class="field batch-scope"><label for="batchScope">測試範圍</label><select id="batchScope"><option value="current">目前選定的 Gateway</option><option value="all">所有已啟用 Gateway</option></select></div>
+  <div class="field"><label for="batchLimit">最多測試模型數</label><input id="batchLimit" type="number" min="1" max="100" value="20" inputmode="numeric"></div>
+  <div class="field"><label for="batchExperimental">實驗版來源</label><label class="check" style="min-height:44px;margin:0"><input id="batchExperimental" type="checkbox">包括 DeepSeek／Duck.ai</label></div>
+ </div>
+ <div class="actions"><button id="batchStart" class="primary" type="button" disabled>一鍵批量實測</button><button id="batchStop" type="button" disabled>停止測試</button><button id="batchCopy" type="button" disabled>複製 CSV 結果</button></div>
+ <div class="status" id="batchStatus" role="status" aria-live="polite" style="margin-top:12px">尚未開始；只有按下批量實測才會消耗額度。</div>
+ <div id="batchSummary" class="batch-summary">成功 0 · 失敗 0 · 已發送 0</div>
+ <div class="batch-wrap"><table class="batch-table"><thead><tr><th>Gateway／模型</th><th>結果</th><th>HTTP</th><th>耗時</th><th>診斷</th></tr></thead><tbody id="batchRows"><tr><td colspan="5">尚無測試紀錄</td></tr></tbody></table></div>
+ <p class="note">遇到 401、403、429、502 或 503 時會停止繼續測試該來源，避免重複消耗額度。成功僅表示這次拿到有效回答，不保證日後額度或穩定性；若中途停止，已送出的請求可能仍被上游計費。</p>
+</section>
 </main>
 <script>
 const controlToken="__AHB_CONTROL_TOKEN__";
@@ -99,7 +120,7 @@ const controlsAvailable=__AHB_PROVIDER_CONTROL_AVAILABLE__;
 const el=id=>document.getElementById(id);
 const provider=el('provider'),model=el('model'),modelSelect=el('modelSelect'),loadModels=el('loadModels'),statusBox=el('status');
 const output=el('output'),raw=el('raw'),send=el('send'),cancel=el('cancel');
-let providers=[],models=[],active=null,lastProvider='';
+let providers=[],models=[],active=null,lastProvider='',batchActive=false;
 const copyResponse=el('copyResponse'),clearResponse=el('clearResponse');
 function metric(code,ttft,total){
  el('metrics').replaceChildren();
@@ -109,6 +130,7 @@ function metric(code,ttft,total){
 }
 async function getJSON(path){const r=await fetch(path,{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}
 async function reload(){
+ if(batchActive)return;
  const last=provider.value||new URLSearchParams(location.search).get('provider')||'';
  statusBox.className='status';
  statusBox.textContent='讀取模型中（不會喚醒休眠來源）…';
@@ -157,7 +179,7 @@ modelSelect.addEventListener('change',()=>{if(modelSelect.value)model.value=mode
 model.addEventListener('input',()=>{modelSelect.value=Array.from(modelSelect.options).some(o=>o.value===model.value)?model.value:''});
 loadModels.addEventListener('click',async()=>{
  const id=provider.value,p=providers.find(item=>item.id===id);
- if(!controlsAvailable||!p||active)return;
+ if(!controlsAvailable||!p||active||batchActive)return;
  loadModels.disabled=true;statusBox.className='status';statusBox.textContent='正在讀取 '+id+' 的模型目錄…';
  try{
   if(p.start_mode==='on_demand'){
@@ -245,7 +267,7 @@ async function readSSE(response,test){
  if(!done)throw new Error('串流沒有收到 [DONE]，不視為成功');
 }
 send.addEventListener('click',async()=>{
- if(active)return;
+ if(active||batchActive)return;
  const id=provider.value,upstream=model.value.trim(),prompt=el('prompt').value.trim();
  const max=Number(el('maxTokens').value);
  if(!id||!upstream||!prompt){statusBox.textContent='請選擇來源、模型和輸入問題。';return}
@@ -301,6 +323,156 @@ send.addEventListener('click',async()=>{
  }finally{
   metric(http,test.ttft===null?'—':Math.round(test.ttft)+' ms',Math.round(performance.now()-test.start)+' ms');
   clearTimeout(timeout);active=null;cancel.disabled=true;send.disabled=!controlsAvailable||!provider.value;
+ }
+});
+
+const batchStart=el('batchStart'),batchStop=el('batchStop'),batchCopy=el('batchCopy');
+const batchRows=el('batchRows'),batchStatus=el('batchStatus'),batchSummary=el('batchSummary');
+let batchController=null,batchRecords=[];
+batchStart.disabled=!controlsAvailable;
+if(new URLSearchParams(location.search).get('batch')==='all')el('batchScope').value='all';
+function batchSetStatus(message,isError=false){
+ batchStatus.className=isError?'status bad':'status';
+ batchStatus.textContent=message;
+}
+function batchProgress(){
+ const passed=batchRecords.filter(x=>x.result==='成功').length;
+ const failed=batchRecords.filter(x=>x.result==='失敗').length;
+ const skipped=batchRecords.filter(x=>x.result==='略過').length;
+ batchSummary.textContent='成功 '+passed+' · 失敗 '+failed+' · 略過 '+skipped+' · 已送出 '+(passed+failed);
+ batchCopy.disabled=batchRecords.length===0;
+}
+function batchRow(record){
+ batchRecords.push(record);
+ if(batchRecords.length===1)batchRows.replaceChildren();
+ const tr=document.createElement('tr');
+ const values=[record.provider+'/'+(record.model||'—'),record.result,record.http||'—',record.ms==null?'—':record.ms+' ms',record.note||''];
+ for(let i=0;i<values.length;i++){
+  const td=document.createElement('td');td.textContent=values[i];
+  if(i===1)td.className=record.result==='成功'?'batch-pass':record.result==='失敗'?'batch-fail':'batch-skip';
+  tr.appendChild(td);
+ }
+ batchRows.appendChild(tr);batchProgress();
+}
+function batchDiagnostic(status){
+ if(status===401||status===403)return '授權遭拒；停止此 Gateway';
+ if(status===418)return '上游拒絕請求';
+ if(status===429)return '額度或速率限制；停止此 Gateway';
+ if(status===502||status===503)return '上游或 Gateway 異常；停止此 Gateway';
+ if(status===504)return '上游逾時';
+ return status>=400?'來源回覆 HTTP '+status:'';
+}
+function batchCSVCell(value){
+ // Treat spreadsheets as data, not executable formulas.
+ return '"'+String(value??'').replace(/"/g,'""').replace(/^[=+\-@]/,"'$&")+'"';
+}
+batchCopy.addEventListener('click',async()=>{
+ const rows=[['Gateway','Model ID','結果','HTTP','毫秒','診斷'],...batchRecords.map(r=>[r.provider,r.model,r.result,r.http||'',r.ms??'',r.note||''])];
+ const csv=rows.map(row=>row.map(batchCSVCell).join(',')).join('\r\n');
+ try{await navigator.clipboard.writeText(csv);batchSetStatus('已複製 '+batchRecords.length+' 筆 CSV（不含 Token 或 Prompt）。')}
+ catch(_){batchSetStatus('複製失敗；請確認瀏覽器剪貼簿權限。',true)}
+});
+batchStop.addEventListener('click',()=>{
+ if(!batchActive)return;
+ batchSetStatus('正在停止，不會再發送下一個模型測試…');
+ if(batchController)batchController.abort();
+});
+async function batchProbe(providerId,modelId,signal){
+ const started=performance.now();let http=0;
+ try{
+  // Reuse the strict local Playground endpoint: no fallback, credential
+  // forwarding, automatic retries or account switching.
+  const resp=await fetch('/api/control/playground',{
+   method:'POST',credentials:'same-origin',cache:'no-store',signal,
+   headers:{'Content-Type':'application/json','X-AhB-Control-Token':controlToken},
+   body:JSON.stringify({model:providerId+'/'+modelId,prompt:'請只回答 OK。',stream:false,tool_test:false,max_tokens:64})
+  });
+  http=resp.status;
+  if(!resp.ok)return {result:'失敗',http,ms:Math.round(performance.now()-started),note:batchDiagnostic(http)};
+  const rawText=(await resp.text()).slice(0,200000);
+  let result;try{result=JSON.parse(rawText)}catch(_){
+   return {result:'失敗',http,ms:Math.round(performance.now()-started),note:'HTTP 200，但回應不是合法 JSON'};
+  }
+  const choice=Array.isArray(result.choices)?result.choices[0]:null;
+  const answer=contentText(choice?.message?.content).trim();
+  const calls=Array.isArray(choice?.message?.tool_calls)?choice.message.tool_calls:[];
+  const ok=!result.error&&(answer.length>0||calls.length>0);
+  return {result:ok?'成功':'失敗',http,ms:Math.round(performance.now()-started),note:ok?'本次獲得實際回答':'HTTP 200，但沒有有效的回答或工具呼叫'};
+ }catch(err){
+  if(signal.aborted)return null;
+  return {result:'失敗',http:http||'',ms:Math.round(performance.now()-started),note:'連線中斷或請求失敗'};
+ }
+}
+batchStart.addEventListener('click',async()=>{
+ if(!controlsAvailable||batchActive||active)return;
+ const maximum=Number(el('batchLimit').value);
+ if(!Number.isInteger(maximum)||maximum<1||maximum>100){
+  batchSetStatus('批量數量必須是 1～100；每個測試可能耗用模型額度。',true);return;
+ }
+ const all=el('batchScope').value==='all';
+ const selected=provider.value;
+ if(!all&&!selected){batchSetStatus('請先選擇一個 Gateway。',true);return}
+ const includeExperimental=el('batchExperimental').checked;
+ batchActive=true;batchRecords=[];batchRows.replaceChildren();batchProgress();
+ batchStart.disabled=true;batchStop.disabled=false;send.disabled=true;loadModels.disabled=true;el('reload').disabled=true;
+ const controller=new AbortController();batchController=controller;
+ let attempts=0;
+ try{
+  // Refresh enabled status immediately before the batch. Never scan or
+  // activate a disabled service even if an old page cached its model list.
+  const data=await getJSON('/api/providers');
+  const selectedProviders=(data.providers||[]).filter(p=>p.enabled&&p.id!=='route'&&(all||p.id===selected));
+  for(const p of selectedProviders){
+   if(controller.signal.aborted||attempts>=maximum)break;
+   if((p.id==='deepseek'||p.id==='duckai')&&!includeExperimental){
+    batchRow({provider:p.id,model:'',result:'略過',note:'實驗版，未勾選納入'});continue;
+   }
+   batchSetStatus('取得 '+p.id+' 的模型目錄…');
+   try{
+    // Explicit batch action may wake a sleeping provider, but never a
+    // disabled one. Each gateway is probed sequentially, not all at once.
+    if(p.start_mode==='on_demand'&&!p.process_alive){
+     const wake=await fetch('/api/control/wake/'+encodeURIComponent(p.id),{
+      method:'POST',credentials:'same-origin',cache:'no-store',signal:controller.signal,
+      headers:{'X-AhB-Control-Token':controlToken,'Content-Type':'application/json'},body:'{}'
+     });
+     if(!wake.ok)throw new Error('啟動失敗 HTTP '+wake.status);
+    }
+    const listing=await getJSON('/v1/models');
+    const names=new Set();
+    for(const item of listing.data||[]){
+     const name=item.x_upstream_id;
+     if(item.x_provider===p.id&&typeof name==='string'&&name.trim()&&name.length<=200)names.add(name);
+    }
+    if(names.size===0){batchRow({provider:p.id,model:'',result:'略過',note:'尚無模型目錄；請先確認登入與帳號'});continue}
+    for(const name of names){
+     if(controller.signal.aborted||attempts>=maximum)break;
+     batchSetStatus('正在實測 '+p.id+'/'+name+' · '+(attempts+1)+'/'+maximum);
+     // Exactly one model request at a time. Stop the current source after
+     // an auth, rate limit or gateway error rather than retrying every model.
+     const result=await batchProbe(p.id,name,controller.signal);
+     if(result===null)break;
+     attempts++;
+     batchRow({provider:p.id,model:name,...result});
+     if([401,403,429,502,503].includes(result.http)){
+      batchRow({provider:p.id,model:'',result:'略過',note:'此來源回覆 HTTP '+result.http+'，停止測試其餘模型'});break;
+     }
+    }
+   }catch(err){
+    if(controller.signal.aborted)break;
+    batchRow({provider:p.id,model:'',result:'略過',note:'取得目錄失敗：'+String(err.message||err).slice(0,90)});
+   }
+  }
+  batchSetStatus(controller.signal.aborted?'已停止；已送出的請求仍可能計費。':
+   '批量測試完成，已送出 '+attempts+' 次真實請求'+(attempts>=maximum?'（達到數量上限）':'')+'。成功只代表這一次成功。');
+ }catch(err){
+  batchSetStatus('批量測試中斷：'+String(err.message||err).slice(0,140),true);
+ }finally{
+  batchController=null;batchActive=false;batchStart.disabled=!controlsAvailable;
+  batchStop.disabled=true;el('reload').disabled=false;
+  send.disabled=!controlsAvailable||!provider.value;
+  loadModels.disabled=!controlsAvailable||!provider.value;
+  batchProgress();
  }
 });
 reload();
