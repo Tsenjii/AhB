@@ -410,6 +410,9 @@ button,.btn{touch-action:manipulation}button:focus-visible,a:focus-visible,input
    <div class="fieldrow">
     <div class="field"><label for="bridgePreset">來源</label><select id="bridgePreset">
       <option value="cliproxy">CLIProxyAPI · Antigravity / Codex / Claude / Muse（需自行安裝）</option>
+      <option value="qwenweb">Qwen Web（Go 網頁橋接器，需另行安裝）</option>
+      <option value="kimi">Kimi Web（Python 網頁橋接器，需另行安裝）</option>
+      <option value="deepseekweb">DeepSeek Web 替代方案（Chromium，需另行安裝）</option>
       <option value="custom">自訂已安裝的本機 API</option>
      </select></div>
     <div class="field"><label for="bridgeURL">本機 API 地址</label><input id="bridgeURL" type="url" inputmode="url" spellcheck="false" value="http://127.0.0.1:8418" placeholder="http://127.0.0.1:8418"></div>
@@ -1091,8 +1094,8 @@ document.getElementById('copyBase').addEventListener('click',async()=>{
 });
 // No secrets are requested in the browser: bridge keys are configured locally
 // through the script's private environment, never embedded into a URL or page.
-const bridgeDefaults={cliproxy:8416,custom:8418};
-let previousPreset='lmarena';
+const bridgeDefaults={cliproxy:8416,qwenweb:3000,kimi:8000,deepseekweb:3456,custom:8418};
+let previousPreset='cliproxy';
 function updateBridgeCommand(){
  const preset=document.getElementById('bridgePreset').value;
  const id=preset==='custom'?document.getElementById('customBridgeId').value.trim():preset;
@@ -1105,7 +1108,7 @@ function updateBridgeCommand(){
  const validURL=!!urlMatch&&Number(urlMatch[2])>0&&Number(urlMatch[2])<=65535;
  const valid=validID&&validURL;
  cmd.textContent=valid?'cd ~/AhB && ./scripts/connect-bridge.sh '+id+' '+address+' && ./scripts/stop-termux.sh && ./scripts/start-termux.sh':'請輸入有效的來源代號和 127.0.0.1 本機連接埠。';
- hint.textContent=valid?'這條指令會驗證並連接本機橋接服務，接著重新啟動 AhB 使設定生效；現有請求會中斷。':'代號只能含小寫英文、數字、- 或 _；網址須為本機 HTTP 地址。';
+ hint.textContent=valid?(preset==='deepseekweb'?'這是另一個獨立的瀏覽器型 Gateway，需 Chrome/Chromium；與舊的 DeepSeek Go 版分開，未驗證 Android 實機可用。連線不等於推論成功。':'這條指令會驗證已安裝服務的模型目錄，接著重新啟動 AhB；仍須實測聊天與工具調用。'):'代號只能含小寫英文、數字、- 或 _；網址須為本機 HTTP 地址。';
  hint.classList.toggle('tip-error',!valid);
  copy.disabled=!valid;
 }

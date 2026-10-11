@@ -326,6 +326,23 @@ AIHUB_TEST_MODEL='opencode/YOUR_MODEL_ID' ./scripts/test-tool-roundtrip.sh
 3. 更新前應保留自動建立的版本備份；Linux、Android 的安裝包及重啟流程彼此獨立。
 4. 啟動某個 Gateway 不代表你已有它的授權；模型、額度與權限仍以實際來源帳號為準。
 
+## 已登入網頁版 Gateway 與完整工具調用稽核
+
+**Qwen Web、Kimi Web 與 DeepSeek Web 替代方案**可在控制台「Connect」選擇並產生本機連線指令。它們不是已附帶的第三方程式：必須先由你自行安裝、以原服務支援的方式登入，再連線至同一裝置的 `127.0.0.1`。其中 DeepSeek 的瀏覽器型替代服務需要 Chromium，不能假裝符合低記憶體 Android 或 512 MB VPS 條件。
+
+Kimi Web 仍可用既有的選裝腳本：`bash scripts/install-kimiweb-termux.sh` 和 `bash scripts/enable-kimiweb-termux.sh`。你舊的 DeepSeek Go／Duck.ai 實驗版預設保持停用，現有帳號檔案不會被清除；即使新增連線成功，也不等於可實際推論。
+
+對**所有已啟用且具備即時模型目錄**的 Gateway 執行一次完整雙輪 Tool Calling 驗收（最多 8 個來源，每來源 1 個模型、最多 2 次正式推論請求）：
+
+```bash
+cd ~/AhB
+AHB_TOOL_AUDIT_CONFIRM=YES bash scripts/audit-tool-calling.sh
+```
+
+只有先回傳 OpenAI 結構化 `tool_calls`、再接收工具結果並完成第二輪回答才會標記通過。本檢查會**消耗帳號額度**，不會自動註冊帳號、重試或跨來源切換。詳細狀態與上游限制：[2026-10-11 網頁版來源與工具呼叫稽核](docs/WEB_GATEWAY_TOOL_AUDIT_2026-10-11.md)。
+
+若 FreeBuff 官方登入失敗，請保留不含敏感資訊的 HTTP 錯誤碼；已有合法 CLI authToken 的使用者可改在本機使用 `bash scripts/import-freebuff-token-termux.sh` 匯入，**這不會修復上游 OAuth 故障，也不保證推論成功**。
+
 ## 更多文件
 
 - [系統架構](docs/ARCHITECTURE.md)
