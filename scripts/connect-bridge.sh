@@ -19,6 +19,8 @@ Examples:
   ./scripts/connect-bridge.sh codex http://127.0.0.1:9879
   ./scripts/connect-bridge.sh cliproxy http://127.0.0.1:8416
   ./scripts/connect-bridge.sh kimi http://127.0.0.1:8000
+  ./scripts/connect-bridge.sh qwenweb http://127.0.0.1:3000
+  ./scripts/connect-bridge.sh deepseekweb http://127.0.0.1:3456
   ./scripts/connect-bridge.sh gemini http://127.0.0.1:5918
   ./scripts/connect-bridge.sh mybridge http://127.0.0.1:8560
 
@@ -31,7 +33,7 @@ HELP
 
 if [ "${1:-}" = "--list" ]; then
   printf '%s\n' "lmarena  LMArena (bring your own local bridge)" "windsurf WindsurfAPI" \
-    "qwen     Qwen2API_Go" "kimi     Kimi2API" "gemini   Gemini2API" \
+    "qwen     Qwen2API_Go" "qwenweb  Qwen Web Go (external)" "kimi     Kimi2API" "deepseekweb  Browser Web-to-API (Chromium needed)" "gemini   Gemini2API" \
     "claude   Claude2API" "codex    Codex OAuth API/MCP (user-run)" \
     "cliproxy CLIProxyAPI (optional, Antigravity/Codex/Claude/Muse)" "custom   Any localhost OpenAI-compatible API"
   exit 0
@@ -75,6 +77,8 @@ case "$id" in
   lmarena) title="LMArena Bridge"; docs="https://github.com/Lianues/LMArenaBridge" ;;
   windsurf) title="WindsurfAPI"; docs="https://github.com/dwgx/WindsurfAPI" ;;
   qwen) title="Qwen2API"; docs="https://github.com/XxxXTeam/Qwen2API_Go" ;;
+  qwenweb) title="Qwen Web API (local)"; docs="https://github.com/XxxXTeam/Qwen2API_Go" ;;
+  deepseekweb) title="DeepSeek Web (separate Chromium bridge)"; docs="https://github.com/PruhaNLP/web-to-api" ;;
   kimi) title="Kimi2API"; docs="https://github.com/chopper1026/kimi2api" ;;
   gemini) title="Gemini2API"; docs="https://github.com/xwteam/gemini2api" ;;
   claude) title="Claude2API"; docs="https://github.com/yushangxiao/claude2api" ;;
