@@ -330,6 +330,7 @@ const batchStart=el('batchStart'),batchStop=el('batchStop'),batchCopy=el('batchC
 const batchRows=el('batchRows'),batchStatus=el('batchStatus'),batchSummary=el('batchSummary');
 let batchController=null,batchRecords=[];
 batchStart.disabled=!controlsAvailable;
+if(new URLSearchParams(location.search).get('batch')==='all')el('batchScope').value='all';
 function batchSetStatus(message,isError=false){
  batchStatus.className=isError?'status bad':'status';
  batchStatus.textContent=message;
