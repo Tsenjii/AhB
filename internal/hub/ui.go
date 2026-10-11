@@ -436,7 +436,7 @@ button,.btn{touch-action:manipulation}button:focus-visible,a:focus-visible,input
 
 <section id="modelsSection">
  <div class="section-head">
-  <div><div class="section-title"><h2>模型清單</h2><span id="modelCount" class="count">—</span></div><div class="desc">已啟動來源顯示即時清單；休眠來源可顯示六小時內曾成功取得的模型快取（並標示「休眠快取」）。快取不保證帳號有效、模型未下架或有剩餘額度。可依序掃描全部來源而不常駐九個程序。</div></div>
+  <div><div class="section-title"><h2>模型清單</h2><span id="modelCount" class="count">—</span></div><a class="btn" href="/playground?batch=all#batchPanel">批量實測模型</a><div class="desc">已啟動來源顯示即時清單；休眠來源可顯示六小時內曾成功取得的模型快取（並標示「休眠快取」）。快取不保證帳號有效、模型未下架或有剩餘額度。可依序掃描全部來源而不常駐九個程序。</div></div>
   <div class="command-actions"><button type="button" id="scanAllModels" class="btn" disabled>逐一載入全部模型</button><input id="search" class="search" type="search" aria-label="搜尋模型或來源" placeholder="搜尋模型或來源…"></div>
  </div>
  <div class="table-wrap">
