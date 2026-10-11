@@ -49,6 +49,14 @@ jq -e '.providers[] | select(.id=="lmarena").headers.Authorization=="Bearer priv
 # preserve locally supplied API authentication; no account data is imported.
 AIHUB_BRIDGE_API_KEY="cliproxy-test-local-key" bash ./scripts/connect-bridge.sh cliproxy http://127.0.0.1:8416
 jq -e '.providers[] | select(.id=="cliproxy" and .kind=="external" and .enabled==true and .base_url=="http://127.0.0.1:8416" and .headers.Authorization=="Bearer cliproxy-test-local-key" and .docs_url=="https://github.com/router-for-me/CLIProxyAPI")' config.json >/dev/null
+# New web sources remain separate external providers, never silently replacing
+# the existing DeepSeek/Duck sidecars or Kimi account records.
+bash ./scripts/connect-bridge.sh qwenweb http://127.0.0.1:3000
+jq -e '.providers[] | select(.id=="qwenweb" and .kind=="external" and .docs_url=="https://github.com/XxxXTeam/Qwen2API_Go")' config.json >/dev/null
+bash ./scripts/connect-bridge.sh deepseekweb http://127.0.0.1:3456
+jq -e '.providers[] | select(.id=="deepseekweb" and .kind=="external" and .docs_url=="https://github.com/PruhaNLP/web-to-api")' config.json >/dev/null
+bash ./scripts/connect-bridge.sh kimi http://127.0.0.1:8000
+jq -e '.providers[] | select(.id=="kimi" and .kind=="external" and .docs_url=="https://github.com/chopper1026/kimi2api")' config.json >/dev/null
 bash ./scripts/connect-bridge.sh mybridge http://127.0.0.1:8560
 jq -e '.providers[] | select(.id=="mybridge" and .kind=="external" and .enabled==true)' config.json >/dev/null
 test "$(jq '[.routing.same_model_fallback.providers[] | select(.=="mybridge")] | length' config.json)" -eq 1
