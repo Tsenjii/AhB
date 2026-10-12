@@ -23,6 +23,7 @@ Examples:
   ./scripts/connect-bridge.sh deepseekweb http://127.0.0.1:3456
   ./scripts/connect-bridge.sh gemini http://127.0.0.1:5918
   ./scripts/connect-bridge.sh mimo http://127.0.0.1:8090
+  ./scripts/connect-bridge.sh zaiweb http://127.0.0.1:8460
   ./scripts/connect-bridge.sh geminioauth http://127.0.0.1:10551
   ./scripts/connect-bridge.sh claudecli http://127.0.0.1:8080
   ./scripts/connect-bridge.sh mybridge http://127.0.0.1:8560
@@ -40,6 +41,7 @@ if [ "${1:-}" = "--list" ]; then
     "claude   Claude2API" "codex    Codex OAuth API/MCP (user-run)" \
     "cliproxy CLIProxyAPI (optional, Antigravity/Codex/Claude/Muse)" \
     "mimo     MiMo 2API (Go, separately installed)" \
+    "zaiweb   Z.ai Web 2API (Go; authorized account required)" \
     "geminioauth Gemini CLI OAuth (Node.js, separately installed)" \
     "claudecli Claude CLI OpenAI Proxy (Go wrapper + separate Claude CLI)" \
     "custom   Any localhost OpenAI-compatible API"
@@ -92,6 +94,7 @@ case "$id" in
   codex) title="Codex OAuth API Bridge"; docs="https://github.com/dvcrn/codex-oauth-proxy" ;;
   cliproxy) title="CLIProxyAPI"; docs="https://github.com/router-for-me/CLIProxyAPI" ;;
   mimo) title="MiMo 2API"; docs="https://github.com/rong6/mimo-2api" ;;
+  zaiweb) title="Z.ai Web (authorized account)"; docs="https://github.com/XxxXTeam/zai2api" ;;
   geminioauth) title="Gemini CLI OAuth Bridge"; docs="https://github.com/kimws/gemini-oauth" ;;
   claudecli) title="Claude CLI OpenAI Proxy"; docs="https://github.com/kpod13/claude-openai-proxy" ;;
   *) title="$id Bridge"; docs="" ;;
