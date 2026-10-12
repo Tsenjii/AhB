@@ -156,3 +156,43 @@ func TestFlightRecorderConcurrent(t *testing.T) {
 		t.Fatalf("concurrent recorder lost ring bounds: %d", got.Requests)
 	}
 }
+
+
+func TestBalancedRoutingPrefersRecentWorkingGatewayWithoutPermanentBan(t *testing.T) {
+	h := New(config.Config{})
+	primary := &runtimeProvider{cfg: config.ProviderConfig{ID: "primary"}}
+	backup := &runtimeProvider{cfg: config.ProviderConfig{ID: "backup"}}
+	candidates := []*runtimeProvider{primary, backup}
+	pick := func() *runtimeProvider {
+		t.Helper()
+		p := h.pickBalancedProvider(candidates, map[string]struct{}{}, "primary")
+		if p == nil {
+			t.Fatal("missing routing candidate")
+		}
+		p.load.release()
+		return p
+	}
+	if got := pick(); got != primary {
+		t.Fatalf("cold balanced routing must preserve primary preference: %s", got.cfg.ID)
+	}
+	primary.lastRequest.record(http.StatusTooManyRequests, false)
+	if got := pick(); got != backup {
+		t.Fatalf("recent upstream rate limit should prefer equally idle backup: %s", got.cfg.ID)
+	}
+	backup.load.acquire()
+	if got := pick(); got != primary {
+		t.Fatalf("lower live load must still win over historical penalty: %s", got.cfg.ID)
+	}
+	backup.load.release()
+	primary.lastRequest.mu.Lock()
+	primary.lastRequest.last.At = time.Now().Add(-3 * time.Minute)
+	primary.lastRequest.mu.Unlock()
+	if got := pick(); got != primary {
+		t.Fatalf("expired failure penalty should restore original primary routing: %s", got.cfg.ID)
+	}
+	primary.lastRequest.record(http.StatusTeapot, false)
+	backup.lastRequest.record(http.StatusServiceUnavailable, false)
+	if got := pick(); got != backup {
+		t.Fatalf("429/418 penalty should be stronger than temporary 503: %s", got.cfg.ID)
+	}
+}
