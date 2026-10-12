@@ -25,6 +25,24 @@ EOF
 cat > "$TMP/shims/curl" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
+saw_noproxy=false
+saw_size=false
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --noproxy)
+      shift
+      [ "${1:-}" = "*" ] || { echo "curl must bypass proxy for localhost" >&2; exit 72; }
+      saw_noproxy=true ;;
+    --max-filesize)
+      shift
+      [ "${1:-}" = "1048576" ] || { echo "bad model catalog bound" >&2; exit 72; }
+      saw_size=true ;;
+  esac
+  shift
+done
+[ "$saw_noproxy" = true ] && [ "$saw_size" = true ] || {
+  echo "private local probe missing safety options" >&2; exit 72;
+}
 if [ "${AHB_STUB_CURL_FAIL:-0}" = "1" ]; then
   exit 22
 fi
@@ -70,8 +88,24 @@ bash ./scripts/connect-bridge.sh zaiweb http://127.0.0.1:8460
 jq -e '.providers[] | select(.id=="zaiweb" and .kind=="external" and .docs_url=="https://github.com/XxxXTeam/zai2api")' config.json >/dev/null
 bash ./scripts/connect-bridge.sh mybridge http://127.0.0.1:8560
 jq -e '.providers[] | select(.id=="mybridge" and .kind=="external" and .enabled==true)' config.json >/dev/null
-test "$(jq '[.routing.same_model_fallback.providers[] | select(.=="mybridge")] | length' config.json)" -eq 1
+# A public /models listing is not proof of working inference, therefore
+# a newly attached connector must not silently join multi-provider fallback.
+test "$(jq '[.routing.same_model_fallback.providers[] | select(.=="mybridge")] | length' config.json)" -eq 0
+test "$(jq '[.routing.same_model_fallback.providers[] | select(.=="zaiweb")] | length' config.json)" -eq 0
+test "$(jq -r '.routing.same_model_fallback.providers | join(",")' config.json)" = "opencode,lmarena"
 
+# Changing the port under an existing ID must not reuse the old API key.
+cp config.json "$TMP/pre-move.json"
+if AIHUB_BRIDGE_API_KEY="" bash ./scripts/connect-bridge.sh lmarena http://127.0.0.1:5113; then
+ echo "expected existing secret cross-port reuse rejection" >&2; exit 1
+fi
+cmp config.json "$TMP/pre-move.json"
+# Explicitly entering a NEW key is allowed; ensure the old key is discarded.
+AIHUB_BRIDGE_API_KEY="fresh-local-bridge-key" bash ./scripts/connect-bridge.sh lmarena http://127.0.0.1:5113
+jq -e '.providers[] | select(.id=="lmarena" and .base_url=="http://127.0.0.1:5113" and .headers.Authorization=="Bearer fresh-local-bridge-key")' config.json >/dev/null
+if grep -q 'Bearer private-key' config.json; then
+ echo "old local bridge API secret persisted after destination change" >&2; exit 1
+fi
 cp config.json "$TMP/before.json"
 if bash ./scripts/connect-bridge.sh opencode http://127.0.0.1:9999; then
  echo "expected managed sidecar rejection" >&2; exit 1
