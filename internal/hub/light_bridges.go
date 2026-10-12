@@ -3,6 +3,7 @@ package hub
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -108,10 +109,18 @@ func lightBridgeModelsPath(path string) (string, error) {
 func (h *Hub) probeLightBridge(ctx context.Context, base, modelsPath string) error {
 	// Do not consult HTTP_PROXY/HTTPS_PROXY for a localhost security probe.
 	// No URL redirects are followed, even if the target returns a public Location.
+	loopbackDialer := &net.Dialer{Timeout:2*time.Second}
 	client := &http.Client{
 		Transport: &http.Transport{
 			Proxy:nil,
-			DialContext: (&net.Dialer{Timeout:2*time.Second}).DialContext,
+			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+				host,port,err:=net.SplitHostPort(addr)
+				if err!=nil{return nil,err}
+				if host=="localhost"{host="127.0.0.1"}
+				ip:=net.ParseIP(host)
+				if ip==nil || !ip.IsLoopback(){return nil,errors.New("bridge probe must use loopback TCP")}
+				return loopbackDialer.DialContext(ctx,network,net.JoinHostPort(host,port))
+			},
 			DisableKeepAlives:true,
 			ResponseHeaderTimeout:4*time.Second,
 		},
@@ -206,6 +215,16 @@ func (h *Hub) handleBridgeAttach(w http.ResponseWriter, r *http.Request) {
 	name,docs:=request.ID+" Bridge",""
 	if known {name,docs=preset.Name,preset.Docs}
 	if previous==nil {previous=make(map[string]json.RawMessage)}
+	if found!=-1 {
+		var originalURL string
+		_=json.Unmarshal(previous["base_url"],&originalURL)
+		var oldHeaders map[string]string
+		_=json.Unmarshal(previous["headers"],&oldHeaders)
+		if originalURL!=base && len(oldHeaders)>0 {
+			http.Error(w,"Existing bridge has private headers; use the terminal connector to change its destination safely",http.StatusConflict)
+			return
+		}
+	}
 	set:=func(key string,v any){previous[key],_=json.Marshal(v)}
 	if found==-1 {
 		set("id",request.ID)
