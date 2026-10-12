@@ -29,6 +29,7 @@ type Hub struct {
 	providers map[string]*runtimeProvider
 	client    *http.Client
 	modelCache *modelCatalogCache
+	flight *flightRecorder
 	// Shared across all /v1/models callers, so concurrent dashboards cannot
 	// multiply upstream probes and memory use beyond the machine's budget.
 	modelProbeSlots chan struct{}
@@ -134,6 +135,7 @@ func New(cfg config.Config) *Hub {
 		providers: make(map[string]*runtimeProvider),
 		client:    &http.Client{Transport: transport},
 		modelCache: newModelCatalogCache(),
+		flight: newFlightRecorder(),
 		modelProbeSlots: make(chan struct{}, probeLimit),
 	}
 	// Ephemeral page-bound CSRF token. Never persist or log the token.
@@ -211,6 +213,7 @@ func (h *Hub) Handler() http.Handler {
 	mux.HandleFunc("/healthz", h.handleHealth)
 	mux.HandleFunc("/api/providers", h.handleProviders)
 	mux.HandleFunc("/api/runtime", h.handleRuntime)
+	mux.HandleFunc("/api/insights", h.handleInsights)
 	mux.HandleFunc("/api/control/restart", h.handleControlRestart)
 	mux.HandleFunc("/api/control/update", h.handleControlUpdate)
 	mux.HandleFunc("/api/control/provider/", h.handleControlProvider)
@@ -232,7 +235,7 @@ func (h *Hub) Handler() http.Handler {
 	mux.HandleFunc("/v1/messages", h.handleProxy)
 	mux.HandleFunc("/v1/messages/count_tokens", h.handleProxy)
 	mux.HandleFunc("/v1/systemone", h.handleProxy)
-	return requestLogMiddleware(mux)
+	return h.flightRecorderMiddleware(requestLogMiddleware(mux))
 }
 
 func (h *Hub) handleRoot(w http.ResponseWriter, r *http.Request) {
@@ -740,6 +743,7 @@ func (h *Hub) handleProxy(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "unknown_provider", "provider is not enabled")
 		return
 	}
+	w.Header().Set("X-AhB-Provider", providerID)
 	lease, startupErr := h.acquireOnDemand(r.Context(),p)
 	if startupErr!=nil {
 		writeError(w,http.StatusServiceUnavailable,"provider_start_unavailable",startupErr.Error())
@@ -761,6 +765,7 @@ func (h *Hub) handleProxy(w http.ResponseWriter, r *http.Request) {
 	defer resp.Body.Close()
 
 	copyResponseHeaders(w.Header(), resp.Header)
+	w.Header().Set("X-AhB-Provider", providerID)
 	w.WriteHeader(resp.StatusCode)
 	copyStreaming(w, resp.Body)
 }

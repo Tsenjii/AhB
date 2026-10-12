@@ -230,6 +230,25 @@ button,.btn{touch-action:manipulation}button:focus-visible,a:focus-visible,input
 .resource-presets button{min-height:39px;padding:8px 11px;font-size:11px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);color:var(--text)}
 .resource-presets button:hover{border-color:var(--accent)}
 .resource-presets button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.flight-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:18px 0}
+.flight-metric{border:1px solid var(--line);background:var(--panel);padding:18px;border-radius:15px;min-width:0}
+.flight-metric b{display:block;font-size:clamp(19px,3vw,29px);letter-spacing:-.035em;margin:7px 0;font-variant-numeric:tabular-nums}
+.flight-metric span,.flight-muted{color:var(--muted);font-size:12px}
+.flight-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:14px;margin-top:14px}
+.flight-panel{border:1px solid var(--line);border-radius:15px;background:var(--panel);padding:18px;min-width:0}
+.flight-panel h3{margin:0 0 14px;font-size:15px}
+.flight-event{display:grid;grid-template-columns:84px minmax(0,1fr) 64px;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);font-size:12px}
+.flight-event:last-child{border-bottom:0}
+.flight-event small{color:var(--muted);font-size:11px}
+.flight-status{display:inline-block;border-radius:6px;padding:3px 6px;background:#263038;text-align:center;font-weight:700}
+.flight-status.ok{color:#58d6a2}.flight-status.bad{color:#ff9e87}
+.flight-advice{padding:12px 14px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);margin-bottom:9px;font-size:13px;line-height:1.7}
+.flight-bars{display:flex;align-items:flex-end;gap:3px;height:66px;margin:12px 0 5px;overflow:hidden}
+.flight-bars i{flex:1;min-width:3px;max-width:14px;display:block;border-radius:3px 3px 0 0;background:#55c5a9;opacity:.85}
+.flight-bars i.fail{background:#e58b69}
+.flight-source{display:grid;grid-template-columns:minmax(0,1fr) 55px 60px;gap:9px;border-bottom:1px solid var(--line);padding:10px 0;font-size:12px}
+.flight-source:last-child{border-bottom:0}
+@media(max-width:740px){.flight-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.flight-grid{grid-template-columns:1fr}.flight-panel{padding:14px}.flight-event{grid-template-columns:72px minmax(0,1fr) 48px;gap:6px}}
 </style>
 </head>
 <body>
@@ -244,6 +263,7 @@ button,.btn{touch-action:manipulation}button:focus-visible,a:focus-visible,input
 <nav class="anchor-nav" aria-label="AhB 分頁" id="ahbTabs">
  <button type="button" data-tab="home" class="selected" aria-current="page">總覽</button>
  <a href="/playground" class="btn nav-play" aria-label="前往 Playground">實測</a>
+ <button type="button" data-tab="radar">故障雷達</button>
  <button type="button" data-tab="accounts">帳號</button>
  <button type="button" data-tab="bridges">連接</button>
  <button type="button" data-tab="advanced">設定</button>
@@ -267,6 +287,31 @@ button,.btn{touch-action:manipulation}button:focus-visible,a:focus-visible,input
 
 <div id="error" class="notice"></div>
 <div id="warnings" class="notice"></div>
+
+<section id="flightDeck" aria-label="API 故障雷達">
+ <div class="section-head">
+  <div class="section-title"><h2>API 故障雷達</h2><span class="count">Flight Recorder · 本機即時</span></div>
+  <div class="command-actions"><button type="button" id="flightRefresh">更新雷達</button><button type="button" id="flightCopy">複製診斷摘要</button><button type="button" id="flightExport">匯出 JSON</button></div>
+ </div>
+ <div class="quick-connect">
+  <div><div class="eyebrow">AHB / LIVE OPERATIONS</div><div class="quick-title">不用猜 HTTP 503 究竟是哪個來源。</div><p>紀錄最近 256 次 API 請求的安全統計：成功率、P95 延遲、上游拒絕、限流和可用性問題。所有數據只留在記憶體，重新啟動自動清空，不會記錄模型、對話、回覆、金鑰或 IP。</p></div>
+  <div class="command-panel"><div class="eyebrow">Privacy-safe diagnostic</div><div class="quick-title" id="flightHealth">正在取得即時統計…</div><p id="flightDescription">P95 反映整個 HTTP 請求時間（包含串流輸出），不是模型首 token 延遲；HTTP 200 也不保證串流完整或下次有額度。</p><div class="flight-muted" id="flightLastUpdated">—</div></div>
+ </div>
+ <div class="flight-metrics" aria-live="polite">
+  <div class="flight-metric"><span>觀測請求</span><b id="flightRequests">—</b><span>最近 256 次，重啟歸零</span></div>
+  <div class="flight-metric"><span>HTTP 成功率</span><b id="flightRate">—</b><span>僅代表 2xx，非完整推論驗收</span></div>
+  <div class="flight-metric"><span>P95 請求耗時</span><b id="flightP95">—</b><span>包含串流；毫秒</span></div>
+  <div class="flight-metric"><span>非 2xx 回覆</span><b id="flightFailures">—</b><span>依已觀測請求計算</span></div>
+ </div>
+ <div class="flight-grid">
+  <div class="flight-panel"><h3>最近 HTTP 活動</h3><div id="flightBars" class="flight-bars" aria-label="近期成功與失敗趨勢"></div><div id="flightEvents" aria-live="polite" class="flight-muted">尚無紀錄</div></div>
+  <div>
+   <div class="flight-panel"><h3>各來源實測分布</h3><div id="flightSources" class="flight-muted">等待第一筆 API 請求</div></div>
+   <div class="flight-panel" style="margin-top:14px"><h3>故障判讀 · 下一步</h3><div id="flightAdvice" aria-live="polite" class="flight-muted">開始使用 Playground 測試後，這裡會顯示可行的故障排查順序。</div></div>
+  </div>
+ </div>
+ <p class="command-help">所有指標都是本次啟動後、最多最近 256 筆請求的本機樣本。上游 HTTP 418 / 429 / 502 / 503 應先查授權、額度、服務狀態；不會自動重試、輪流切帳號或反覆重啟。僅供 localhost 使用；AhB 開放 LAN 時自動封鎖此私有觀測 API。</p>
+</section>
 
 <section id="resourceSettings">
  <div class="section-head"><div class="section-title"><h2>資源與常駐設定</h2><span class="count">Android / Linux 各自保留設定</span></div></div>
@@ -779,11 +824,12 @@ const tabSections={
  home:['providersSection','modelsSection'],
  accounts:['adminConsoles','freebuffLogin','optional'],
  bridges:['connect'],
+ radar:['flightDeck'],
  advanced:['resourceSettings','diagnostics']
 };
 function switchTab(name){
  const active=tabSections[name]||tabSections.home;
- for(const id of ['providersSection','modelsSection','adminConsoles','freebuffLogin','optional','connect','resourceSettings','diagnostics']){
+ for(const id of ['providersSection','modelsSection','adminConsoles','freebuffLogin','optional','connect','resourceSettings','diagnostics','flightDeck']){
   const e=document.getElementById(id);
   if(e)e.classList.toggle('ahb-tab-hidden',!active.includes(id));
  }
@@ -795,7 +841,7 @@ function switchTab(name){
 }
 document.getElementById('ahbTabs').addEventListener('click',e=>{
  const b=e.target.closest('button[data-tab]');
- if(b){switchTab(b.dataset.tab);if(b.dataset.tab==='home')refresh()}
+ if(b){switchTab(b.dataset.tab);if(b.dataset.tab==='home')refresh();if(b.dataset.tab==='radar')refreshFlight()}
 });
 function controlNotice(message){
  const el=document.getElementById('controlInfo');
@@ -1128,6 +1174,78 @@ document.getElementById('copyBridge').addEventListener('click',async function(){
  setTimeout(()=>this.textContent='複製連接指令',1400);
 });
 updateBridgeCommand();
+
+// No model IDs, request bodies, API tokens, IP addresses, URLs or response
+// content are downloaded or placed into the diagnostic snapshot.
+let flightLastSnapshot=null, flightBusy=false;
+function flightGuidance(doc){
+ const recent=doc.recent||[];
+ const seen=new Set(recent.filter(e=>e.status>=400).map(e=>e.status));
+ const lines=[];
+ if(seen.has(418))lines.push('HTTP 418：上游拒絕請求；本機程序存活不等於可用，先確認官方服務與使用資格，不要反覆嘗試。');
+ if(seen.has(429))lines.push('HTTP 429：上游正在限流或配額耗盡。先查來源的剩餘額度與重置時間，不要靠高頻重試。');
+ if(seen.has(401)||seen.has(403))lines.push('401／403：檢查原生管理介面的登入、OAuth 是否過期及權限。不要在診斷檔中貼出 Token。');
+ if(seen.has(502)||seen.has(503)||seen.has(504))lines.push('502／503／504：先檢查來源是否就緒、帳號是否可用，再查看單獨 Gateway 狀態。單純重啟未必能修復上游失效。');
+ if(!lines.length&&doc.requests>0&&doc.failures===0)lines.push('近期 HTTP 請求皆為 2xx；要確認模型真正可用，請在 Playground 測試實際內容、串流完成與 Tool Calling。');
+ if(!lines.length)lines.push('還沒有足夠的請求資料。Playground 可直接測特定來源，避免路由切換掩蓋真正的錯誤。');
+ return lines;
+}
+function renderFlight(doc){
+ const recent=doc.recent||[];
+ document.getElementById('flightRequests').textContent=String(doc.requests||0);
+ document.getElementById('flightRate').textContent=doc.requests?Number(doc.success_rate||0).toFixed(1)+'%':'—';
+ document.getElementById('flightP95').textContent=doc.requests?Number(doc.p95_ms||0).toLocaleString()+' ms':'—';
+ document.getElementById('flightFailures').textContent=String(doc.failures||0);
+ const rate=Number(doc.success_rate||0);
+ document.getElementById('flightHealth').textContent=!doc.requests?'等待實測資料':doc.failures===0?'最近請求皆獲 HTTP 2xx':rate>=70?'部分 Gateway 出現異常':'近期 API 回應異常偏多';
+ document.getElementById('flightLastUpdated').textContent='最近同步 '+new Date().toLocaleTimeString('zh-TW',{hour12:false})+' · 樣本上限 '+doc.sample_window;
+ document.getElementById('flightBars').innerHTML=recent.slice(0,42).reverse().map(e=>'<i class="'+(e.status>=200&&e.status<300?'':'fail')+'" title="HTTP '+esc(e.status)+'" style="height:'+Math.max(12,Math.min(100,(Number(e.duration_ms)||0)/80))+'%"></i>').join('');
+ document.getElementById('flightEvents').innerHTML=recent.length?recent.slice(0,18).map(e=>{
+  const okay=e.status>=200&&e.status<300;
+  const time=new Date(e.at).toLocaleTimeString('zh-TW',{hour12:false});
+  return '<div class="flight-event"><small>'+esc(time)+'</small><div><strong>'+esc(e.provider||'未歸屬')+'</strong> <span class="flight-status '+(okay?'ok':'bad')+'">HTTP '+esc(e.status)+'</span><div class="flight-muted">'+esc(e.endpoint)+' · '+esc(e.duration_ms)+' ms · '+esc(e.category)+'</div></div><small>'+esc((e.response_bytes||0))+' B</small></div>';
+ }).join(''):'<div class="flight-muted">尚無 API 推論紀錄。可以到 Playground 選模型進行真實實測。</div>';
+ document.getElementById('flightSources').innerHTML=(doc.by_provider||[]).length?(doc.by_provider||[]).map(p=>{
+  const good=p.requests?(100*p.successes/p.requests).toFixed(0)+'%':'—';
+  return '<div class="flight-source"><strong>'+esc(p.provider)+'</strong><span>'+esc(p.requests)+' 次</span><span>'+esc(good)+'</span></div>';
+ }).join(''):'<div class="flight-muted">等待第一筆 API 請求</div>';
+ document.getElementById('flightAdvice').innerHTML=flightGuidance(doc).map(s=>'<div class="flight-advice">'+esc(s)+'</div>').join('');
+}
+async function refreshFlight(){
+ if(flightBusy)return;
+ flightBusy=true;
+ try{
+  const response=await fetch('/api/insights',{method:'GET',cache:'no-store',credentials:'same-origin',headers:{'X-AhB-Control-Token':ahbControlToken}});
+  if(!response.ok)throw new Error('HTTP '+response.status);
+  const data=await response.json();
+  flightLastSnapshot=data;
+  renderFlight(data);
+ }catch(err){
+  document.getElementById('flightHealth').textContent='雷達目前不可用';
+  document.getElementById('flightDescription').textContent='此診斷頁只允許 localhost 存取。若 AhB 已開放 LAN，請回到手機本機開啟且停用 LAN 模式。';
+  document.getElementById('flightLastUpdated').textContent=String(err.message||err);
+ }finally{flightBusy=false}
+}
+document.getElementById('flightRefresh').addEventListener('click',refreshFlight);
+document.getElementById('flightCopy').addEventListener('click',async function(){
+ if(!flightLastSnapshot){await refreshFlight();if(!flightLastSnapshot)return}
+ const d=flightLastSnapshot;
+ const message='AhB 本機診斷（僅 HTTP 中繼資訊）\n本次樣本 '+d.requests+'/'+d.sample_window+'；成功 '+d.successes+'；失敗 '+d.failures+'；P95 '+d.p95_ms+' ms\n'+flightGuidance(d).join('\n');
+ const success=await copyText(message);
+ this.textContent=success?'已複製':'複製失敗';
+ setTimeout(()=>this.textContent='複製診斷摘要',1500);
+});
+document.getElementById('flightExport').addEventListener('click',async function(){
+ if(!flightLastSnapshot){await refreshFlight();if(!flightLastSnapshot)return}
+ const payload={format:'AhB flight-recorder v1',exported_at:new Date().toISOString(),...flightLastSnapshot};
+ const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+ const url=URL.createObjectURL(blob),anchor=document.createElement('a');
+ anchor.href=url;anchor.download='ahb-diagnostics-'+new Date().toISOString().slice(0,10)+'.json';
+ document.body.appendChild(anchor);anchor.click();anchor.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+});
+setInterval(()=>{if(document.visibilityState==='visible'&&!document.getElementById('flightDeck').classList.contains('ahb-tab-hidden'))refreshFlight()},15000);
+
 document.getElementById('baseUrl').textContent=location.origin+'/v1';
 refresh();
 // Refresh RAM separately: avoid re-probing all upstream model lists merely
