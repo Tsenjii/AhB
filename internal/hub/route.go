@@ -207,9 +207,27 @@ func (h *Hub) handleSameModelSequential(w http.ResponseWriter, r *http.Request, 
 	h.writeFallbackFailure(w, last, primary, model, "same-model-sequential", attempts, failures)
 }
 
+// A recent inference failure is only a tie-breaker: we never permanently
+// quarantine a source, and load still wins to avoid overwhelming one gateway.
+// In particular, 429 and 418 are upstream signals, not process crashes.
+func recentRoutingPenalty(p *runtimeProvider, now time.Time) int {
+	last := p.lastRequest.snapshot()
+	if last.At.IsZero() || last.At.After(now) || now.Sub(last.At) > 90*time.Second {
+		return 0
+	}
+	if last.TransportError || last.Status == http.StatusTooManyRequests || last.Status == http.StatusTeapot {
+		return 2
+	}
+	if routeRetryableStatus(last.Status) || last.Status >= 500 {
+		return 1
+	}
+	return 0
+}
+
 func (h *Hub) pickBalancedProvider(providers []*runtimeProvider, attempted map[string]struct{}, primary string) *runtimeProvider {
 	h.balance.mu.Lock()
 	defer h.balance.mu.Unlock()
+	now := time.Now()
 
 	var best *runtimeProvider
 	for _, p := range providers {
@@ -225,8 +243,12 @@ func (h *Hub) pickBalancedProvider(providers []*runtimeProvider, attempted map[s
 			best = p
 			continue
 		}
-		if pLoad == bestLoad && p.cfg.ID == primary && best.cfg.ID != primary {
-			best = p
+		if pLoad == bestLoad {
+			pPenalty, bestPenalty := recentRoutingPenalty(p, now), recentRoutingPenalty(best, now)
+			if pPenalty < bestPenalty ||
+				(pPenalty == bestPenalty && p.cfg.ID == primary && best.cfg.ID != primary) {
+				best = p
+			}
 		}
 	}
 	if best != nil {
