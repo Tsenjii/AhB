@@ -66,6 +66,8 @@ for entry in 'mimo 8090 https://github.com/rong6/mimo-2api' \
   jq -e --arg id "$preset" --arg docs "$docs" \
     '.providers[] | select(.id==$id and .kind=="external" and .enabled==true and .docs_url==$docs)' config.json >/dev/null
 done
+bash ./scripts/connect-bridge.sh zaiweb http://127.0.0.1:8460
+jq -e '.providers[] | select(.id=="zaiweb" and .kind=="external" and .docs_url=="https://github.com/XxxXTeam/zai2api")' config.json >/dev/null
 bash ./scripts/connect-bridge.sh mybridge http://127.0.0.1:8560
 jq -e '.providers[] | select(.id=="mybridge" and .kind=="external" and .enabled==true)' config.json >/dev/null
 test "$(jq '[.routing.same_model_fallback.providers[] | select(.=="mybridge")] | length' config.json)" -eq 1
