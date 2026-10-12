@@ -57,6 +57,15 @@ bash ./scripts/connect-bridge.sh deepseekweb http://127.0.0.1:3456
 jq -e '.providers[] | select(.id=="deepseekweb" and .kind=="external" and .docs_url=="https://github.com/PruhaNLP/web-to-api")' config.json >/dev/null
 bash ./scripts/connect-bridge.sh kimi http://127.0.0.1:8000
 jq -e '.providers[] | select(.id=="kimi" and .kind=="external" and .docs_url=="https://github.com/chopper1026/kimi2api")' config.json >/dev/null
+# New lightweight optional connectors remain independent local IDs.
+for entry in 'mimo 8090 https://github.com/rong6/mimo-2api' \
+             'geminioauth 10551 https://github.com/kimws/gemini-oauth' \
+             'claudecli 8080 https://github.com/kpod13/claude-openai-proxy'; do
+  read -r preset port docs <<< "$entry"
+  bash ./scripts/connect-bridge.sh "$preset" "http://127.0.0.1:$port"
+  jq -e --arg id "$preset" --arg docs "$docs" \
+    '.providers[] | select(.id==$id and .kind=="external" and .enabled==true and .docs_url==$docs)' config.json >/dev/null
+done
 bash ./scripts/connect-bridge.sh mybridge http://127.0.0.1:8560
 jq -e '.providers[] | select(.id=="mybridge" and .kind=="external" and .enabled==true)' config.json >/dev/null
 test "$(jq '[.routing.same_model_fallback.providers[] | select(.=="mybridge")] | length' config.json)" -eq 1
