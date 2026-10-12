@@ -468,6 +468,7 @@ button,.btn{touch-action:manipulation}button:focus-visible,a:focus-visible,input
       <option value="kimi">Kimi Web（Python 網頁橋接器，需另行安裝）</option>
       <option value="deepseekweb">DeepSeek Web 替代方案（Chromium，非輕量）</option>
       <option value="mimo">MiMo 2API · Go 單程式（選裝）</option>
+      <option value="zaiweb">Z.ai Web · Go（需授權帳號，選裝）</option>
       <option value="geminioauth">Gemini CLI OAuth · Node（選裝）</option>
       <option value="claudecli">Claude CLI OpenAI Proxy · Go + CLI（選裝）</option>
       <option value="custom">自訂已安裝的本機 API</option>
@@ -1160,13 +1161,14 @@ document.getElementById('copyBase').addEventListener('click',async()=>{
 });
 // No secrets are requested in the browser: bridge keys are configured locally
 // through the script's private environment, never embedded into a URL or page.
-const bridgeDefaults={cliproxy:8416,qwenweb:3000,kimi:8000,deepseekweb:3456,mimo:8090,geminioauth:10551,claudecli:8080,custom:8418};
+const bridgeDefaults={cliproxy:8416,qwenweb:3000,kimi:8000,deepseekweb:3456,mimo:8090,zaiweb:8460,geminioauth:10551,claudecli:8080,custom:8418};
 const bridgePresetInfo={
  cliproxy:{runtime:'Go',path:'/v1/models',notes:'有帳號與合法的 OAuth 授權才連接；需要先調整與 AhB 衝突的預設 8317 埠。'},
  qwenweb:{runtime:'Go',path:'/v1/models',notes:'Qwen Web 選裝橋接器：登入方式與支援模型以來源專案為準。'},
  kimi:{runtime:'Python',path:'/v1/models',notes:'Kimi2API 自帶帳號池；不適合當成無依賴的 Go sidecar。'},
  deepseekweb:{runtime:'Chromium',path:'/v1/models',notes:'此來源需要瀏覽器，不屬於輕量方案；無法保證 Android 上可用。'},
  mimo:{runtime:'Go',path:'/v1/models',notes:'MiMo 2API 是 Go 橋接器。先自行合法啟動並授權；不保證真實推論。'},
+ zaiweb:{runtime:'Go 1.25+',path:'/v1/models',notes:'Z.ai Web 對接來源為 XxxXTeam/zai2api；訪客 Token 已無法取得。須在原生 Gateway 使用自己合法授權的帳號，並在 Termux 私密設定客戶端 API Key。模型清單不代表推論成功。'},
  geminioauth:{runtime:'Node.js',path:'/v1/models',notes:'Gemini CLI OAuth 本機代理需要已授權的 CLI；上游 Code Assist 私有端點可能變動。'},
  claudecli:{runtime:'Go + CLI',path:'/v1/models',notes:'Claude CLI OpenAI Proxy 本體為 Go，推理依賴另外安裝及登入的 Claude CLI。'},
  custom:{runtime:'自行提供',path:'/v1/models',notes:'請填已啟動的 OpenAI 相容 API；只允許本機 HTTP，無須改動任何上游帳號。'}
