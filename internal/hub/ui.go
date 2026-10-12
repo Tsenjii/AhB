@@ -383,7 +383,9 @@ button,.btn{touch-action:manipulation}button:focus-visible,a:focus-visible,input
       <div class="command-actions">
        <button type="button" class="btn primary" id="startFreebuffLogin" disabled>以 Google 登入 FreeBuff</button>
        <button type="button" class="btn" id="cancelFreebuffLogin" style="display:none">取消登入</button>
+       <button type="button" class="btn" id="diagnoseFreebuff" disabled>診斷 FreeBuff</button>
       </div>
+      <div id="freebuffDiagResult" class="bridge-hint" role="status" aria-live="polite">可檢查帳號候選數、Gateway 程序、健康檢查及最近 API 錯誤；不會發送推論或讀出任何 Token。</div>
       <div id="freebuffLoginFeedback" class="quick-note" role="status" aria-live="polite" style="display:none;margin-top:10px">
        <span id="freebuffLoginMessage">正在檢查授權狀態…</span>
        <div id="freebuffLoginLinkArea" style="display:none;margin-top:12px">
@@ -636,6 +638,35 @@ const freebuffStart=document.getElementById('startFreebuffLogin');
 const freebuffCancel=document.getElementById('cancelFreebuffLogin');
 const freebuffFeedback=document.getElementById('freebuffLoginFeedback');
 const freebuffMessage=document.getElementById('freebuffLoginMessage');
+const freebuffDiagButton=document.getElementById('diagnoseFreebuff');
+const freebuffDiagResult=document.getElementById('freebuffDiagResult');
+freebuffDiagButton.disabled=!ahbProviderControlAvailable;
+freebuffDiagButton.addEventListener('click',async()=>{
+ if(freebuffDiagButton.disabled)return;
+ freebuffDiagButton.disabled=true;
+ freebuffDiagButton.textContent='檢查中…';
+ freebuffDiagResult.textContent='正在讀取本機 FreeBuff 狀態（不發送模型推論）…';
+ try{
+  const response=await fetch('/api/control/freebuff-diagnostics',{
+   method:'POST',cache:'no-store',credentials:'same-origin',
+   headers:{'X-AhB-Control-Token':ahbControlToken,'Content-Type':'application/json'},
+   body:'{}'
+  });
+  if(!response.ok)throw new Error('HTTP '+response.status);
+  const d=await response.json();
+  const health=d.gateway_health==='metadata_valid'?'可讀取':d.gateway_health==='not_checked'?'未檢查':'未確認';
+  const last=Object.hasOwn(d,'last_api_http_status')?' · 最近 API HTTP '+d.last_api_http_status:'';
+  freebuffDiagResult.textContent=
+   '帳號候選：'+(d.saved_accounts??0)+
+   ' · Gateway：'+(d.process_alive?'執行中':'未執行')+
+   ' · 健康中繼資訊：'+health+
+   (d.gateway_loaded_accounts!=null?' · Gateway 已載入 '+d.gateway_loaded_accounts+' 組':'')+
+   last+'\n下一步：'+(d.next_step||'請先確認官方授權狀態。')+
+   '\n注意：未驗證真實模型額度與對話成功。';
+ }catch(err){freebuffDiagResult.textContent='診斷未完成：'+err.message}
+ finally{freebuffDiagButton.disabled=!ahbProviderControlAvailable;freebuffDiagButton.textContent='診斷 FreeBuff'}
+});
+
 const freebuffCount=document.getElementById('freebuffAccountCount');
 const freebuffLinkArea=document.getElementById('freebuffLoginLinkArea');
 const freebuffLink=document.getElementById('freebuffLoginLink');
