@@ -99,6 +99,10 @@ func TestLightBridgeAttachPreservesCredentialsAndIsAtomic(t *testing.T) {
 		t.Fatalf("built-in provider overwritten: %d %s",rec.Code,rec.Body.String())
 	}
 	if stringMustReadFile(t,path)!=raw {t.Fatal("invalid request mutated config")}
+	if rec:=request("existing",backend.URL);rec.Code!=409 {
+		t.Fatalf("moving an existing private key to another endpoint should be blocked: %d %s",rec.Code,rec.Body.String())
+	}
+	if stringMustReadFile(t,path)!=raw {t.Fatal("changing authenticated bridge destination leaked credentials")}
 	if rec:=request("mimo",backend.URL);rec.Code!=202 {
 		t.Fatalf("good bridge refused: %d %s",rec.Code,rec.Body.String())
 	}
