@@ -74,8 +74,9 @@ func TestGlobalModelProbeCapAcrossConcurrentDashboards(t *testing.T) {
 	case <-time.After(3*time.Second):
 		t.Fatal("first model probe never started")
 	}
-	// Two callers each request two providers, but no more than one upstream
-	// model-list call may be in flight across the *whole* Hub.
+	// Two callers each request two providers, but the 15-second singleflight
+	// cache now coalesces them down to one probe per provider; never exceed
+	// the single-slot global limit across all concurrent dashboards.
 	time.Sleep(150 * time.Millisecond)
 	if peak := maxSeen.Load(); peak != 1 {
 		t.Fatalf("concurrent dashboards exceeded model-probe cap: max=%d", peak)
@@ -95,7 +96,7 @@ func TestGlobalModelProbeCapAcrossConcurrentDashboards(t *testing.T) {
 			t.Fatal("model requests stayed blocked after releasing slot")
 		}
 	}
-	if calls.Load() != 4 || maxSeen.Load() != 1 {
+	if calls.Load() != 2 || maxSeen.Load() != 1 {
 		t.Fatalf("unexpected request count or maximum: calls=%d max=%d", calls.Load(), maxSeen.Load())
 	}
 
