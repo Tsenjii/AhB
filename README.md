@@ -6,7 +6,8 @@
 - **模型 Playground：** [`http://127.0.0.1:8317/playground`](http://127.0.0.1:8317/playground)（指定單一 Gateway，測試聊天、串流及工具格式）。
 - **統一 API：** `http://127.0.0.1:8317/v1`。
 - **故障雷達：** 控制台「故障雷達」分頁，提供本機最近 256 次請求的 HTTP 成功率、P95 請求耗時、來源失敗分布與安全 JSON 匯出（詳見 [故障雷達說明](docs/FLIGHT_RECORDER.md)）。
-- **輕量反代連接中心：** 控制台「連接」支援已啟動本機橋接器的驗證接入；新增 [MiMo 2API、Gemini CLI OAuth、Claude CLI Proxy](docs/BRIDGES.md) 選裝預設（非內建安裝），並利用 15 秒模型目錄微快取合併重複 upstream 查詢。
+- **輕量反代連接中心：** 控制台「連接」支援已啟動本機橋接器的驗證接入；新增 [MiMo 2API、Gemini CLI OAuth、Claude CLI Proxy、Z.ai Web](docs/BRIDGES.md) 選裝預設（非內建安裝），並利用 15 秒模型目錄微快取合併重複 upstream 查詢。
+- **FreeBuff 分階段診斷：** 帳號頁可一鍵檢查已保存帳號候選數、程序健康及最近 HTTP 狀態；不取出金鑰、不發送推論，真實登入與額度仍須實機驗收。詳見 [2026-10-13 上游核對與狀態](docs/UPSTREAM_STATUS_2026-10-13.md)。
 - **原始碼：** [GitHub：Tsenjii/AhB](https://github.com/Tsenjii/AhB)。
 
 > **注意：** Gateway「編譯成功／健康檢查成功」不代表帳號可用、具有足夠額度，或實際模型推論成功。每個來源都必須遵守其原有授權與使用條件；AhB 不會替你憑空提供免費模型額度。故障雷達不收集對話/模型/Token/IP，也不會主動發送推論或擅自重試。

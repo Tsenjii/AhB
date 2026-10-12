@@ -22,7 +22,9 @@ for needle in ('id="bridgePreset"', 'id="bridgeURL"', 'id="bridgeCommand"',
                'id="bridgeAttach"', 'id="bridgeAttachResult"', 'id="bridgeRuntime"',
                'id="bridgeModelsPath"', 'id="bridgePresetDetails"'):
     assert needle in html, f"missing UI element: {needle}"
-assert "geminioauth" in html and "mimo" in html and "claudecli" in html
+assert "geminioauth" in html and "mimo" in html and "claudecli" in html and "zaiweb" in html
+assert 'id="diagnoseFreebuff"' in html and 'id="freebuffDiagResult"' in html
+assert "'/api/control/freebuff-diagnostics'" in html and "freebuffDiagButton.addEventListener('click'" in html
 assert "'/api/control/bridge-attach'" in html and "bridgeAttachBusy" in html
 assert "bridgeAttachButton.addEventListener('click'" in html and "X-AhB-Control-Token" in html
 assert "Node.js" in html and "FreeBuff" in html and "freebuff-login-termux.sh" in html

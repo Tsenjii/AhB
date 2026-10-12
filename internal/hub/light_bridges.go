@@ -37,6 +37,7 @@ var lightBridgePresets = []lightBridgePreset{
 	{ID:"qwenweb", Name:"Qwen Web · Go", Docs:"https://github.com/XxxXTeam/Qwen2API_Go", Port:3000, ModelsPath:"/v1/models", Runtime:"Go", Notes:"網頁橋接器，先在來源本身完成帳號驗證"},
 	{ID:"kimi", Name:"Kimi2API", Docs:"https://github.com/chopper1026/kimi2api", Port:8000, ModelsPath:"/v1/models", Runtime:"Python", Notes:"維護自己的帳號池，並非 Go 單執行檔"},
 	{ID:"mimo", Name:"MiMo 2API", Docs:"https://github.com/rong6/mimo-2api", Port:8090, ModelsPath:"/v1/models", Runtime:"Go", Notes:"獨立 Go 網頁橋接器；有自己的認證與服務條款"},
+	{ID:"zaiweb", Name:"Z.ai Web · Go (authorized)", Docs:"https://github.com/XxxXTeam/zai2api", Port:8460, ModelsPath:"/v1/models", Runtime:"Go 1.25+", Notes:"需自行取得官方授權的帳號 Token；訪客 Token 目前不可用。只接入已啟動本機 Gateway，不會繞過登入或驗證"},
 	{ID:"geminioauth", Name:"Gemini CLI OAuth Bridge", Docs:"https://github.com/kimws/gemini-oauth", Port:10551, ModelsPath:"/v1/models", Runtime:"Node.js", Notes:"需合法的 Gemini CLI 登入；Code Assist 私有 API 可能變更"},
 	{ID:"claudecli", Name:"Claude CLI OpenAI Proxy", Docs:"https://github.com/kpod13/claude-openai-proxy", Port:8080, ModelsPath:"/v1/models", Runtime:"Go + CLI", Notes:"依賴外部 Claude CLI，可能受使用資格及 CLI 啟動成本影響"},
 	{ID:"deepseekweb", Name:"DeepSeek Web · Chromium", Docs:"https://github.com/PruhaNLP/web-to-api", Port:3456, ModelsPath:"/v1/models", Runtime:"Browser", Notes:"需要 Chromium，並非低記憶體替代品"},

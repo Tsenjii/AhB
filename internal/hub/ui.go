@@ -383,7 +383,9 @@ button,.btn{touch-action:manipulation}button:focus-visible,a:focus-visible,input
       <div class="command-actions">
        <button type="button" class="btn primary" id="startFreebuffLogin" disabled>以 Google 登入 FreeBuff</button>
        <button type="button" class="btn" id="cancelFreebuffLogin" style="display:none">取消登入</button>
+       <button type="button" class="btn" id="diagnoseFreebuff" disabled>診斷 FreeBuff</button>
       </div>
+      <div id="freebuffDiagResult" class="bridge-hint" role="status" aria-live="polite">可檢查帳號候選數、Gateway 程序、健康檢查及最近 API 錯誤；不會發送推論或讀出任何 Token。</div>
       <div id="freebuffLoginFeedback" class="quick-note" role="status" aria-live="polite" style="display:none;margin-top:10px">
        <span id="freebuffLoginMessage">正在檢查授權狀態…</span>
        <div id="freebuffLoginLinkArea" style="display:none;margin-top:12px">
@@ -468,6 +470,7 @@ button,.btn{touch-action:manipulation}button:focus-visible,a:focus-visible,input
       <option value="kimi">Kimi Web（Python 網頁橋接器，需另行安裝）</option>
       <option value="deepseekweb">DeepSeek Web 替代方案（Chromium，非輕量）</option>
       <option value="mimo">MiMo 2API · Go 單程式（選裝）</option>
+      <option value="zaiweb">Z.ai Web · Go（需授權帳號，選裝）</option>
       <option value="geminioauth">Gemini CLI OAuth · Node（選裝）</option>
       <option value="claudecli">Claude CLI OpenAI Proxy · Go + CLI（選裝）</option>
       <option value="custom">自訂已安裝的本機 API</option>
@@ -635,6 +638,35 @@ const freebuffStart=document.getElementById('startFreebuffLogin');
 const freebuffCancel=document.getElementById('cancelFreebuffLogin');
 const freebuffFeedback=document.getElementById('freebuffLoginFeedback');
 const freebuffMessage=document.getElementById('freebuffLoginMessage');
+const freebuffDiagButton=document.getElementById('diagnoseFreebuff');
+const freebuffDiagResult=document.getElementById('freebuffDiagResult');
+freebuffDiagButton.disabled=!ahbProviderControlAvailable;
+freebuffDiagButton.addEventListener('click',async()=>{
+ if(freebuffDiagButton.disabled)return;
+ freebuffDiagButton.disabled=true;
+ freebuffDiagButton.textContent='檢查中…';
+ freebuffDiagResult.textContent='正在讀取本機 FreeBuff 狀態（不發送模型推論）…';
+ try{
+  const response=await fetch('/api/control/freebuff-diagnostics',{
+   method:'POST',cache:'no-store',credentials:'same-origin',
+   headers:{'X-AhB-Control-Token':ahbControlToken,'Content-Type':'application/json'},
+   body:'{}'
+  });
+  if(!response.ok)throw new Error('HTTP '+response.status);
+  const d=await response.json();
+  const health=d.gateway_health==='metadata_valid'?'可讀取':d.gateway_health==='not_checked'?'未檢查':'未確認';
+  const last=Object.hasOwn(d,'last_api_http_status')?' · 最近 API HTTP '+d.last_api_http_status:'';
+  freebuffDiagResult.textContent=
+   '帳號候選：'+(d.saved_accounts??0)+
+   ' · Gateway：'+(d.process_alive?'執行中':'未執行')+
+   ' · 健康中繼資訊：'+health+
+   (d.gateway_loaded_accounts!=null?' · Gateway 已載入 '+d.gateway_loaded_accounts+' 組':'')+
+   last+'\n下一步：'+(d.next_step||'請先確認官方授權狀態。')+
+   '\n注意：未驗證真實模型額度與對話成功。';
+ }catch(err){freebuffDiagResult.textContent='診斷未完成：'+err.message}
+ finally{freebuffDiagButton.disabled=!ahbProviderControlAvailable;freebuffDiagButton.textContent='診斷 FreeBuff'}
+});
+
 const freebuffCount=document.getElementById('freebuffAccountCount');
 const freebuffLinkArea=document.getElementById('freebuffLoginLinkArea');
 const freebuffLink=document.getElementById('freebuffLoginLink');
@@ -1160,13 +1192,14 @@ document.getElementById('copyBase').addEventListener('click',async()=>{
 });
 // No secrets are requested in the browser: bridge keys are configured locally
 // through the script's private environment, never embedded into a URL or page.
-const bridgeDefaults={cliproxy:8416,qwenweb:3000,kimi:8000,deepseekweb:3456,mimo:8090,geminioauth:10551,claudecli:8080,custom:8418};
+const bridgeDefaults={cliproxy:8416,qwenweb:3000,kimi:8000,deepseekweb:3456,mimo:8090,zaiweb:8460,geminioauth:10551,claudecli:8080,custom:8418};
 const bridgePresetInfo={
  cliproxy:{runtime:'Go',path:'/v1/models',notes:'有帳號與合法的 OAuth 授權才連接；需要先調整與 AhB 衝突的預設 8317 埠。'},
  qwenweb:{runtime:'Go',path:'/v1/models',notes:'Qwen Web 選裝橋接器：登入方式與支援模型以來源專案為準。'},
  kimi:{runtime:'Python',path:'/v1/models',notes:'Kimi2API 自帶帳號池；不適合當成無依賴的 Go sidecar。'},
  deepseekweb:{runtime:'Chromium',path:'/v1/models',notes:'此來源需要瀏覽器，不屬於輕量方案；無法保證 Android 上可用。'},
  mimo:{runtime:'Go',path:'/v1/models',notes:'MiMo 2API 是 Go 橋接器。先自行合法啟動並授權；不保證真實推論。'},
+ zaiweb:{runtime:'Go 1.25+',path:'/v1/models',notes:'Z.ai Web 對接來源為 XxxXTeam/zai2api；訪客 Token 已無法取得。須在原生 Gateway 使用自己合法授權的帳號，並在 Termux 私密設定客戶端 API Key。模型清單不代表推論成功。'},
  geminioauth:{runtime:'Node.js',path:'/v1/models',notes:'Gemini CLI OAuth 本機代理需要已授權的 CLI；上游 Code Assist 私有端點可能變動。'},
  claudecli:{runtime:'Go + CLI',path:'/v1/models',notes:'Claude CLI OpenAI Proxy 本體為 Go，推理依賴另外安裝及登入的 Claude CLI。'},
  custom:{runtime:'自行提供',path:'/v1/models',notes:'請填已啟動的 OpenAI 相容 API；只允許本機 HTTP，無須改動任何上游帳號。'}

@@ -224,6 +224,7 @@ func (h *Hub) Handler() http.Handler {
 	mux.HandleFunc("/api/control/resources", h.handleControlResources)
 	mux.HandleFunc("/api/control/login/copilot", h.handleCopilotLogin)
 	mux.HandleFunc("/api/control/login/freebuff", h.handleFreebuffLogin)
+	mux.HandleFunc("/api/control/freebuff-diagnostics", h.handleFreebuffDiagnostics)
 	mux.HandleFunc("/api/control/console-access", h.handleConsoleAccess)
 	mux.HandleFunc("/api/control/playground", h.handlePlayground)
 	mux.HandleFunc("/api/control/wake/", h.wakeProvider)

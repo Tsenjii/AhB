@@ -268,7 +268,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          GEMINI_SHA="bc09c7171915deb7406a4b14344692cfa330388e"
+          # Reviewed upstream 4.21.0: temporary_chat option defaults off; multi_turn remains compatible.
+          GEMINI_SHA="93d9b384b2453c495942080f5838b8e71d6c1e6f"
           git init /tmp/ahb-gemini-web2api
           git -C /tmp/ahb-gemini-web2api remote add origin https://github.com/zexadev/gemini-web2api-go.git
           git -C /tmp/ahb-gemini-web2api fetch --depth 1 origin "$GEMINI_SHA"
