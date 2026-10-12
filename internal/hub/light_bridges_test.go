@@ -2,6 +2,7 @@ package hub
 
 import (
 	"encoding/json"
+	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -61,7 +62,7 @@ func TestLightBridgeProbeBoundedAndNoRedirect(t *testing.T) {
 		}
 	}))
 	defer server.Close()
-	ctx:=t.Context()
+	ctx:=context.Background()
 	if err:=h.probeLightBridge(ctx,server.URL,"/v1/models");err!=nil {t.Fatal(err)}
 	for _,path:=range []string{"/redirect","/bad","/missing"} {
 		if err:=h.probeLightBridge(ctx,server.URL,path);err==nil {t.Fatalf("probe should reject %s",path)}
