@@ -255,7 +255,7 @@ button,.btn{touch-action:manipulation}button:focus-visible,a:focus-visible,input
 .bridge-fact small{color:var(--muted);font-size:11px}
 .bridge-attached{color:var(--ok);border-color:var(--ok)}
 .bridge-quick-actions{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
-.bridge-hint{font-size:12px;color:var(--muted);line-height:1.65;padding:12px;border:1px solid var(--line);border-radius:10px;margin:10px 0}
+.bridge-hint{font-size:12px;color:var(--muted);line-height:1.65;padding:12px;border:1px solid var(--line);border-radius:10px;margin:10px 0;white-space:pre-line}
 .bridge-hint strong{color:var(--text)}
 @media(max-width:530px){.bridge-overview{grid-template-columns:repeat(2,minmax(0,1fr))}.bridge-quick-actions>*{flex:1}}
 </style>
@@ -468,6 +468,7 @@ button,.btn{touch-action:manipulation}button:focus-visible,a:focus-visible,input
       <option value="cliproxy">CLIProxyAPI · Antigravity / Codex / Claude / Muse（需自行安裝）</option>
       <option value="qwenweb">Qwen Web（Go 網頁橋接器，需另行安裝）</option>
       <option value="kimi">Kimi Web（Python 網頁橋接器，需另行安裝）</option>
+      <option value="gemini">Gemini2API · /openai/v1 路徑（選裝）</option>
       <option value="deepseekweb">DeepSeek Web 替代方案（Chromium，非輕量）</option>
       <option value="mimo">MiMo 2API · Go 單程式（選裝）</option>
       <option value="zaiweb">Z.ai Web · Go（需授權帳號，選裝）</option>
@@ -477,6 +478,7 @@ button,.btn{touch-action:manipulation}button:focus-visible,a:focus-visible,input
      </select></div>
     <div class="field"><label for="bridgeURL">本機 API 地址</label><input id="bridgeURL" type="url" inputmode="url" spellcheck="false" value="http://127.0.0.1:8416" placeholder="http://127.0.0.1:8418"></div>
    </div>
+   <div class="field"><label for="bridgeModelsInput">模型列表端點（可修改）</label><input id="bridgeModelsInput" type="text" spellcheck="false" value="/v1/models" maxlength="100" placeholder="/openai/v1/models"></div>
    <div class="field" id="customIdField" style="display:none"><label for="customBridgeId">來源代號（小寫英文）</label><input id="customBridgeId" value="mybridge" maxlength="30" spellcheck="false"></div>
    <div class="bridge-overview" aria-label="目前選取的本機橋接器">
      <div class="bridge-fact"><small>Runtime</small><b id="bridgeRuntime">—</b></div>
@@ -1192,11 +1194,12 @@ document.getElementById('copyBase').addEventListener('click',async()=>{
 });
 // No secrets are requested in the browser: bridge keys are configured locally
 // through the script's private environment, never embedded into a URL or page.
-const bridgeDefaults={cliproxy:8416,qwenweb:3000,kimi:8000,deepseekweb:3456,mimo:8090,zaiweb:8460,geminioauth:10551,claudecli:8080,custom:8418};
+const bridgeDefaults={cliproxy:8416,qwenweb:3000,kimi:8000,deepseekweb:3456,mimo:8090,zaiweb:8460,gemini:5918,geminioauth:10551,claudecli:8080,custom:8418};
 const bridgePresetInfo={
  cliproxy:{runtime:'Go',path:'/v1/models',notes:'有帳號與合法的 OAuth 授權才連接；需要先調整與 AhB 衝突的預設 8317 埠。'},
  qwenweb:{runtime:'Go',path:'/v1/models',notes:'Qwen Web 選裝橋接器：登入方式與支援模型以來源專案為準。'},
  kimi:{runtime:'Python',path:'/v1/models',notes:'Kimi2API 自帶帳號池；不適合當成無依賴的 Go sidecar。'},
+ gemini:{runtime:'Python',path:'/openai/v1/models',notes:'Gemini2API 使用 /openai/v1/models 做模型列表；API Key 仍應在 Termux 端私密設定。'},
  deepseekweb:{runtime:'Chromium',path:'/v1/models',notes:'此來源需要瀏覽器，不屬於輕量方案；無法保證 Android 上可用。'},
  mimo:{runtime:'Go',path:'/v1/models',notes:'MiMo 2API 是 Go 橋接器。先自行合法啟動並授權；不保證真實推論。'},
  zaiweb:{runtime:'Go 1.25+',path:'/v1/models',notes:'Z.ai Web 對接來源為 XxxXTeam/zai2api；訪客 Token 已無法取得。須在原生 Gateway 使用自己合法授權的帳號，並在 Termux 私密設定客戶端 API Key。模型清單不代表推論成功。'},
@@ -1211,7 +1214,7 @@ function syncBridgePresetUI(){
  const preset=document.getElementById('bridgePreset').value;
  const info=bridgePresetInfo[preset]||bridgePresetInfo.custom;
  document.getElementById('bridgeRuntime').textContent=info.runtime;
- document.getElementById('bridgeModelsPath').textContent=info.path;
+ document.getElementById('bridgeModelsPath').textContent=document.getElementById('bridgeModelsInput').value.trim()||info.path;
  document.getElementById('bridgeKind').textContent=preset==='custom'?'自訂本機服務':'獨立外部服務';
  document.getElementById('bridgePresetDetails').textContent=info.notes+' 必須先自行安裝、啟動及符合各平台使用條件；AhB 不會取得上游登入憑證。';
 }
@@ -1219,15 +1222,17 @@ function updateBridgeCommand(){
  const preset=document.getElementById('bridgePreset').value;
  const id=preset==='custom'?document.getElementById('customBridgeId').value.trim():preset;
  const address=document.getElementById('bridgeURL').value.trim();
+ const modelsPath=document.getElementById('bridgeModelsInput').value.trim();
  const cmd=document.getElementById('bridgeCommand');
  const hint=document.getElementById('bridgeHint');
  const copy=document.getElementById('copyBridge');
  const validID=/^[a-z][a-z0-9_-]{1,30}$/.test(id)&&id!=='route';
  const urlMatch=address.match(/^http:\/\/(127\.0\.0\.1|localhost|\[::1\]):([0-9]{1,5})\/?$/);
  const validURL=!!urlMatch&&Number(urlMatch[2])>0&&Number(urlMatch[2])<=65535;
- const valid=validID&&validURL;
+ const validPath=/^\/[a-zA-Z0-9/_-]+\/models$/.test(modelsPath)&&!modelsPath.includes('//')&&!modelsPath.includes('..');
+ const valid=validID&&validURL&&validPath;
  bridgeAttachButton.disabled=!valid||!ahbProviderControlAvailable||bridgeAttachBusy;
- cmd.textContent=valid?'cd ~/AhB && ./scripts/connect-bridge.sh '+id+' '+address+' && ./scripts/stop-termux.sh && ./scripts/start-termux.sh':'請輸入有效的來源代號和 127.0.0.1 本機連接埠。';
+ cmd.textContent=valid?'cd ~/AhB && ./scripts/connect-bridge.sh '+id+' '+address+(modelsPath==='/v1/models'?'':' '+modelsPath)+' && ./scripts/stop-termux.sh && ./scripts/start-termux.sh':'請輸入有效的來源代號、本機 HTTP 地址和以 /models 結尾的模型端點。';
  hint.textContent=valid?(preset==='deepseekweb'?'這是另一個獨立的瀏覽器型 Gateway，需 Chrome/Chromium；與舊的 DeepSeek Go 版分開，未驗證 Android 實機可用。連線不等於推論成功。':'這條指令會驗證已安裝服務的模型目錄，接著重新啟動 AhB；仍須實測聊天與工具調用。'):'代號只能含小寫英文、數字、- 或 _；網址須為本機 HTTP 地址。';
  hint.classList.toggle('tip-error',!valid);
  copy.disabled=!valid;
@@ -1236,29 +1241,32 @@ function updateBridgeCommand(){
 document.getElementById('bridgePreset').addEventListener('change',function(){
  const preset=this.value;
  document.getElementById('bridgeURL').value='http://127.0.0.1:'+bridgeDefaults[preset];
+ document.getElementById('bridgeModelsInput').value=(bridgePresetInfo[preset]||bridgePresetInfo.custom).path;
  document.getElementById('customIdField').style.display=preset==='custom'?'grid':'none';
  previousPreset=preset;
  document.getElementById('bridgeAttachResult').textContent='尚未連接此來源；可先啟動原始 Gateway 再試。';
  updateBridgeCommand();
 });
 document.getElementById('bridgeURL').addEventListener('input',updateBridgeCommand);
+document.getElementById('bridgeModelsInput').addEventListener('input',updateBridgeCommand);
 document.getElementById('customBridgeId').addEventListener('input',updateBridgeCommand);
 bridgeAttachButton.addEventListener('click',async()=>{
  if(!ahbProviderControlAvailable||bridgeAttachBusy)return;
  const preset=document.getElementById('bridgePreset').value;
  const id=preset==='custom'?document.getElementById('customBridgeId').value.trim():preset;
  const base=document.getElementById('bridgeURL').value.trim();
+ const modelsPath=document.getElementById('bridgeModelsInput').value.trim();
  updateBridgeCommand();
  if(bridgeAttachButton.disabled)return;
  if(!confirm('確認 '+id+' 已在 '+base+' 正常啟動且不需要額外 API 金鑰？接入會保存設定並重新啟動 AhB，現有請求可能中斷。'))return;
  const result=document.getElementById('bridgeAttachResult');
  bridgeAttachBusy=true;bridgeAttachButton.disabled=true;bridgeAttachButton.textContent='正在驗證模型端點…';
- result.textContent='只檢查本機 /v1/models，不會發送推理、不會讀取第三方憑證。';
+ result.textContent='只檢查本機 '+modelsPath+'，不會發送推理、不會讀取第三方憑證。';
  try{
   const response=await fetch('/api/control/bridge-attach',{
    method:'POST',cache:'no-store',credentials:'same-origin',
    headers:{'Content-Type':'application/json','X-AhB-Control-Token':ahbControlToken},
-   body:JSON.stringify({id,base_url:base,models_path:'/v1/models'})
+   body:JSON.stringify({id,base_url:base,models_path:modelsPath})
   });
   if(!response.ok)throw new Error((await response.text()).trim().slice(0,200)||('HTTP '+response.status));
   const doc=await response.json();
