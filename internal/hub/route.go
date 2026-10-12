@@ -302,6 +302,7 @@ func (h *Hub) writeFallbackResponse(w http.ResponseWriter, resp *http.Response, 
 		w.Header().Set("X-AhB-Fallback", "same-model")
 	}
 	copyResponseHeaders(w.Header(), resp.Header)
+	w.Header().Set("X-AhB-Provider", provider)
 	w.WriteHeader(resp.StatusCode)
 	copyStreaming(w, resp.Body)
 }
@@ -321,6 +322,7 @@ func (h *Hub) writeFallbackFailure(
 			w.Header().Set("X-AhB-Fallback", "same-model")
 		}
 		copyResponseHeaders(w.Header(), last.header)
+		w.Header().Set("X-AhB-Provider", last.provider)
 		w.WriteHeader(last.status)
 		_, _ = w.Write(last.body)
 		return
