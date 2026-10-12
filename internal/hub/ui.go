@@ -249,6 +249,15 @@ button,.btn{touch-action:manipulation}button:focus-visible,a:focus-visible,input
 .flight-source{display:grid;grid-template-columns:minmax(0,1fr) 55px 60px;gap:9px;border-bottom:1px solid var(--line);padding:10px 0;font-size:12px}
 .flight-source:last-child{border-bottom:0}
 @media(max-width:740px){.flight-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.flight-grid{grid-template-columns:1fr}.flight-panel{padding:14px}.flight-event{grid-template-columns:72px minmax(0,1fr) 48px;gap:6px}}
+.bridge-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:12px 0}
+.bridge-fact{border:1px solid var(--line);background:var(--panel2);padding:11px 12px;border-radius:11px;min-width:0}
+.bridge-fact b{display:block;font-size:12px;margin-top:4px;word-break:break-word}
+.bridge-fact small{color:var(--muted);font-size:11px}
+.bridge-attached{color:var(--ok);border-color:var(--ok)}
+.bridge-quick-actions{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.bridge-hint{font-size:12px;color:var(--muted);line-height:1.65;padding:12px;border:1px solid var(--line);border-radius:10px;margin:10px 0}
+.bridge-hint strong{color:var(--text)}
+@media(max-width:530px){.bridge-overview{grid-template-columns:repeat(2,minmax(0,1fr))}.bridge-quick-actions>*{flex:1}}
 </style>
 </head>
 <body>
@@ -447,9 +456,9 @@ button,.btn{touch-action:manipulation}button:focus-visible,a:focus-visible,input
  <div class="quick-connect">
   <div>
    <div class="eyebrow">Connect</div>
-   <div class="quick-title">接入新的 API，不用改程式。</div>
-   <p>選擇已在本機啟動的相容 API，填入連接埠，複製一條指令至 Termux 即可套用。既有帳號與原始管理介面不受影響。</p>
-   <p>這是手動接入<strong>已另外安裝</strong>的本機服務，不代表 AhB 已內建它。沒有外部服務時不用設定。</p>
+   <div class="quick-title">輕量反代連接中心</div>
+   <p>先在你的手機或 VPS 啟動合法授權的本機 Gateway，再按「驗證並接入」。AhB 會確認模型列表、保存設定並安全重新啟動，不必自己編輯 JSON。</p>
+   <p><strong>零額外常駐服務：</strong>新連接器本身是 Go Hub 的功能，未運行的第三方反代不會被安裝或偷偷啟動。需要 API Key 的服務仍透過 Termux 私密輸入，避免在瀏覽器暴露金鑰。</p>
   </div>
   <div class="quick-form">
    <div class="fieldrow">
@@ -457,19 +466,30 @@ button,.btn{touch-action:manipulation}button:focus-visible,a:focus-visible,input
       <option value="cliproxy">CLIProxyAPI · Antigravity / Codex / Claude / Muse（需自行安裝）</option>
       <option value="qwenweb">Qwen Web（Go 網頁橋接器，需另行安裝）</option>
       <option value="kimi">Kimi Web（Python 網頁橋接器，需另行安裝）</option>
-      <option value="deepseekweb">DeepSeek Web 替代方案（Chromium，需另行安裝）</option>
+      <option value="deepseekweb">DeepSeek Web 替代方案（Chromium，非輕量）</option>
+      <option value="mimo">MiMo 2API · Go 單程式（選裝）</option>
+      <option value="geminioauth">Gemini CLI OAuth · Node（選裝）</option>
+      <option value="claudecli">Claude CLI OpenAI Proxy · Go + CLI（選裝）</option>
       <option value="custom">自訂已安裝的本機 API</option>
      </select></div>
     <div class="field"><label for="bridgeURL">本機 API 地址</label><input id="bridgeURL" type="url" inputmode="url" spellcheck="false" value="http://127.0.0.1:8418" placeholder="http://127.0.0.1:8418"></div>
    </div>
    <div class="field" id="customIdField" style="display:none"><label for="customBridgeId">來源代號（小寫英文）</label><input id="customBridgeId" value="mybridge" maxlength="30" spellcheck="false"></div>
-   <div class="command-panel">
+   <div class="bridge-overview" aria-label="目前選取的本機橋接器">
+     <div class="bridge-fact"><small>Runtime</small><b id="bridgeRuntime">—</b></div>
+     <div class="bridge-fact"><small>模型端點</small><b id="bridgeModelsPath">/v1/models</b></div>
+     <div class="bridge-fact"><small>類型</small><b id="bridgeKind">外部選裝</b></div>
+    </div>
+    <div id="bridgePresetDetails" class="bridge-hint" role="note">正在確認可用接入模式…</div>
+    <div class="command-panel">
     <div id="bridgeCommand" class="command-box" aria-live="polite"></div>
     <div class="command-actions">
-     <button class="btn primary" id="copyBridge" type="button">複製連接指令</button>
+     <button class="btn primary" id="bridgeAttach" type="button" disabled>驗證並接入</button>
+     <button class="btn" id="copyBridge" type="button">複製私密連接指令</button>
      <a class="btn" href="https://github.com/Tsenjii/AhB/blob/main/docs/BRIDGES.md" target="_blank" rel="noopener noreferrer">完整使用說明 ↗</a>
     </div>
-    <div id="bridgeHint" class="command-help">前提：外部橋接服務已由你在相同手機上啟動並開放此連接埠。</div>
+    <div id="bridgeHint" class="command-help">直接連接只探測本機 /models；不代表模型可用或額度充足。真正驗收請用 Playground。</div>
+    <div id="bridgeAttachResult" class="command-help" role="status" aria-live="polite">未送出任何探測或更改。</div>
    </div>
   </div>
  </div>
@@ -1140,8 +1160,28 @@ document.getElementById('copyBase').addEventListener('click',async()=>{
 });
 // No secrets are requested in the browser: bridge keys are configured locally
 // through the script's private environment, never embedded into a URL or page.
-const bridgeDefaults={cliproxy:8416,qwenweb:3000,kimi:8000,deepseekweb:3456,custom:8418};
-let previousPreset='cliproxy';
+const bridgeDefaults={cliproxy:8416,qwenweb:3000,kimi:8000,deepseekweb:3456,mimo:8090,geminioauth:10551,claudecli:8080,custom:8418};
+const bridgePresetInfo={
+ cliproxy:{runtime:'Go',path:'/v1/models',notes:'有帳號與合法的 OAuth 授權才連接；需要先調整與 AhB 衝突的預設 8317 埠。'},
+ qwenweb:{runtime:'Go',path:'/v1/models',notes:'Qwen Web 選裝橋接器：登入方式與支援模型以來源專案為準。'},
+ kimi:{runtime:'Python',path:'/v1/models',notes:'Kimi2API 自帶帳號池；不適合當成無依賴的 Go sidecar。'},
+ deepseekweb:{runtime:'Chromium',path:'/v1/models',notes:'此來源需要瀏覽器，不屬於輕量方案；無法保證 Android 上可用。'},
+ mimo:{runtime:'Go',path:'/v1/models',notes:'MiMo 2API 是 Go 橋接器。先自行合法啟動並授權；不保證真實推論。'},
+ geminioauth:{runtime:'Node.js',path:'/v1/models',notes:'Gemini CLI OAuth 本機代理需要已授權的 CLI；上游 Code Assist 私有端點可能變動。'},
+ claudecli:{runtime:'Go + CLI',path:'/v1/models',notes:'Claude CLI OpenAI Proxy 本體為 Go，推理依賴另外安裝及登入的 Claude CLI。'},
+ custom:{runtime:'自行提供',path:'/v1/models',notes:'請填已啟動的 OpenAI 相容 API；只允許本機 HTTP，無須改動任何上游帳號。'}
+};
+let previousPreset='cliproxy', bridgeAttachBusy=false;
+const bridgeAttachButton=document.getElementById('bridgeAttach');
+bridgeAttachButton.disabled=!ahbProviderControlAvailable;
+function syncBridgePresetUI(){
+ const preset=document.getElementById('bridgePreset').value;
+ const info=bridgePresetInfo[preset]||bridgePresetInfo.custom;
+ document.getElementById('bridgeRuntime').textContent=info.runtime;
+ document.getElementById('bridgeModelsPath').textContent=info.path;
+ document.getElementById('bridgeKind').textContent=preset==='custom'?'自訂本機服務':'獨立外部服務';
+ document.getElementById('bridgePresetDetails').textContent=info.notes+' 必須先自行安裝、啟動及符合各平台使用條件；AhB 不會取得上游登入憑證。';
+}
 function updateBridgeCommand(){
  const preset=document.getElementById('bridgePreset').value;
  const id=preset==='custom'?document.getElementById('customBridgeId').value.trim():preset;
@@ -1153,25 +1193,55 @@ function updateBridgeCommand(){
  const urlMatch=address.match(/^http:\/\/(127\.0\.0\.1|localhost|\[::1\]):([0-9]{1,5})\/?$/);
  const validURL=!!urlMatch&&Number(urlMatch[2])>0&&Number(urlMatch[2])<=65535;
  const valid=validID&&validURL;
+ bridgeAttachButton.disabled=!valid||!ahbProviderControlAvailable||bridgeAttachBusy;
  cmd.textContent=valid?'cd ~/AhB && ./scripts/connect-bridge.sh '+id+' '+address+' && ./scripts/stop-termux.sh && ./scripts/start-termux.sh':'請輸入有效的來源代號和 127.0.0.1 本機連接埠。';
  hint.textContent=valid?(preset==='deepseekweb'?'這是另一個獨立的瀏覽器型 Gateway，需 Chrome/Chromium；與舊的 DeepSeek Go 版分開，未驗證 Android 實機可用。連線不等於推論成功。':'這條指令會驗證已安裝服務的模型目錄，接著重新啟動 AhB；仍須實測聊天與工具調用。'):'代號只能含小寫英文、數字、- 或 _；網址須為本機 HTTP 地址。';
  hint.classList.toggle('tip-error',!valid);
  copy.disabled=!valid;
+ syncBridgePresetUI();
 }
 document.getElementById('bridgePreset').addEventListener('change',function(){
  const preset=this.value;
  document.getElementById('bridgeURL').value='http://127.0.0.1:'+bridgeDefaults[preset];
  document.getElementById('customIdField').style.display=preset==='custom'?'grid':'none';
  previousPreset=preset;
+ document.getElementById('bridgeAttachResult').textContent='尚未連接此來源；可先啟動原始 Gateway 再試。';
  updateBridgeCommand();
 });
 document.getElementById('bridgeURL').addEventListener('input',updateBridgeCommand);
 document.getElementById('customBridgeId').addEventListener('input',updateBridgeCommand);
+bridgeAttachButton.addEventListener('click',async()=>{
+ if(!ahbProviderControlAvailable||bridgeAttachBusy)return;
+ const preset=document.getElementById('bridgePreset').value;
+ const id=preset==='custom'?document.getElementById('customBridgeId').value.trim():preset;
+ const base=document.getElementById('bridgeURL').value.trim();
+ updateBridgeCommand();
+ if(bridgeAttachButton.disabled)return;
+ if(!confirm('確認 '+id+' 已在 '+base+' 正常啟動且不需要額外 API 金鑰？接入會保存設定並重新啟動 AhB，現有請求可能中斷。'))return;
+ const result=document.getElementById('bridgeAttachResult');
+ bridgeAttachBusy=true;bridgeAttachButton.disabled=true;bridgeAttachButton.textContent='正在驗證模型端點…';
+ result.textContent='只檢查本機 /v1/models，不會發送推理、不會讀取第三方憑證。';
+ try{
+  const response=await fetch('/api/control/bridge-attach',{
+   method:'POST',cache:'no-store',credentials:'same-origin',
+   headers:{'Content-Type':'application/json','X-AhB-Control-Token':ahbControlToken},
+   body:JSON.stringify({id,base_url:base,models_path:'/v1/models'})
+  });
+  if(!response.ok)throw new Error((await response.text()).trim().slice(0,200)||('HTTP '+response.status));
+  const doc=await response.json();
+  result.textContent='接入成功：'+doc.id+'。正在重啟 AhB，更新後請到 Playground 做真實推理測試。';
+  bridgeAttachButton.textContent='已儲存，準備重啟…';
+  setTimeout(()=>location.reload(),8500);
+ }catch(err){
+  result.textContent='未接入：'+err.message+'。需要 API Key 時，請用下方「複製私密連接指令」並在 Termux 輸入，不要將金鑰貼進本頁。';
+  bridgeAttachBusy=false;bridgeAttachButton.textContent='驗證並接入';updateBridgeCommand();
+ }
+});
 document.getElementById('copyBridge').addEventListener('click',async function(){
  if(this.disabled)return;
  const ok=await copyText(document.getElementById('bridgeCommand').textContent);
  this.textContent=ok?'已複製':'複製失敗';
- setTimeout(()=>this.textContent='複製連接指令',1400);
+ setTimeout(()=>this.textContent='複製私密連接指令',1400);
 });
 updateBridgeCommand();
 
