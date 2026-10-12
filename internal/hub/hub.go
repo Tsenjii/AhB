@@ -214,6 +214,8 @@ func (h *Hub) Handler() http.Handler {
 	mux.HandleFunc("/api/providers", h.handleProviders)
 	mux.HandleFunc("/api/runtime", h.handleRuntime)
 	mux.HandleFunc("/api/insights", h.handleInsights)
+	mux.HandleFunc("/api/bridge-catalog", h.handleBridgeCatalog)
+	mux.HandleFunc("/api/control/bridge-attach", h.handleBridgeAttach)
 	mux.HandleFunc("/api/control/restart", h.handleControlRestart)
 	mux.HandleFunc("/api/control/update", h.handleControlUpdate)
 	mux.HandleFunc("/api/control/provider/", h.handleControlProvider)
