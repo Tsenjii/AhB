@@ -3,7 +3,6 @@ package hub
 import (
 	"context"
 	"path/filepath"
-	"strings"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -38,8 +37,8 @@ func (h *Hub) handleFreebuffDiagnostics(w http.ResponseWriter, r *http.Request) 
 		"proof": "Metadata-only, no inference performed.",
 	}
 	if h.controlConfigPath != "" {
-		root := filepath.Dir(h.controlConfigPath)
-		if !strings.HasPrefix(root, "/") { root = "" }
+		root, err := filepath.Abs(filepath.Dir(h.controlConfigPath))
+		if err != nil { root = "" }
 		if root != "" { reply["saved_accounts"] = countFreebuffCredentials(root) }
 	}
 	p := h.providers["freebuff"]
@@ -76,7 +75,12 @@ func (h *Hub) handleFreebuffDiagnostics(w http.ResponseWriter, r *http.Request) 
 		if err == nil {
 			req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 			if err == nil {
-				resp, err := h.client.Do(req)
+				client := &http.Client{
+					Timeout: 3 * time.Second,
+					Transport: &http.Transport{Proxy: nil},
+					CheckRedirect: func(_ *http.Request, _ []*http.Request) error {return http.ErrUseLastResponse},
+				}
+				resp, err := client.Do(req)
 				if err == nil {
 					defer resp.Body.Close()
 					reply["gateway_health_http_status"] = resp.StatusCode
