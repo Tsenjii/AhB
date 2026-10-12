@@ -42,7 +42,7 @@ var lightBridgePresets = []lightBridgePreset{
 	{ID:"custom", Name:"自訂 OpenAI 相容本機 API", Docs:"", Port:8418, ModelsPath:"/v1/models", Runtime:"External", Notes:"只接受同機 localhost，未安裝的服務不會被自動啟動"},
 }
 
-func lightBridgePreset(id string) (lightBridgePreset, bool) {
+func lookupLightBridgePreset(id string) (lightBridgePreset, bool) {
 	for _, p := range lightBridgePresets {
 		if p.ID == id {
 			return p, true
@@ -202,7 +202,7 @@ func (h *Hub) handleBridgeAttach(w http.ResponseWriter, r *http.Request) {
 		previous=item
 		break
 	}
-	preset,known:=lightBridgePreset(request.ID)
+	preset,known:=lookupLightBridgePreset(request.ID)
 	name,docs:=request.ID+" Bridge",""
 	if known {name,docs=preset.Name,preset.Docs}
 	if previous==nil {previous=make(map[string]json.RawMessage)}
