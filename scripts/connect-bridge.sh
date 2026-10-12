@@ -22,6 +22,9 @@ Examples:
   ./scripts/connect-bridge.sh qwenweb http://127.0.0.1:3000
   ./scripts/connect-bridge.sh deepseekweb http://127.0.0.1:3456
   ./scripts/connect-bridge.sh gemini http://127.0.0.1:5918
+  ./scripts/connect-bridge.sh mimo http://127.0.0.1:8090
+  ./scripts/connect-bridge.sh geminioauth http://127.0.0.1:10551
+  ./scripts/connect-bridge.sh claudecli http://127.0.0.1:8080
   ./scripts/connect-bridge.sh mybridge http://127.0.0.1:8560
 
 The script privately prompts for an optional API key (or accepts
@@ -35,7 +38,11 @@ if [ "${1:-}" = "--list" ]; then
   printf '%s\n' "lmarena  LMArena (bring your own local bridge)" "windsurf WindsurfAPI" \
     "qwen     Qwen2API_Go" "qwenweb  Qwen Web Go (external)" "kimi     Kimi2API" "deepseekweb  Browser Web-to-API (Chromium needed)" "gemini   Gemini2API" \
     "claude   Claude2API" "codex    Codex OAuth API/MCP (user-run)" \
-    "cliproxy CLIProxyAPI (optional, Antigravity/Codex/Claude/Muse)" "custom   Any localhost OpenAI-compatible API"
+    "cliproxy CLIProxyAPI (optional, Antigravity/Codex/Claude/Muse)" \
+    "mimo     MiMo 2API (Go, separately installed)" \
+    "geminioauth Gemini CLI OAuth (Node.js, separately installed)" \
+    "claudecli Claude CLI OpenAI Proxy (Go wrapper + separate Claude CLI)" \
+    "custom   Any localhost OpenAI-compatible API"
   exit 0
 fi
 
@@ -84,6 +91,9 @@ case "$id" in
   claude) title="Claude2API"; docs="https://github.com/yushangxiao/claude2api" ;;
   codex) title="Codex OAuth API Bridge"; docs="https://github.com/dvcrn/codex-oauth-proxy" ;;
   cliproxy) title="CLIProxyAPI"; docs="https://github.com/router-for-me/CLIProxyAPI" ;;
+  mimo) title="MiMo 2API"; docs="https://github.com/rong6/mimo-2api" ;;
+  geminioauth) title="Gemini CLI OAuth Bridge"; docs="https://github.com/kimws/gemini-oauth" ;;
+  claudecli) title="Claude CLI OpenAI Proxy"; docs="https://github.com/kpod13/claude-openai-proxy" ;;
   *) title="$id Bridge"; docs="" ;;
 esac
 
