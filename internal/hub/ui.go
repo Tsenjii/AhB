@@ -472,7 +472,7 @@ button,.btn{touch-action:manipulation}button:focus-visible,a:focus-visible,input
       <option value="claudecli">Claude CLI OpenAI Proxy · Go + CLI（選裝）</option>
       <option value="custom">自訂已安裝的本機 API</option>
      </select></div>
-    <div class="field"><label for="bridgeURL">本機 API 地址</label><input id="bridgeURL" type="url" inputmode="url" spellcheck="false" value="http://127.0.0.1:8418" placeholder="http://127.0.0.1:8418"></div>
+    <div class="field"><label for="bridgeURL">本機 API 地址</label><input id="bridgeURL" type="url" inputmode="url" spellcheck="false" value="http://127.0.0.1:8416" placeholder="http://127.0.0.1:8418"></div>
    </div>
    <div class="field" id="customIdField" style="display:none"><label for="customBridgeId">來源代號（小寫英文）</label><input id="customBridgeId" value="mybridge" maxlength="30" spellcheck="false"></div>
    <div class="bridge-overview" aria-label="目前選取的本機橋接器">
