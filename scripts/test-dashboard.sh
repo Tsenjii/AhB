@@ -18,8 +18,13 @@ for needle in ('id="bridgePreset"', 'id="bridgeURL"', 'id="bridgeCommand"',
                'id="maxResident"', 'id="idleTimeout"', 'id="saveResourceSettings"', 'id="scanAllModels"',
                'id="adminConsoles"', 'id="adminConsoleRows"', 'id="reloadAdminConsoles"',
                'id="flightDeck"', 'id="flightRefresh"', 'id="flightRequests"',
-               'id="flightCopy"', 'id="flightExport"', 'data-tab="radar"'):
+               'id="flightCopy"', 'id="flightExport"', 'data-tab="radar"',
+               'id="bridgeAttach"', 'id="bridgeAttachResult"', 'id="bridgeRuntime"',
+               'id="bridgeModelsPath"', 'id="bridgePresetDetails"'):
     assert needle in html, f"missing UI element: {needle}"
+assert "geminioauth" in html and "mimo" in html and "claudecli" in html
+assert "'/api/control/bridge-attach'" in html and "bridgeAttachBusy" in html
+assert "bridgeAttachButton.addEventListener('click'" in html and "X-AhB-Control-Token" in html
 assert "Node.js" in html and "FreeBuff" in html and "freebuff-login-termux.sh" in html
 assert "HTTP 418 · Duck.ai 拒絕請求" in html
 assert "實驗版 DeepSeek Web 已移除舊 /admin 管理台" in html
