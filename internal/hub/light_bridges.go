@@ -22,13 +22,13 @@ import (
 // A candidate must already expose a compatible loopback API and an ordinary
 // /models listing. No website cookies, OAuth sessions or passwords are read.
 type lightBridgePreset struct {
-	ID string
-	Name string
-	Docs string
-	Port int
-	ModelsPath string
-	Runtime string
-	Notes string
+	ID string `json:"id"`
+	Name string `json:"name"`
+	Docs string `json:"docs"`
+	Port int `json:"port"`
+	ModelsPath string `json:"models_path"`
+	Runtime string `json:"runtime"`
+	Notes string `json:"notes"`
 }
 
 var lightBridgePresets = []lightBridgePreset{
