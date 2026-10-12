@@ -7,11 +7,19 @@ on:
       - '.github/workflows/verify-zaiweb-bridge.yml'
       - 'scripts/connect-bridge.sh'
       - 'internal/hub/light_bridges.go'
+      - 'internal/hub/freebuff_diagnostics.go'
+      - 'internal/hub/freebuff_diagnostics_test.go'
+      - 'internal/hub/ui.go'
+      - 'scripts/test-dashboard.sh'
   pull_request:
     paths:
       - '.github/workflows/verify-zaiweb-bridge.yml'
       - 'scripts/connect-bridge.sh'
       - 'internal/hub/light_bridges.go'
+      - 'internal/hub/freebuff_diagnostics.go'
+      - 'internal/hub/freebuff_diagnostics_test.go'
+      - 'internal/hub/ui.go'
+      - 'scripts/test-dashboard.sh'
 
 permissions:
   contents: read
