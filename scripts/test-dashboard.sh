@@ -16,7 +16,9 @@ for needle in ('id="bridgePreset"', 'id="bridgeURL"', 'id="bridgeCommand"',
                'id="models"', 'id="refresh"', 'id="optional"', 'id="diagnostics"', 'id="freebuffLogin"', 'id="copyCopilotInstall"',
                'id="resourceSettings"', 'id="systemRamValue"', 'id="availableRamValue"', 'id="ahbRamValue"',
                'id="maxResident"', 'id="idleTimeout"', 'id="saveResourceSettings"', 'id="scanAllModels"',
-               'id="adminConsoles"', 'id="adminConsoleRows"', 'id="reloadAdminConsoles"'):
+               'id="adminConsoles"', 'id="adminConsoleRows"', 'id="reloadAdminConsoles"',
+               'id="flightDeck"', 'id="flightRefresh"', 'id="flightRequests"',
+               'id="flightCopy"', 'id="flightExport"', 'data-tab="radar"'):
     assert needle in html, f"missing UI element: {needle}"
 assert "Node.js" in html and "FreeBuff" in html and "freebuff-login-termux.sh" in html
 assert "HTTP 418 · Duck.ai 拒絕請求" in html
@@ -27,6 +29,8 @@ assert "copilotLoginAction('status').then(showCopilotLogin)" in html
 assert 'data-resource-preset="stable"' in html and 'data-resource-preset="lean"' in html and 'data-resource-preset="performance"' in html and 'data-resource-preset="all"' in html
 assert 'resourceSettingsDirty=true' in html and 'const values={stable:[2,600],lean:[1,120],performance:[3,900],all:[9,86400]}' in html
 assert "'/api/control/resources'" in html and "'/api/runtime'" in html
+assert "'/api/insights'" in html and "X-AhB-Control-Token" in html, 'private flight recorder wiring missing'
+assert 'renderFlight(data)' in html and 'flightGuidance(doc)' in html, 'fault radar must render real data'
 assert "x_cached" in html and "休眠快取" in html
 assert "'/api/control/wake/'" in html and "scanAllModels" in html
 assert "'/api/control/console-access'" in html and "nativeConsoleRequest" in html
