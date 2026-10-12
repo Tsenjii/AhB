@@ -29,6 +29,7 @@ type Hub struct {
 	providers map[string]*runtimeProvider
 	client    *http.Client
 	modelCache *modelCatalogCache
+	activeModelCache *activeModelCatalog
 	flight *flightRecorder
 	// Shared across all /v1/models callers, so concurrent dashboards cannot
 	// multiply upstream probes and memory use beyond the machine's budget.
@@ -135,6 +136,7 @@ func New(cfg config.Config) *Hub {
 		providers: make(map[string]*runtimeProvider),
 		client:    &http.Client{Transport: transport},
 		modelCache: newModelCatalogCache(),
+		activeModelCache: newActiveModelCatalog(),
 		flight: newFlightRecorder(),
 		modelProbeSlots: make(chan struct{}, probeLimit),
 	}
@@ -584,7 +586,7 @@ func (h *Hub) handleModels(w http.ResponseWriter, r *http.Request) {
 			}
 			defer release()
 			ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
-			models, err := h.fetchModels(ctx, p.cfg)
+			models, err := h.fetchActiveModels(ctx, p.cfg)
 			cancel()
 			results <- modelFetchResult{id: id, models: models, err: err}
 		}(id, p)
