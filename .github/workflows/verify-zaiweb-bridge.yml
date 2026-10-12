@@ -1,0 +1,57 @@
+name: Validate optional Z.ai Web bridge
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/verify-zaiweb-bridge.yml'
+      - 'scripts/connect-bridge.sh'
+      - 'internal/hub/light_bridges.go'
+  pull_request:
+    paths:
+      - '.github/workflows/verify-zaiweb-bridge.yml'
+      - 'scripts/connect-bridge.sh'
+      - 'internal/hub/light_bridges.go'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zaiweb-review-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.x'
+      - name: Compile pinned upstream without any Z.ai credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          ZAI_SHA="2a2ddd0f955434fd545542ec41dd2bf02fd1ff05"
+          mkdir -p "$RUNNER_TEMP/zai2api"
+          git -C "$RUNNER_TEMP/zai2api" init -q
+          git -C "$RUNNER_TEMP/zai2api" remote add origin https://github.com/XxxXTeam/zai2api.git
+          git -C "$RUNNER_TEMP/zai2api" fetch --depth 1 origin "$ZAI_SHA"
+          git -C "$RUNNER_TEMP/zai2api" checkout --detach FETCH_HEAD
+          test "$(git -C "$RUNNER_TEMP/zai2api" rev-parse HEAD)" = "$ZAI_SHA"
+          cd "$RUNNER_TEMP/zai2api"
+          go build -trimpath -o "$RUNNER_TEMP/zai2api-binary" ./cmd/main.go
+          test -s "$RUNNER_TEMP/zai2api-binary"
+          printf 'Verified build of pin %s (compile-only; no site login or upstream inference).\n' "$ZAI_SHA"
+      - name: Check AhB bridge fixture and private UI contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/test-connect-bridge.sh
+          bash scripts/test-dashboard.sh
+          go test ./internal/hub -run 'Test(ZaiWebPresetRequiresExternalGateway|FreebuffDiagnosticsRequiresLocalControlAndDoesNotRevealTokens)$' -count=1
+      - name: Explain evidence boundary
+        run: |
+          echo "Z.ai source code compiled without credentials; this run does NOT prove valid Z.ai login, streaming, model inference or tools."
+          echo "FreeBuff diagnostics are metadata-only; no private user credential or real quota was available in GitHub Actions."
