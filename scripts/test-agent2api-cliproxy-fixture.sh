@@ -20,7 +20,9 @@ for path in files:
 bridge=Path("scripts/connect-bridge.sh").read_text()
 assert 'cliproxy) title="CLIProxyAPI"' in bridge
 assert 'http://127.0.0.1:8416' in bridge
-assert "curl_args=(--fail --silent --show-error --max-time 8)" in bridge
+assert "curl_args=(--fail --silent --show-error --noproxy" in bridge
+assert "--max-filesize 1048576" in bridge, "model catalog probe must stay bounded"
+assert "Refusing to reuse private headers" in bridge, "private keys must not travel between localhost destinations"
 ui=Path("internal/hub/ui.go").read_text()
 assert '<option value="cliproxy">' in ui
 assert 'cliproxy:8416' in ui

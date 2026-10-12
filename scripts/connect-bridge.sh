@@ -108,8 +108,22 @@ fi
 
 key="${AIHUB_BRIDGE_API_KEY:-}"
 existing_auth="$(jq -r --arg id "$id" '.providers[] | select(.id == $id) | .headers.Authorization // empty' config.json | head -n 1)"
-# For an existing bridge, keep its local API key unless the user supplies another.
-if [ -z "$key" ] && [ -n "$existing_auth" ]; then
+existing_base="$(jq -r --arg id "$id" '.providers[] | select(.id == $id) | .base_url // empty' config.json | head -n 1)"
+existing_headers_count="$(jq -r --arg id "$id" '[.providers[] | select(.id == $id) | (.headers // {}) | keys[]] | length' config.json)"
+# Changing localhost ports must never silently donate old credentials.
+if [ -n "$existing_base" ] && [ "${existing_base%/}" != "$base" ] &&
+   [ "$existing_headers_count" -gt 0 ]; then
+  if [ -z "$key" ] && [ -t 0 ]; then
+    printf 'Different bridge destination; enter its NEW local API key: '
+    IFS= read -rs key || true
+    printf '\n'
+  fi
+  if [ -z "$key" ]; then
+    echo "Refusing to reuse private headers at a changed bridge address. Supply a new key in the private terminal, or attach under a new ID." >&2
+    exit 1
+  fi
+elif [ -z "$key" ] && [ -n "$existing_auth" ]; then
+  # Reuse only at the exact same loopback endpoint.
   key="${existing_auth#Bearer }"
 elif [ -z "$key" ] && [ -t 0 ]; then
   printf 'Local bridge API key (Enter if not required): '
@@ -118,7 +132,9 @@ elif [ -z "$key" ] && [ -t 0 ]; then
 fi
 
 headers='{}'
-curl_args=(--fail --silent --show-error --max-time 8)
+# Never allow HTTP_PROXY to relay a private localhost API key.
+curl_args=(--fail --silent --show-error --noproxy '*' --proto '=http' \
+  --max-redirs 0 --connect-timeout 3 --max-time 8 --max-filesize 1048576)
 if [ -n "$key" ]; then
   headers="$(jq -nc --arg key "$key" '{Authorization:("Bearer " + $key)}')"
   curl_args+=(-H "Authorization: Bearer $key")
@@ -158,10 +174,6 @@ jq --arg id "$id" --arg title "$title" --arg docs "$docs" \
       }]
     end
   )
-  | .routing.same_model_fallback.providers = (
-      (.routing.same_model_fallback.providers // []) |
-      if index($id) == null then . + [$id] else . end
-    )
 ' config.json > "$tmp"
 jq -e '.providers | type == "array"' "$tmp" >/dev/null
 cp -p config.json "$ROOT/data/bridge-config-before-last-change.json"
@@ -169,3 +181,4 @@ mv "$tmp" config.json
 chmod 600 config.json
 echo "Connected configuration: $id -> $base (model list $models_path)"
 echo "Restart AhB to apply the configuration. No upstream service was installed or launched."
+echo "Safety: this connector was not auto-added to failover routing; first verify real inference and tool roundtrip."

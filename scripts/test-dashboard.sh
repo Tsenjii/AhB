@@ -20,9 +20,10 @@ for needle in ('id="bridgePreset"', 'id="bridgeURL"', 'id="bridgeCommand"',
                'id="flightDeck"', 'id="flightRefresh"', 'id="flightRequests"',
                'id="flightCopy"', 'id="flightExport"', 'data-tab="radar"',
                'id="bridgeAttach"', 'id="bridgeAttachResult"', 'id="bridgeRuntime"',
-               'id="bridgeModelsPath"', 'id="bridgePresetDetails"'):
+               'id="bridgeModelsPath"', 'id="bridgeModelsInput"', 'id="bridgePresetDetails"'):
     assert needle in html, f"missing UI element: {needle}"
 assert "geminioauth" in html and "mimo" in html and "claudecli" in html and "zaiweb" in html
+assert "gemini:5918" in html and "models_path:modelsPath" in html, 'custom model API prefix must support UI attach'
 assert 'id="diagnoseFreebuff"' in html and 'id="freebuffDiagResult"' in html
 assert "'/api/control/freebuff-diagnostics'" in html and "freebuffDiagButton.addEventListener('click'" in html
 assert "'/api/control/bridge-attach'" in html and "bridgeAttachBusy" in html

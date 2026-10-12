@@ -13,7 +13,9 @@ cd ~/AhB
 ./scripts/connect-bridge.sh lmarena http://127.0.0.1:5102
 ```
 
-The script asks for an optional API key **without echoing it**, validates that the URL is loopback-only, checks the bridge's models endpoint, saves to `config.json`, retains a copy of the previous config under ignored `data/`, and leaves every other source intact. Then restart AhB:
+The script asks for an optional API key **without echoing it**, validates that the URL is loopback-only, checks the bridge's models endpoint, saves to `config.json`, retains a copy of the previous config under ignored `data/`, and leaves every other source intact.
+
+**Safer reconnects:** The connector probes models directly on loopback (ignores system HTTP proxies), rejects redirects, applies an 8-second timeout and caps model-list response size at 1 MiB. If an existing ID changes host or port, its prior private API key is **never silently forwarded** to the new destination; supply a new key in the private terminal or use a new ID. A newly connected provider is **not automatically added** to same-model failover: a model catalog is not proof of working inference. Then restart AhB:
 
 ```sh
 ./scripts/stop-termux.sh
@@ -56,7 +58,7 @@ This mode is restricted to local host and an already-working bridge **that does 
 
 The original terminal connector and all existing API key handling continue working. Both UI and terminal modes are opt-in; neither installs nor launches a third-party bridge.
 
-The matching connector can also be configured from the **Connect** wizard on the Hub homepage. The wizard produces a safe local terminal command rather than asking for your private API key in browser JavaScript.
+The **Connect** wizard also supports custom model endpoint paths, for example `/openai/v1/models` for Gemini2API, in both its local verification request and the generated private terminal command. The matching connector can also be configured from the **Connect** wizard on the Hub homepage. The wizard produces a safe local terminal command rather than asking for your private API key in browser JavaScript.
 
 ### CLIProxyAPI source (optional, no binary bundled)
 
