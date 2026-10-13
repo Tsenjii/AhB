@@ -18,22 +18,22 @@ const playgroundHTML = `<!doctype html>
 main{max-width:1090px;margin:auto;padding:18px 16px 54px}
 header{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:6px 0 19px;border-bottom:1px solid var(--line);margin-bottom:20px}
 .brand{font-size:19px;font-weight:750;letter-spacing:-.03em}.brand small{display:block;color:var(--muted);font-size:11px;font-weight:450;margin-top:5px;letter-spacing:normal}
-h1{font-size:23px;margin:2px 0 8px}p{font-size:12px;color:var(--muted);line-height:1.65;margin:4px 0 13px}
+h1{font-size:23px;margin:2px 0 8px}p{font-size:14px;color:var(--muted);line-height:1.65;margin:4px 0 13px}
 .layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:17px}
 .card{border:1px solid var(--line);border-radius:13px;background:var(--panel);padding:18px;min-width:0}
-.field{margin-bottom:14px}.field label{display:block;margin-bottom:7px;font-size:12px;font-weight:650;color:var(--muted)}
+.field{margin-bottom:14px}.field label{display:block;margin-bottom:7px;font-size:14px;font-weight:650;color:var(--muted)}
 input,select,textarea,button{font:inherit}
 .field input,.field select,.field textarea{width:100%;border:1px solid #47505c;background:#0d1117;color:var(--text);padding:11px;border-radius:9px;font-size:15px;min-height:44px}
 textarea{resize:vertical;min-height:148px!important;line-height:1.5}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-label.check{display:flex;align-items:center;gap:9px;margin:12px 0;color:var(--muted);font-size:12px}
+label.check{display:flex;align-items:center;gap:9px;min-height:44px;margin:12px 0;color:var(--muted);font-size:14px}
 .check input{width:19px;height:19px;accent-color:var(--accent)}
 .actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:17px}
-button,.btn{display:inline-grid;place-items:center;border:1px solid #47505c;background:#1b2028;color:var(--text);padding:11px 13px;border-radius:9px;font-size:12px;cursor:pointer;text-decoration:none;min-height:43px}
+button,.btn{display:inline-grid;place-items:center;border:1px solid #47505c;background:#1b2028;color:var(--text);padding:11px 13px;border-radius:9px;font-size:14px;cursor:pointer;text-decoration:none;min-height:44px
 button.primary{background:#d8e4f4;color:#172230;border-color:#d8e4f4;font-weight:740}
 button:disabled{opacity:.45;cursor:not-allowed}
 .output{background:#0d1117;border:1px solid var(--line);padding:14px;border-radius:9px;min-height:170px;max-height:440px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.7 ui-monospace,SFMono-Regular,Consolas,monospace}
-.status{color:var(--muted);font-size:13px;line-height:1.65;margin-bottom:12px}
+.status{color:var(--muted);font-size:14px;line-height:1.65;margin-bottom:12px}
 .status.good{color:var(--ok)}.status.bad{color:var(--bad)}
 .metrics{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:13px}
 .metrics span{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:7px;padding:6px 9px}
@@ -42,10 +42,10 @@ details{margin-top:14px}summary{font-size:12px;color:var(--muted);cursor:pointer
 
 .batch-card{margin-top:20px}.batch-top{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:8px}
 .batch-controls{display:grid;grid-template-columns:minmax(150px,1.5fr) minmax(100px,.6fr) minmax(150px,1.1fr);gap:12px;align-items:end}
-.batch-wrap{overflow:auto;border:1px solid var(--line);border-radius:10px;margin-top:14px}.batch-table{border-collapse:collapse;width:100%;min-width:590px;font-size:12px}
+.batch-wrap{overflow:auto;border:1px solid var(--line);border-radius:10px;margin-top:14px}.batch-table{border-collapse:collapse;width:100%;min-width:590px;font-size:13px}
 .batch-table th,.batch-table td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);max-width:340px;overflow-wrap:anywhere}
 .batch-table th{color:var(--muted);background:#202d3a}.batch-table tr:last-child td{border-bottom:0}
-.batch-summary{font-size:12px;color:var(--muted);margin-top:10px}.batch-pass{color:var(--ok)}.batch-fail{color:var(--bad)}.batch-skip{color:var(--muted)}
+.batch-summary{font-size:14px;color:var(--muted);margin-top:10px}.batch-pass{color:var(--ok)}.batch-fail{color:var(--bad)}.batch-skip{color:var(--muted)}
 @media(max-width:820px){.layout{grid-template-columns:1fr}main{padding:14px 12px 45px}.card{padding:14px}.row{grid-template-columns:1fr 1fr}}
 @media(max-width:390px){.row{grid-template-columns:1fr}}
 /* Shared dark workspace theme; CSS-only desktop layout, zero backend overhead. */
@@ -54,16 +54,16 @@ body{background:var(--bg);line-height:1.55}main{max-width:1440px;padding:26px 28
 header{margin-bottom:30px}.brand{font-size:21px}.brand small{color:#9eb8d4}
 .workbench-heading{display:flex;align-items:end;justify-content:space-between;gap:15px;margin-bottom:8px}
 .workbench-heading h1{font-size:29px;margin:6px 0}.eyebrow,.card-label{color:#a9c0d8;font-size:11px;letter-spacing:.12em;font-weight:740}
-.workbench-pill{display:inline-flex;border:1px solid #436585;background:#23384e;color:#cde3fb;font-size:11px;padding:7px 12px;border-radius:999px;white-space:nowrap}
+.workbench-pill{display:inline-flex;border:1px solid #436585;background:#23384e;color:#cde3fb;font-size:12px;padding:7px 12px;border-radius:999px;white-space:nowrap}
 .layout{grid-template-columns:minmax(360px,.87fr) minmax(400px,1.13fr);gap:21px;align-items:start}
 .card{border-radius:15px;background:var(--panel);padding:25px;border-color:var(--line)}
-.card-label{margin-bottom:19px}.field label{font-size:13px}.field input,.field select,.field textarea{background:#111922;border-color:#435466;border-radius:10px}
+.card-label{margin-bottom:19px}.field label{font-size:14px}.field input,.field select,.field textarea{background:#111922;border-color:#435466;border-radius:10px}
 .field :is(input,select,textarea):focus-visible{outline:2px solid #a8c8ea;outline-offset:1px}
 .provider-info{font-size:12px;line-height:1.5;background:#1e3042;color:#b9cbe0;border:1px solid #344c65;padding:11px 13px;border-radius:10px;margin:-1px 0 17px}
-.preset-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.preset-row button{font-size:11px;min-height:35px;padding:7px 11px;border-color:#405164}
+.preset-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.preset-row button{font-size:13px;min-height:44px;padding:7px 11px;border-color:#405164}
 .results-card{position:sticky;top:18px}.result-head{display:flex;justify-content:space-between;align-items:center;gap:9px;flex-wrap:wrap}
 .result-head .card-label{margin-bottom:14px}.result-actions{display:flex;gap:6px;margin-bottom:12px}
-.result-actions button{min-height:35px;padding:7px 10px;font-size:11px}.output{background:#111922;min-height:290px;max-height:min(65vh,690px);font-size:13px;line-height:1.72}
+.result-actions button{min-height:44px;padding:7px 10px;font-size:13px}.output{background:#111922;min-height:290px;max-height:min(65vh,690px);font-size:13px;line-height:1.72}
 .metrics span{background:#202d3a;border-color:#435466;border-radius:9px;color:#c9d7e6;padding:8px 11px}
 button,.btn{touch-action:manipulation}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 button.primary{background:#dceafb;color:#182636}button:hover:not(:disabled),.btn:hover{border-color:#7994ad}
@@ -71,6 +71,7 @@ button.primary{background:#dceafb;color:#182636}button:hover:not(:disabled),.btn
 @media(max-width:900px){.layout{grid-template-columns:1fr}.results-card{position:static}.output{min-height:200px;max-height:500px}}
 @media(max-width:600px){.batch-controls{grid-template-columns:1fr 1fr}.batch-controls .batch-scope{grid-column:1/-1}main{padding:14px 12px calc(44px + env(safe-area-inset-bottom))}header{margin-bottom:20px}.card{padding:17px}.workbench-heading{align-items:start;flex-direction:column;gap:4px}.workbench-heading h1{font-size:24px}.layout{gap:13px}.row{grid-template-columns:1fr 1fr}.output{min-height:210px}.result-actions{width:100%}.result-actions button{flex:1}}
 @media(max-width:390px){.row{grid-template-columns:1fr}}
+@media(hover:none) and (pointer:coarse){button,.btn,.preset-row button,.result-actions button,label.check{min-height:48px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 </style></head><body>
 <main>
