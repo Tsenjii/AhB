@@ -57,6 +57,21 @@ func TestLightBridgeProbeBoundedAndNoRedirect(t *testing.T) {
 			http.Redirect(w,r,"http://example.com",302)
 		case "/bad":
 			_,_=w.Write([]byte(`{"data":"not a list"}`))
+		case "/null":
+			_,_=w.Write([]byte(`{"data":[null]}`))
+		case "/emptyid":
+			_,_=w.Write([]byte(`{"data":[{"id":"  "}]}`))
+		case "/missingid":
+			_,_=w.Write([]byte(`{"data":[{}]}`))
+		case "/wrongtype":
+			_,_=w.Write([]byte(`{"data":[{"id":123}]}`))
+		case "/trailing":
+			_,_=w.Write([]byte(`{"data":[{"id":"ok"}]}{"data":[]}`))
+		case "/oversized":
+			_,_=w.Write([]byte(`{"data":[]}`+strings.Repeat(" ",1<<20)))
+		case "/too-many":
+			items:=strings.TrimSuffix(strings.Repeat(`{"id":"ok"},`,1001),",")
+			_,_=w.Write([]byte(`{"data":[`+items+`]}`))
 		default:
 			http.NotFound(w,r)
 		}
@@ -64,7 +79,7 @@ func TestLightBridgeProbeBoundedAndNoRedirect(t *testing.T) {
 	defer server.Close()
 	ctx:=context.Background()
 	if err:=h.probeLightBridge(ctx,server.URL,"/v1/models");err!=nil {t.Fatal(err)}
-	for _,path:=range []string{"/redirect","/bad","/missing"} {
+	for _,path:=range []string{"/redirect","/bad","/null","/emptyid","/missingid","/wrongtype","/trailing","/oversized","/too-many","/missing"} {
 		if err:=h.probeLightBridge(ctx,server.URL,path);err==nil {t.Fatalf("probe should reject %s",path)}
 	}
 }

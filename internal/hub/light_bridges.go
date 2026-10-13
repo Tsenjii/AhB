@@ -140,10 +140,22 @@ func (h *Hub) probeLightBridge(ctx context.Context, base, modelsPath string) err
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("local models endpoint returned HTTP %d; use the private terminal connector for services needing a key", resp.StatusCode)
 	}
+	// Read one complete response: a single decoder call can accept an
+	// additional JSON document or silently ignore a size-limit overflow.
+	const maxCatalogBytes = 1 << 20
+	raw, err := io.ReadAll(io.LimitReader(resp.Body, maxCatalogBytes+1))
+	if err != nil || len(raw) > maxCatalogBytes {
+		return fmt.Errorf("bridge models list exceeds the 1 MiB limit")
+	}
 	var doc struct{ Data []json.RawMessage `json:"data"` }
-	dec:=json.NewDecoder(io.LimitReader(resp.Body,1<<20))
-	if dec.Decode(&doc)!=nil || doc.Data == nil {
+	if json.Unmarshal(raw, &doc) != nil || doc.Data == nil || len(doc.Data) > 1000 {
 		return fmt.Errorf("bridge does not expose a valid bounded OpenAI models list")
+	}
+	for _, item := range doc.Data {
+		var model struct{ ID string `json:"id"` }
+		if json.Unmarshal(item, &model) != nil || strings.TrimSpace(model.ID) == "" || len(model.ID) > 200 {
+			return fmt.Errorf("bridge models list contains an invalid model id")
+		}
 	}
 	return nil
 }

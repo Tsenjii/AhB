@@ -48,6 +48,8 @@ if [ "${AHB_STUB_CURL_FAIL:-0}" = "1" ]; then
 fi
 if [ "${AHB_STUB_CURL_INVALID:-0}" = "1" ]; then
   printf '{"not_a_models_list":true}\n'
+elif [ -n "${AHB_STUB_CURL_PAYLOAD:-}" ]; then
+  printf '%s\n' "$AHB_STUB_CURL_PAYLOAD"
 else
   printf '{"object":"list","data":[{"id":"local-test-model"}]}\n'
 fi
@@ -118,6 +120,27 @@ if AHB_STUB_CURL_FAIL=1 bash ./scripts/connect-bridge.sh unreachable http://127.
 fi
 if AHB_STUB_CURL_INVALID=1 bash ./scripts/connect-bridge.sh invalid http://127.0.0.1:9113; then
  echo "expected malformed model-list rejection" >&2; exit 1
+fi
+# Invalid model items and extra JSON must not mutate private configuration.
+for payload in \
+  '{"data":[{}]}' \
+  '{"data":[null]}' \
+  '{"data":[{"id":123}]}' \
+  '{"data":[{"id":"   "}]}' \
+  '{"data":{}}' \
+  '{"data":[]} {"data":[]}'; do
+  if AHB_STUB_CURL_PAYLOAD="$payload" bash ./scripts/connect-bridge.sh invalid http://127.0.0.1:9113; then
+    echo "expected invalid catalog rejection: $payload" >&2; exit 1
+  fi
+done
+oversized_catalog="$(jq -nc '[range(0;1001) | {id:"model"}] | {data:.}')"
+if AHB_STUB_CURL_PAYLOAD="$oversized_catalog" bash ./scripts/connect-bridge.sh invalid http://127.0.0.1:9113; then
+  echo "expected excessive model count rejection" >&2; exit 1
+fi
+long_id="$(printf 'x%.0s' {1..201})"
+long_catalog="$(jq -nc --arg id "$long_id" '{data:[{id:$id}]}')"
+if AHB_STUB_CURL_PAYLOAD="$long_catalog" bash ./scripts/connect-bridge.sh invalid http://127.0.0.1:9113; then
+  echo "expected excessive model ID length rejection" >&2; exit 1
 fi
 cmp config.json "$TMP/before.json"
 test "$(stat -c %a config.json)" = "600"
