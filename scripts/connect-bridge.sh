@@ -146,7 +146,19 @@ if ! model_json="$(curl "${curl_args[@]}" "$base$models_path")"; then
   echo "Bridge unavailable or unauthorized at $base$models_path; configuration unchanged." >&2
   exit 1
 fi
-if ! printf '%s' "$model_json" | jq -e '(.data | type) == "array"' >/dev/null 2>&1; then
+# Slurp to reject multiple JSON documents, then validate every bounded entry.
+if ! printf '%s' "$model_json" | jq -e -s '
+  length == 1 and
+  (.[0].data |
+    type == "array" and
+    length <= 1000 and
+    all(.[];
+      type == "object" and
+      (.id | type == "string" and length <= 200 and
+        (gsub("[[:space:]]"; "") | length > 0))
+    )
+  )
+' >/dev/null 2>&1; then
   echo "Bridge does not expose a valid OpenAI models list; configuration unchanged." >&2
   exit 1
 fi
