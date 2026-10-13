@@ -128,7 +128,7 @@ function metric(code,ttft,total){
   const span=document.createElement('span');span.textContent=label;el('metrics').appendChild(span);
  }
 }
-async function getJSON(path){const r=await fetch(path,{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}
+async function getJSON(path,signal){const r=await fetch(path,{cache:'no-store',signal});if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}
 async function reload(){
  if(batchActive)return;
  const last=provider.value||new URLSearchParams(location.search).get('provider')||'';
@@ -420,7 +420,7 @@ batchStart.addEventListener('click',async()=>{
  try{
   // Refresh enabled status immediately before the batch. Never scan or
   // activate a disabled service even if an old page cached its model list.
-  const data=await getJSON('/api/providers');
+  const data=await getJSON('/api/providers',controller.signal);
   const selectedProviders=(data.providers||[]).filter(p=>p.enabled&&p.id!=='route'&&(all||p.id===selected));
   for(const p of selectedProviders){
    if(controller.signal.aborted||attempts>=maximum)break;
@@ -438,7 +438,7 @@ batchStart.addEventListener('click',async()=>{
      });
      if(!wake.ok)throw new Error('啟動失敗 HTTP '+wake.status);
     }
-    const listing=await getJSON('/v1/models');
+    const listing=await getJSON('/v1/models',controller.signal);
     const names=new Set();
     for(const item of listing.data||[]){
      const name=item.x_upstream_id;
@@ -466,7 +466,8 @@ batchStart.addEventListener('click',async()=>{
   batchSetStatus(controller.signal.aborted?'已停止；已送出的請求仍可能計費。':
    '批量測試完成，已送出 '+attempts+' 次真實請求'+(attempts>=maximum?'（達到數量上限）':'')+'。成功只代表這一次成功。');
  }catch(err){
-  batchSetStatus('批量測試中斷：'+String(err.message||err).slice(0,140),true);
+  if(controller.signal.aborted)batchSetStatus('已停止；已送出的請求仍可能計費。');
+  else batchSetStatus('批量測試中斷：'+String(err.message||err).slice(0,140),true);
  }finally{
   batchController=null;batchActive=false;batchStart.disabled=!controlsAvailable;
   batchStop.disabled=true;el('reload').disabled=false;
