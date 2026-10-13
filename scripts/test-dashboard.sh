@@ -90,6 +90,14 @@ for needle in ('workbench-heading', 'results-card', 'result-actions', 'id="copyR
     else:
         assert needle in html, f"Playground UI regression: {needle}"
 assert 'navigator.clipboard.writeText' in html, 'reply-copy action must be wired'
+# Keep Android/coarse-pointer touch targets large enough in the workbench.
+for needle in (
+    '.preset-row button{font-size:13px;min-height:44px;',
+    '.result-actions button{min-height:44px;',
+    'cursor:pointer;text-decoration:none;min-height:44px',
+    '@media(hover:none) and (pointer:coarse){button,.btn,.preset-row button,.result-actions button,label.check{min-height:48px}',
+):
+    assert needle in html, f"Playground touch target CSS missing: {needle}"
 assert 'id="modelSelect"' in html and 'id="loadModels"' in html, 'Playground must allow selecting and loading models'
 for needle in ('id="batchPanel"', 'id="batchStart"', 'id="batchStop"', 'id="batchLimit"',
                'id="batchScope"', 'id="batchRows"', 'id="batchCopy"', 'id="batchExperimental"'):
