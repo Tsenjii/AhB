@@ -19,7 +19,7 @@ function mockNode(id=''){
   setAttribute(){},removeAttribute(){},querySelector(){return null}
  };
 }
-function createWorkbench({statuses={},replyFor,providers,models}={}){
+function createWorkbench({statuses={},replyFor,providers,models,onModelsFetch}={}){
  const ids=new Map(),requests=[],seenWake=[];
  const node=id=>{if(!ids.has(id))ids.set(id,mockNode(id));return ids.get(id)};
  const document={
@@ -42,7 +42,7 @@ function createWorkbench({statuses={},replyFor,providers,models}={}){
  ];
  const fetch=async(path,options={})=>{
   if(path==='/api/providers')return {ok:true,json:async()=>({providers:p})};
-  if(path==='/v1/models')return {ok:true,json:async()=>({data:m})};
+  if(path==='/v1/models')return onModelsFetch?onModelsFetch(options):{ok:true,json:async()=>({data:m})};
   if(path.startsWith('/api/control/wake/')){
    seenWake.push(path);
    return {ok:true,status:200};
@@ -133,8 +133,31 @@ async function testExperimentalOptInAndDisabledStillOff(){
  await app.node('batchStart').handlers.click();
  assert.deepEqual(app.requests.map(r=>r.model),['deepseek/deepseek-chat']);
 }
+async function testAbortWhileLoadingModelCatalog(){
+ let started;
+ const entered=new Promise(resolve=>{started=resolve});
+ const app=createWorkbench({onModelsFetch:opts=>{
+  // Initial page load is a normal read; the batch catalog request must
+  // carry an AbortSignal so Stop does not wait for a hung /v1/models.
+  if(!opts.signal)return {ok:true,json:async()=>({data:[{x_provider:'opencode',x_upstream_id:'first'}]})};
+  started();
+  return new Promise((_resolve,reject)=>{
+   opts.signal.addEventListener('abort',()=>reject(new Error('aborted')),{once:true});
+  });
+ }});
+ await app.ready;
+ const job=app.node('batchStart').handlers.click();
+ await entered;
+ app.node('batchStop').handlers.click();
+ await job;
+ assert.equal(app.requests.length,0,'cancelling catalog fetch must not consume quota');
+ assert.match(app.node('batchStatus').textContent,/已停止/,'cancellation is not a generic error');
+ assert.equal(app.node('batchStart').disabled,false,'start button should recover after cancel');
+}
+
 await testStopsProviderAfter429And502();
 await testCapsAndSkipsDisabledProviders();
 await testAbortStopsRemainingModels();
+await testAbortWhileLoadingModelCatalog();
 await testExperimentalOptInAndDisabledStillOff();
-console.log('batch Playground fixture PASS: cap, real requests, fault gating, opt-in, cancellation');
+console.log('batch Playground fixture PASS: cap, real requests, fault gating, opt-in, request + catalog cancellation');
