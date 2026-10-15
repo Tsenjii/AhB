@@ -32,7 +32,8 @@ func (h *Hub) handlePlayground(w http.ResponseWriter,r *http.Request){
   ToolTest bool `json:"tool_test"`
   MaxTokens int `json:"max_tokens"`
  }
- decoder:=json.NewDecoder(io.LimitReader(r.Body,20*1024))
+ // Enforce the full HTTP body limit, including trailing whitespace or extra JSON.
+ decoder:=json.NewDecoder(http.MaxBytesReader(w,r.Body,20*1024))
  decoder.DisallowUnknownFields()
  if err:=decoder.Decode(&request);err!=nil || decoder.Decode(new(any))!=io.EOF {
   writeError(w,400,"invalid_request","Expected one JSON object with model, prompt, stream, tool_test and max_tokens")
