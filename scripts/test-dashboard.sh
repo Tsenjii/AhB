@@ -110,4 +110,6 @@ Path(sys.argv[1]).write_text(js,encoding="utf-8")
 PY
 node --check "$TMP/playground.js"
 node scripts/test-playground-batch.mjs "$TMP/playground.js"
+node scripts/test-playground-race.mjs
+node scripts/test-playground-controls.mjs
 echo "dashboard + Playground markup, JavaScript syntax and real batch workflow fixtures passed"
