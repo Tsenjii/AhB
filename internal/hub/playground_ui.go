@@ -23,13 +23,13 @@ h1{font-size:23px;margin:2px 0 8px}p{font-size:14px;color:var(--muted);line-heig
 .card{border:1px solid var(--line);border-radius:13px;background:var(--panel);padding:18px;min-width:0}
 .field{margin-bottom:14px}.field label{display:block;margin-bottom:7px;font-size:14px;font-weight:650;color:var(--muted)}
 input,select,textarea,button{font:inherit}
-.field input,.field select,.field textarea{width:100%;border:1px solid #47505c;background:#0d1117;color:var(--text);padding:11px;border-radius:9px;font-size:15px;min-height:44px}
+.field input,.field select,.field textarea{width:100%;border:1px solid #47505c;background:#0d1117;color:var(--text);padding:11px;border-radius:9px;font-size:16px;min-height:44px}
 textarea{resize:vertical;min-height:148px!important;line-height:1.5}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 label.check{display:flex;align-items:center;gap:9px;min-height:44px;margin:12px 0;color:var(--muted);font-size:14px}
 .check input{width:19px;height:19px;accent-color:var(--accent)}
 .actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:17px}
-button,.btn{display:inline-grid;place-items:center;border:1px solid #47505c;background:#1b2028;color:var(--text);padding:11px 13px;border-radius:9px;font-size:14px;cursor:pointer;text-decoration:none;min-height:44px
+button,.btn{display:inline-grid;place-items:center;border:1px solid #47505c;background:#1b2028;color:var(--text);padding:11px 13px;border-radius:9px;font-size:14px;cursor:pointer;text-decoration:none;min-height:44px}
 button.primary{background:#d8e4f4;color:#172230;border-color:#d8e4f4;font-weight:740}
 button:disabled{opacity:.45;cursor:not-allowed}
 .output{background:#0d1117;border:1px solid var(--line);padding:14px;border-radius:9px;min-height:170px;max-height:440px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.7 ui-monospace,SFMono-Regular,Consolas,monospace}
