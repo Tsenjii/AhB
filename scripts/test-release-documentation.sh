@@ -6,6 +6,13 @@ tag="$(sed -n 's/^ARG AHB_RELEASE_TAG=//p' Dockerfile)"
 grep -Fq "AHB_RELEASE_TAG: \${AHB_RELEASE_TAG:-$tag}" compose.yaml || { echo "compose/Dockerfile release mismatch" >&2; exit 1; }
 grep -Fq "defaults to \`$tag\`" docs/DOCKER.md || { echo "Docker guide mismatch" >&2; exit 1; }
 grep -Fq "releases/tag/$tag" README.md || { echo "README missing compiled baseline" >&2; exit 1; }
+# Docker's independently verified pin may lag the latest published native release.
+# Scope the native check to the release table so historical links cannot mask drift.
+native_section="$(sed -n '/^## 最新版本與編譯狀態$/,/^## Android 與 Linux 版本差異$/p' README.md)"
+native_sha="$(printf '%s\\n' "$native_section" | sed -nE 's/^\\*\\*目前已發布的原生版本：`([0-9a-f]{12})`.*/\\1/p')"
+[[ "$native_sha" =~ ^[0-9a-f]{12}$ ]] || { echo "README native release SHA missing or invalid" >&2; exit 1; }
+printf '%s\\n' "$native_section" | grep -Fq "releases/tag/linux-$native_sha" || { echo "README native release link mismatch" >&2; exit 1; }
+printf '%s\\n' "$native_section" | grep -Fq "blob/prebuilt/source-commit.txt" || { echo "README Android source provenance link missing" >&2; exit 1; }
 grep -Fq "DeepSeek Web: no native admin WebUI" README.md || { echo "DeepSeek UI guidance mismatch" >&2; exit 1; }
 if grep -Fq "DeepSeek2API\x27s original management UI" README.md; then echo "obsolete DeepSeek UI" >&2; exit 1; fi
 grep -Fq "v3.0.1" docs/PROVIDERS.md || { echo "Agent2API docs stale" >&2; exit 1; }
