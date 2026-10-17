@@ -97,14 +97,9 @@ func (h *Hub) fallbackProviderIDs(primary string) []string {
 	seen := map[string]struct{}{primary: {}}
 	out := []string{primary}
 	configured := h.cfg.Routing.SameModelFallback.Providers
+	// An empty allowlist explicitly permits no cross-provider fallback.
+	// Never expand it to all installed providers, including new bridges.
 	if len(configured) == 0 {
-		for _, p := range h.cfg.Providers {
-			if _, ok := seen[p.ID]; ok {
-				continue
-			}
-			seen[p.ID] = struct{}{}
-			out = append(out, p.ID)
-		}
 		return out
 	}
 	for _, id := range configured {

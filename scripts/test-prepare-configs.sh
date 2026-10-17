@@ -46,6 +46,24 @@ test "$(stat -c '%a' config.json)" = "600"
 sha256sum config.json > "$TMP/config-before"
 bash scripts/prepare-configs.sh
 sha256sum -c "$TMP/config-before" >/dev/null
+# Do not widen an explicitly configured same-model failover list on update.
+for allowed in '[]' '["opencode"]' '["custom-provider"]'; do
+  jq --argjson allowed "$allowed" '.routing.same_model_fallback.providers = $allowed' config.json > "$TMP/explicit-allowlist.json"
+  mv "$TMP/explicit-allowlist.json" config.json
+  bash scripts/prepare-configs.sh
+  jq -e --argjson allowed "$allowed" '.routing.same_model_fallback.providers == $allowed' config.json >/dev/null
+done
+# A malformed list must fail and leave the previous config exactly intact.
+for invalid in 'null' '"opencode"' '42' '{}' '[null]' '[1]' '[{}]' '["opencode",false]'; do
+  jq --argjson bad "$invalid" '.routing.same_model_fallback.providers = $bad' config.json > "$TMP/invalid-allowlist.json"
+  mv "$TMP/invalid-allowlist.json" config.json
+  cp config.json "$TMP/invalid-before.json"
+  if bash scripts/prepare-configs.sh > "$TMP/invalid.log" 2>&1; then
+    echo "ERROR: malformed fallback providers accepted: $invalid" >&2
+    exit 1
+  fi
+  cmp config.json "$TMP/invalid-before.json"
+done
 printf '{"providers":"not-an-array","unique":"unchanged"}\n' > config.json
 cp config.json "$TMP/broken-original"
 if bash scripts/prepare-configs.sh > "$TMP/broken.log" 2>&1; then
