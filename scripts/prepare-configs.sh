@@ -111,7 +111,7 @@ if command -v jq >/dev/null 2>&1 && [ -f config.json ]; then
       | (.providers | map(.id)) as $validIDs
       # Explicit allowlists (including []) survive upgrades; omitted fields
       # alone inherit defaults. Reject malformed data rather than corrupting
-      # a user's routing permissions or silently discarding bad entries.
+      # user routing permissions or silently discarding bad entries.
       | (.routing.same_model_fallback // {}) as $fallback
       | .routing.same_model_fallback.providers =
           (if ($fallback | has("providers")) then
