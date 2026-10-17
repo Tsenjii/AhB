@@ -109,14 +109,18 @@ if command -v jq >/dev/null 2>&1 && [ -f config.json ]; then
           else . end
         )
       | (.providers | map(.id)) as $validIDs
+      # Explicit allowlists (including []) survive upgrades; omitted fields
+      # alone inherit defaults. Reject malformed data rather than corrupting
+      # a user's routing permissions or silently discarding bad entries.
+      | (.routing.same_model_fallback // {}) as $fallback
       | .routing.same_model_fallback.providers =
-          ((.routing.same_model_fallback.providers // []) | map(select(. as $id | $validIDs | index($id))))
-      | reduce ($example[0].routing.same_model_fallback.providers // [])[] as $id (.;
-          if (.routing.same_model_fallback.providers | index($id)) == null
-          then .routing.same_model_fallback.providers += [$id]
-          else .
-          end
-        )
+          (if ($fallback | has("providers")) then
+             if ($fallback.providers | type) == "array" then
+               if ($fallback.providers | all(.[]; type == "string")) then $fallback.providers
+               else error("same_model_fallback.providers entries must be strings") end
+             else error("same_model_fallback.providers must be an array") end
+           else ($example[0].routing.same_model_fallback.providers // []) end
+           | map(select(. as $id | $validIDs | index($id))))
     ' config.json > "$tmp" && jq -e '.providers | type == "array"' "$tmp" >/dev/null; then
     chmod 600 "$tmp"
     mv -f "$tmp" config.json
