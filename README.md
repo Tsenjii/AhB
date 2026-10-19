@@ -14,15 +14,15 @@
 
 ## 最新版本與編譯狀態
 
-**目前已發布的原生版本：`0bf0ba3727fd`（2026-10-11 台灣時間核對）**
+**目前已發布的原生版本：`3d2e49500d16`（2026-10-13 台灣時間核對）**
 
 | 驗證 | 狀態 | 連結 |
 | --- | --- | --- |
-| Go 測試、Race Test、Vet | 已通過 | [CI 紀錄](https://github.com/Tsenjii/AhB/actions/runs/38066931307) |
-| Android ARM64 正式封包 | 已發布 | [Android 編譯](https://github.com/Tsenjii/AhB/actions/runs/38066931268) |
-| Linux AMD64／ARM64 | 已發布 | [Linux 編譯](https://github.com/Tsenjii/AhB/actions/runs/38066931272) |
-| 最新 Linux Release（含 SHA-256） | 已發布 | [`linux-0bf0ba3727fd`](https://github.com/Tsenjii/AhB/releases/tag/linux-0bf0ba3727fd) |
-| Android `prebuilt` | 來源 SHA 與上述版本一致 | [`prebuilt` 分支](https://github.com/Tsenjii/AhB/tree/prebuilt) |
+| Go 測試、Race Test、Vet | 已通過 | [CI 紀錄](https://github.com/Tsenjii/AhB/actions/runs/38386539043) |
+| Android ARM64 正式封包 | 已發布 | [Android 編譯](https://github.com/Tsenjii/AhB/actions/runs/38386539055) |
+| Linux AMD64／ARM64 | 已發布 | [Linux 編譯](https://github.com/Tsenjii/AhB/actions/runs/38386539015) |
+| 最新 Linux Release（含 SHA-256） | 已發布 | [`linux-3d2e49500d16`](https://github.com/Tsenjii/AhB/releases/tag/linux-3d2e49500d16) |
+| Android `prebuilt` | 來源 SHA 與上述版本一致：`3d2e49500d16b808dd7df68bb83d27214a48287b` | [來源 Commit](https://github.com/Tsenjii/AhB/blob/prebuilt/source-commit.txt) · [`prebuilt` 分支](https://github.com/Tsenjii/AhB/tree/prebuilt) |
 
 此版本已包含 **Agent2API v3.0.1**、新控制台、低記憶體防護、SSE 傳輸期間的 Gateway 保護，以及上游版本釘選整理。
 
