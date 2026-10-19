@@ -181,7 +181,7 @@ jobs:
           # Pinned Agent2API v3.0.1 upstream release (2026-10-10); built as Android headless.
           AGENT_SHA="fd869a4610859f4690c307ad9e8b0e16d51e1058"
           git init /tmp/agent2api
-          git -C /tmp/agent2api remote add origin https://github.com/aimod-cc/agent2api.git
+          git -C /tmp/agent2api remote add origin https://github.com/Agent2API/agent2api.git
           git -C /tmp/agent2api fetch --depth 1 origin "$AGENT_SHA"
           git -C /tmp/agent2api checkout --detach FETCH_HEAD
           cd /tmp/agent2api/desktop-tauri/src-tauri
