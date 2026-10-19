@@ -13,6 +13,15 @@ native_sha="$(printf '%s\n' "$native_section" | sed -nE 's/^\*\*目前已發布�
 [[ "$native_sha" =~ ^[0-9a-f]{12}$ ]] || { echo "README native release SHA missing or invalid" >&2; exit 1; }
 printf '%s\n' "$native_section" | grep -Fq "releases/tag/linux-$native_sha" || { echo "README native release link mismatch" >&2; exit 1; }
 printf '%s\n' "$native_section" | grep -Fq "blob/prebuilt/source-commit.txt" || { echo "README Android source provenance link missing" >&2; exit 1; }
+# Match the published Android source SHA against the native release pin.
+source_rows="$(printf '%s\n' "$native_section" | grep -F 'blob/prebuilt/source-commit.txt')"
+[[ "$(printf '%s\n' "$source_rows" | wc -l | tr -d ' ')" == "1" ]] || { echo "README Android provenance row duplicated" >&2; exit 1; }
+[[ "$source_rows" == '| Android `prebuilt` |'* ]] || { echo "README Android provenance row malformed" >&2; exit 1; }
+[[ "$source_rows" =~ `([0-9a-f]{40})` ]] || { echo "README Android source commit SHA missing or invalid" >&2; exit 1; }
+source_sha="${BASH_REMATCH[1]}"
+sha_count="$(printf '%s\n' "$source_rows" | grep -oE '`[0-9a-f]{40}`' | wc -l | tr -d ' ')"
+[[ "$sha_count" == "1" ]] || { echo "README Android provenance has multiple source SHAs" >&2; exit 1; }
+[[ "${source_sha:0:12}" == "$native_sha" ]] || { echo "README Android source SHA differs from native release" >&2; exit 1; }
 grep -Fq "DeepSeek Web: no native admin WebUI" README.md || { echo "DeepSeek UI guidance mismatch" >&2; exit 1; }
 if grep -Fq "DeepSeek2API's original management UI" README.md; then echo "obsolete DeepSeek UI" >&2; exit 1; fi
 grep -Fq "v3.0.1" docs/PROVIDERS.md || { echo "Agent2API docs stale" >&2; exit 1; }
