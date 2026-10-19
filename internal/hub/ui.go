@@ -197,6 +197,7 @@ button,.btn{touch-action:manipulation}button:focus-visible,a:focus-visible,input
 .anchor-nav{position:sticky;top:0;z-index:12;margin:0 -6px;padding:12px 6px;background:var(--bg);border-bottom:1px solid var(--line)}
 .anchor-nav button,.anchor-nav .nav-play{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:9px 17px;border-radius:10px;text-decoration:none;white-space:nowrap;font-size:13px;color:var(--muted);background:transparent;border:1px solid transparent}
 .anchor-nav button.selected{background:#304257;color:#f2f7ff;border:1px solid #6d87a3}
+.playground-shortcut{display:none}
 .sync-strip{display:flex;gap:10px;align-items:center;padding:12px 0 0;color:var(--subtle);font-size:11px}.connection-pill{font-weight:680;color:var(--warn)}
 .connection-pill:before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:currentColor;margin-right:7px}.connection-pill.online{color:var(--ok)}.connection-pill.offline{color:var(--bad)}
 .overview{gap:22px;padding:22px 0}.overview-title{font-size:23px}.summary{grid-template-columns:repeat(4,minmax(0,1fr));min-width:min(520px,100%);border-radius:12px}.summary-item{padding:13px;min-width:0}.summary-item b{font-size:20px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}.summary-item span{font-size:10px}
@@ -204,7 +205,8 @@ button,.btn{touch-action:manipulation}button:focus-visible,a:focus-visible,input
 .provider-filter{display:flex;gap:7px;overflow:auto;scrollbar-width:none;margin:0 0 12px;padding:3px 0}.provider-filter button{white-space:nowrap;min-height:38px;background:transparent;color:var(--muted);border-color:var(--line)}.provider-filter button.selected{background:#30465c;border-color:#718faa;color:#f2f7ff;font-weight:700}
 .empty-result{padding:25px;text-align:center;border:1px dashed var(--line);border-radius:12px;color:var(--muted);font-size:13px}.load-more-wrap{padding:11px;text-align:center}.load-more-wrap button[hidden]{display:none}
 @media(max-width:960px){.overview{grid-template-columns:1fr}.summary{min-width:0;width:100%}}
-@media(max-width:820px),(hover:none) and (pointer:coarse){main{padding-bottom:calc(116px + env(safe-area-inset-bottom))}.anchor-nav{position:fixed;top:auto;bottom:0;left:0;right:0;margin:0;padding:8px max(8px,env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-right));border-top:1px solid #4a596a;border-bottom:0;background:#1b242f;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;z-index:30;box-shadow:0 -4px 24px #0005}.anchor-nav button,.anchor-nav .nav-play{padding:9px 2px;min-height:46px;font-size:12px;min-width:0}.summary{grid-template-columns:repeat(2,minmax(0,1fr))}.summary-item:nth-child(3){border-left:0;border-top:1px solid var(--line)}.summary-item:nth-child(4){border-top:1px solid var(--line)}.card-top{grid-template-columns:1fr}.overview-title{font-size:21px}}
+@media(max-width:1023px){main{padding-bottom:calc(116px + env(safe-area-inset-bottom))}.anchor-nav{position:fixed;top:auto;bottom:0;left:0;right:0;margin:0;padding:8px max(8px,env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-right));border-top:1px solid #4a596a;border-bottom:0;background:#1b242f;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;z-index:30;box-shadow:0 -4px 24px #0005}.anchor-nav button,.anchor-nav .nav-play{padding:9px 2px;min-height:46px;font-size:12px;min-width:0}.summary{grid-template-columns:repeat(2,minmax(0,1fr))}.summary-item:nth-child(3){border-left:0;border-top:1px solid var(--line)}.summary-item:nth-child(4){border-top:1px solid var(--line)}.card-top{grid-template-columns:1fr}.overview-title{font-size:21px}}
+@media(max-width:1023px){.anchor-nav .nav-play{display:none!important}.playground-shortcut{display:inline-flex;align-items:center;justify-content:center;min-height:44px;max-width:100%;padding:10px 15px;margin-top:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);color:var(--text);font-weight:700;text-decoration:none}}
 @media(max-width:390px){.anchor-nav button,.anchor-nav .nav-play{font-size:11px}}@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 /* Desktop workspace: persistent sidebar and generous data density. */
 @media(min-width:1024px){
@@ -285,6 +287,7 @@ button,.btn{touch-action:manipulation}button:focus-visible,a:focus-visible,input
   <div class="overview-title">統一 API 入口</div>
   <div class="desc">所有來源維持明確的 provider/model 命名；路由狀態可以在下方直接確認。</div>
   <div class="base-row"><div id="baseUrl" class="base">http://127.0.0.1:8317/v1</div><button id="copyBase">複製 Base URL</button></div>
+   <a href="/playground" class="playground-shortcut" aria-label="開啟 Playground 實測">開啟 Playground 實測</a>
  </div>
  <div class="summary">
   <div class="summary-item"><b id="providerTotal">—</b><span>已啟用來源</span></div>
