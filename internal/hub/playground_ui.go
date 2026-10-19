@@ -121,7 +121,7 @@ const controlsAvailable=__AHB_PROVIDER_CONTROL_AVAILABLE__;
 const el=id=>document.getElementById(id);
 const provider=el('provider'),model=el('model'),modelSelect=el('modelSelect'),loadModels=el('loadModels'),statusBox=el('status');
 const output=el('output'),raw=el('raw'),send=el('send'),cancel=el('cancel');
-let providers=[],models=[],active=null,lastProvider='',batchActive=false;
+let providers=[],models=[],active=null,lastProvider='',batchActive=false,catalogGeneration=0;
 const copyResponse=el('copyResponse'),clearResponse=el('clearResponse');
 function metric(code,ttft,total){
  el('metrics').replaceChildren();
@@ -131,24 +131,34 @@ function metric(code,ttft,total){
 }
 async function getJSON(path,signal){const r=await fetch(path,{cache:'no-store',signal});if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}
 async function reload(){
- if(batchActive)return;
+ if(batchActive)return false;
+ // Ignore delayed responses from requests superseded by a newer action.
+ const generation=++catalogGeneration;
  const last=provider.value||new URLSearchParams(location.search).get('provider')||'';
  statusBox.className='status';
  statusBox.textContent='讀取模型中（不會喚醒休眠來源）…';
  try{
   const data=await Promise.all([getJSON('/api/providers'),getJSON('/v1/models')]);
+  if(generation!==catalogGeneration||batchActive)return false;
   providers=(data[0].providers||[]).filter(p=>p.enabled&&p.id!=='route');
   models=data[1].data||[];
+  const selected=provider.value||last;
   provider.replaceChildren();
   for(const p of providers){
    const option=document.createElement('option');option.value=p.id;
    option.textContent=(p.display_name||p.id)+' · '+p.id;provider.appendChild(option);
   }
-  if(providers.some(p=>p.id===last))provider.value=last;
+  if(providers.some(p=>p.id===selected))provider.value=selected;
+  else if(providers.some(p=>p.id===last))provider.value=last;
   chooseModels();
   send.disabled=!controlsAvailable||!providers.length||!!active;
   statusBox.textContent=providers.length?'選擇 Gateway 與模型後送出測試。':'沒有已啟用的 Gateway';
- }catch(err){statusBox.textContent='來源清單讀取失敗：'+err.message;send.disabled=true}
+  return true;
+ }catch(err){
+  if(generation!==catalogGeneration||batchActive)return false;
+  statusBox.textContent='來源清單讀取失敗：'+err.message;send.disabled=true;
+  return false;
+ }
 }
 function chooseModels(){
  const chosen=providers.find(p=>p.id===provider.value);
@@ -173,7 +183,7 @@ function chooseModels(){
  model.placeholder=experimental?'輸入已自行確認的 DeepSeek 模型 ID':'輸入模型 ID，或從上面選取';
  el('providerInfo').textContent=chosen?(chosen.display_name||chosen.id)+' · '+(chosen.process_alive?'運作中':'休眠／未啟動')+' · '+(chosen.provider_ready?'端點就緒':'帳號與可用性待查')+
  (experimental?' · 可能失效的靜態模型目錄已隱藏':unique.size?' · 宣告 '+unique.size+' 個模型（未實測）':' · 尚無模型目錄'):'尚未選擇來源';
- loadModels.disabled=!controlsAvailable||!chosen||!!active;
+ loadModels.disabled=batchActive||!controlsAvailable||!chosen||!!active;
 }
 provider.addEventListener('change',chooseModels);
 modelSelect.addEventListener('change',()=>{if(modelSelect.value)model.value=modelSelect.value});
@@ -190,10 +200,13 @@ loadModels.addEventListener('click',async()=>{
    });
    if(!response.ok)throw new Error('啟動失敗 HTTP '+response.status+'：'+(await response.text()).slice(0,180));
   }
-  await reload();
-  statusBox.textContent='已刷新模型清單；模型仍須經實際推論驗證。';
- }catch(err){statusBox.className='status bad';statusBox.textContent='模型載入失敗：'+err.message}
- finally{loadModels.disabled=!controlsAvailable||!provider.value}
+  if(provider.value!==id||batchActive)return;
+  const updated=await reload();
+  if(updated&&provider.value===id&&!batchActive)statusBox.textContent='已刷新模型清單；模型仍須經實際推論驗證。';
+ }catch(err){
+  if(provider.value===id&&!batchActive){statusBox.className='status bad';statusBox.textContent='模型載入失敗：'+err.message}
+ }
+ finally{loadModels.disabled=batchActive||!controlsAvailable||!provider.value||!!active}
 });
 const presets={chat:'請用一句話介紹自己，然後回答 2 + 3 = ?',reason:'有三個盒子，各裝著紅球、藍球或混合球，且標籤全部貼錯。請說明最少抽幾顆球能判斷標籤。',format:'請只輸出合法 JSON，包含 status 為 ok、answer 為 5 兩個欄位。'};
 document.querySelector('.preset-row').addEventListener('click',e=>{const b=e.target.closest('button[data-preset]');if(b&&presets[b.dataset.preset])el('prompt').value=presets[b.dataset.preset]});
@@ -414,6 +427,7 @@ batchStart.addEventListener('click',async()=>{
  const selected=provider.value;
  if(!all&&!selected){batchSetStatus('請先選擇一個 Gateway。',true);return}
  const includeExperimental=el('batchExperimental').checked;
+ catalogGeneration++; // Invalidate pending reload even if this batch finishes first.
  batchActive=true;batchRecords=[];batchRows.replaceChildren();batchProgress();
  batchStart.disabled=true;batchStop.disabled=false;send.disabled=true;loadModels.disabled=true;el('reload').disabled=true;
  const controller=new AbortController();batchController=controller;
