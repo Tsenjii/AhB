@@ -1,3 +1,7 @@
+> **Current integration checkpoint (2026-10-19):** [Seven merged PRs, exact commit links, CI gates, remaining device tests](HANDOFF_2026-10-19_INTEGRATION.md). This supersedes the older `main=42d4c7c` and pending-PR descriptions below. Do not treat a CI pass as proof of authorized phone inference or a published prebuilt. Recheck Actions and release provenance before updating devices.
+
+---
+
 # CURRENT VERIFIED COMPILED RELEASE — 2026-10-10
 
 - Source [`15b2a47`](https://github.com/Tsenjii/AhB/commit/15b2a47dea22a964755e6ed97ef0769b2baa1cda): [CI/race passed](https://github.com/Tsenjii/AhB/actions/runs/38033913231), [Android ARM64 passed and published](https://github.com/Tsenjii/AhB/actions/runs/38033913234), [Linux AMD64/ARM64 passed and published](https://github.com/Tsenjii/AhB/actions/runs/38033913238), [native Linux release](https://github.com/Tsenjii/AhB/releases/tag/linux-15b2a47dea22). Android prebuilt/source-commit.txt matched compiled source at inspection. Check Actions again for later commits.
