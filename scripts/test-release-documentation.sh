@@ -17,7 +17,8 @@ printf '%s\n' "$native_section" | grep -Fq "blob/prebuilt/source-commit.txt" || 
 source_rows="$(printf '%s\n' "$native_section" | grep -F 'blob/prebuilt/source-commit.txt')"
 [[ "$(printf '%s\n' "$source_rows" | wc -l | tr -d ' ')" == "1" ]] || { echo "README Android provenance row duplicated" >&2; exit 1; }
 [[ "$source_rows" == '| Android `prebuilt` |'* ]] || { echo "README Android provenance row malformed" >&2; exit 1; }
-[[ "$source_rows" =~ `([0-9a-f]{40})` ]] || { echo "README Android source commit SHA missing or invalid" >&2; exit 1; }
+source_pattern='`([0-9a-f]{40})`'
+[[ "$source_rows" =~ $source_pattern ]] || { echo "README Android source commit SHA missing or invalid" >&2; exit 1; }
 source_sha="${BASH_REMATCH[1]}"
 sha_count="$(printf '%s\n' "$source_rows" | grep -oE '`[0-9a-f]{40}`' | wc -l | tr -d ' ')"
 [[ "$sha_count" == "1" ]] || { echo "README Android provenance has multiple source SHAs" >&2; exit 1; }
