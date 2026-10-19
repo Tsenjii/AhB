@@ -57,6 +57,16 @@ for needle in ('id="connectionStatus"', 'id="lastSynced"', 'id="summaryRss"',
                'data-provider-filter="asleep"', 'data-provider-filter="enabled"',
                'min-width:1024px', 'grid-template-columns:repeat(5,minmax(0,1fr))'):
     assert needle in html, f"desktop/mobile control center missing: {needle}"
+# Mobile navigation stays at five tappable destinations; Playground remains
+# reachable through a visible in-content shortcut (desktop keeps sidebar link).
+nav=html.split('<nav class="anchor-nav"',1)[1].split('</nav>',1)[0]
+assert nav.count('<button type="button" data-tab=') == 5, 'dashboard tabs unexpectedly changed'
+assert nav.count('class="btn nav-play"') == 1, 'desktop Playground entry missing'
+assert '<a href="/playground" class="playground-shortcut"' in html, 'mobile Playground shortcut missing'
+assert '@media(max-width:1023px){main{' in html, 'touch/mobile breakpoint must stop before desktop sidebar'
+assert '.anchor-nav .nav-play{display:none!important}' in html, 'sixth mobile tab must be hidden'
+assert '.playground-shortcut{display:inline-flex' in html, 'mobile shortcut must be visible'
+assert '@media(min-width:1024px)' in html, 'desktop sidebar layout missing'
 assert 'modelLimit=120' in html and 'rows.slice(0,modelLimit)' in html, 'model page size must be bounded'
 assert 'previousCards' in html and 'applyProviderFilter()' in html, 'proxy state/filter must survive refresh'
 assert 'providerFilterEmpty' in html and "connection-pill offline" in html, 'visible status required'
